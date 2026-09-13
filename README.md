@@ -1,3 +1,9 @@
+> **Upstream:** This repository is derived from [daihao42/VB-CGCD](https://github.com/daihao42/VB-CGCD),
+> the official code for *"Continual Generalized Category Discovery: Learning and Forgetting from a
+> Bayesian Perspective"* (Dai & Chauhan, ICML 2025), released under the MIT License.
+> This fork adapts the method to continual learning on industrial surface defect data
+> (NEU-DET, GC10-DET). The original commit history is preserved.
+
 <div align="center">
 
 <h2>Continual Generalized Category Discovery:
