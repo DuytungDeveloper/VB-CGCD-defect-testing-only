@@ -14,6 +14,7 @@ import os
 
 from sl_finetuned_model import finetune_dino
 
+@torch.no_grad()
 def infer_features_labels(dino, data_loader, features_dir, labels_dir, device, args):
 
     dino.to(device)
