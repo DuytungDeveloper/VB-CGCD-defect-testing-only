@@ -73,7 +73,7 @@ def finetune_dino(train_set, num_classes, model_name="facebook/dino-vitb16"):
                         std=torch.tensor(std))
         ])
 
-    batch_size = 128
+    batch_size = int(os.environ.get("FT_BATCH_SIZE", 128))
 
     epochs = 10
 
@@ -89,7 +89,11 @@ def finetune_dino(train_set, num_classes, model_name="facebook/dino-vitb16"):
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=2)
 
     # Training loop
+    accum = int(os.environ.get("FT_ACCUM", 1))
     for epoch in range(epochs):  # Adjust epochs as needed
+        optimizer.zero_grad()
+        pending, running, nb = 0, 0.0, 0
+
         for bidx, batch in tqdm(enumerate(train_loader)):
 
             images = batch["images"].to(device)
@@ -98,14 +102,25 @@ def finetune_dino(train_set, num_classes, model_name="facebook/dino-vitb16"):
 
             cls_loss = F.cross_entropy(output, batch["labels"].to(device))
 
-            loss = cls_loss
+            loss = cls_loss / accum
 
             # Backward pass and optimization
-            optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
+            pending += 1
 
-            print(f"Epoch {epoch}, Loss: {loss.item()}")
+            if pending == accum:
+                optimizer.step()
+                optimizer.zero_grad()
+                pending = 0
+
+            running += cls_loss.item(); nb += 1
+
+        if pending > 0:          # flush phan du cuoi epoch
+            optimizer.step()
+            optimizer.zero_grad()
+
+        print(f"Epoch {epoch}: mean CE = {running / max(nb, 1):.4f} "
+              f"(batch={batch_size} accum={accum} effective={batch_size * accum})")
 
     return lora_model.backbone
 

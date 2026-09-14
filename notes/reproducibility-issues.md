@@ -149,7 +149,22 @@ suspect list if S0 differs.
 
 ## PATCH 2 — configurable fine-tune batch size + gradient accumulation
 
-*(to be filled in after the change is made)*
+**Applied.** Line 76 -> `int(os.environ.get("FT_BATCH_SIZE", 128))`.
+Lines 91-108 -> accumulation loop with `loss = cls_loss / accum`, a step every
+`accum` batches, and an end-of-epoch flush for the remainder.
+
+**Step count check (CIFAR-100, 50 base classes, 25,000 images):**
+  paper  batch 128          -> ceil(25000/128) = 196 batches = 196 steps/epoch
+  ours   batch 32, accum 4  -> ceil(25000/32)  = 782 batches
+                            -> 782//4 = 195 steps + 1 flush   = 196 steps/epoch
+  Match. Without the flush it would be 195 and the last 2 batches dropped.
+
+**Defaults unchanged.** With no env vars: batch_size=128, accum=1, flush is a
+no-op -> identical to upstream.
+
+**Log change.** Per-batch print (7,820 lines/epoch at batch 32) replaced by a
+per-epoch mean. `cls_loss` is logged before the `/accum` division so the value
+stays comparable to upstream.
 
 **File.** `feature_extractor/sl_finetuned_model.py`, lines 76 and 92-106.
 
