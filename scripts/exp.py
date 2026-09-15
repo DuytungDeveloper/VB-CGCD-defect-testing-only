@@ -4,6 +4,8 @@
   exp run TAG -- COMMAND ...     run COMMAND, save runs/<run>/config.json + console.log
   exp table                      build runs/INDEX.txt from every run
 
+After each run, an entry is appended to notes/LOG.md (fill in "why" and "note").
+
 A run can store numbers in runs/<run>/metrics.json as a flat dict {"name": number}.
 The command sees the run folder in the environment variable EXP_RUN_DIR.
 Optional runs/columns.txt: metric names to show in INDEX.txt, one per line.
@@ -72,6 +74,7 @@ def cmd_run(tag, command):
     (run_dir / "config.json").write_text(json.dumps(config, indent=2) + "\n")
     print(f"exp: done {run_id} exit={rc}")
     cmd_table(quiet=True)
+    append_log(root, run_dir, rc)
     return rc
 
 
@@ -79,6 +82,32 @@ def fmt(v):
     if isinstance(v, bool) or not isinstance(v, (int, float)):
         return str(v)
     return f"{v:.2f}" if abs(v) >= 1 or v == 0 else f"{v:.4f}"
+
+
+def read_columns(runs):
+    col_file = runs / "columns.txt"
+    if not col_file.exists():
+        return None
+    return [l.strip() for l in col_file.read_text().splitlines()
+            if l.strip() and not l.strip().startswith("#")]
+
+
+def append_log(root, run_dir, rc):
+    m_path = run_dir / "metrics.json"
+    metrics = json.loads(m_path.read_text()) if m_path.exists() else {}
+    cols = read_columns(root / "runs") or list(metrics)
+    if rc != 0:
+        result = f"FAILED exit={rc}"
+    elif metrics:
+        result = " | ".join(f"{c} {fmt(metrics[c])}" for c in cols if c in metrics)
+    else:
+        result = "(no metrics.json yet; copy from runs/INDEX.txt later)"
+    log = root / "notes" / "LOG.md"
+    log.parent.mkdir(exist_ok=True)
+    if not log.exists():
+        log.write_text("# LOG\n\n## Open questions\n-\n\n---\n")
+    with open(log, "a") as f:
+        f.write(f"\n## {run_dir.name}\nwhy:\nresult: {result}\nnote:\n")
 
 
 def cmd_table(quiet=False):
@@ -91,12 +120,7 @@ def cmd_table(quiet=False):
         rows.append((cfg.get("started", ""), cfg, metrics))
     rows.sort(key=lambda r: (r[0], r[1].get("run_id", "")))   # oldest first
 
-    col_file = runs / "columns.txt"
-    if col_file.exists():
-        cols = [l.strip() for l in col_file.read_text().splitlines()
-                if l.strip() and not l.strip().startswith("#")]
-    else:
-        cols = list(dict.fromkeys(k for _, _, m in rows for k in m))
+    cols = read_columns(runs) or list(dict.fromkeys(k for _, _, m in rows for k in m))
 
     head = ["started", "tag", "exit", "min", "dirty"] + cols + ["run"]
     table = [head]
