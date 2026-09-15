@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 """exp - minimal experiment runner.
 
-  exp run TAG -- COMMAND ...
+  exp run TAG -- COMMAND ...     run COMMAND, save runs/<run>/config.json + console.log
+  exp table                      build runs/INDEX.txt from every run
+
+A run can store numbers in runs/<run>/metrics.json as a flat dict {"name": number}.
+The command sees the run folder in the environment variable EXP_RUN_DIR.
+Optional runs/columns.txt: metric names to show in INDEX.txt, one per line.
 """
 import datetime as dt, json, os, platform, subprocess, sys
 from pathlib import Path
@@ -16,6 +21,10 @@ def now():
     return dt.datetime.now().astimezone()
 
 
+def repo_root():
+    return Path(sh("git rev-parse --show-toplevel") or ".").resolve()
+
+
 def git_info(root):
     # untracked files count as dirty; bookkeeping folders do not
     status = sh("git status --porcelain -- . ':(exclude)runs' ':(exclude)notes'", root)
@@ -27,7 +36,7 @@ def git_info(root):
 
 
 def cmd_run(tag, command):
-    root = Path(sh("git rev-parse --show-toplevel") or ".").resolve()
+    root = repo_root()
     start = now()
     run_id = start.strftime("%Y%m%d_%H%M%S") + "__" + tag
     run_dir = root / "runs" / run_id
@@ -47,8 +56,8 @@ def cmd_run(tag, command):
     print(f"exp: {run_id}", flush=True)
 
     # run the command, show output live AND save it (like tee)
+    env = dict(os.environ, PYTHONUNBUFFERED="1", EXP_RUN_DIR=str(run_dir))
     with open(run_dir / "console.log", "wb") as log:
-        env = dict(os.environ, PYTHONUNBUFFERED="1")   # keep stdout/stderr in true order
         p = subprocess.Popen(command, cwd=root, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for chunk in iter(lambda: p.stdout.read1(65536), b""):
             sys.stdout.buffer.write(chunk)
@@ -62,17 +71,57 @@ def cmd_run(tag, command):
     config["exit_code"] = rc
     (run_dir / "config.json").write_text(json.dumps(config, indent=2) + "\n")
     print(f"exp: done {run_id} exit={rc}")
+    cmd_table(quiet=True)
     return rc
+
+
+def fmt(v):
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return str(v)
+    return f"{v:.2f}" if abs(v) >= 1 or v == 0 else f"{v:.4f}"
+
+
+def cmd_table(quiet=False):
+    runs = repo_root() / "runs"
+    rows = []
+    for cfg_path in runs.glob("*/config.json"):
+        cfg = json.loads(cfg_path.read_text())
+        m_path = cfg_path.parent / "metrics.json"
+        metrics = json.loads(m_path.read_text()) if m_path.exists() else {}
+        rows.append((cfg.get("started", ""), cfg, metrics))
+    rows.sort(key=lambda r: (r[0], r[1].get("run_id", "")))   # oldest first
+
+    col_file = runs / "columns.txt"
+    if col_file.exists():
+        cols = [l.strip() for l in col_file.read_text().splitlines()
+                if l.strip() and not l.strip().startswith("#")]
+    else:
+        cols = list(dict.fromkeys(k for _, _, m in rows for k in m))
+
+    head = ["started", "tag", "exit", "min", "dirty"] + cols + ["run"]
+    table = [head]
+    for started, cfg, m in rows:
+        table.append([started[:16].replace("T", " "), cfg.get("tag", ""),
+                      str(cfg.get("exit_code", "-")), str(cfg.get("duration_min", "-")),
+                      "yes" if cfg.get("git", {}).get("dirty") else "no"]
+                     + [fmt(m[c]) if c in m else "-" for c in cols] + [cfg.get("run_id", "")])
+
+    w = [max(len(r[i]) for r in table) for i in range(len(head))]
+    text_cols = {0, 1, len(head) - 1}                  # left-align text, right-align numbers
+    lines = ["  ".join(c.ljust(w[i]) if i in text_cols else c.rjust(w[i]) for i, c in enumerate(r)).rstrip()
+             for r in table]
+    (runs / "INDEX.txt").write_text("\n".join(lines) + "\n")
+    if not quiet:
+        print("\n".join(lines))
 
 
 def main():
     argv = sys.argv[1:]
-    if len(argv) < 4 or argv[0] != "run" or "--" not in argv:
-        sys.exit(__doc__)
-    cut = argv.index("--")
-    if cut != 2:
-        sys.exit(__doc__)
-    sys.exit(cmd_run(argv[1], argv[cut + 1:]))
+    if argv == ["table"]:
+        return cmd_table()
+    if len(argv) >= 4 and argv[0] == "run" and argv[2] == "--":
+        sys.exit(cmd_run(argv[1], argv[3:]))
+    sys.exit(__doc__)
 
 
 if __name__ == "__main__":
