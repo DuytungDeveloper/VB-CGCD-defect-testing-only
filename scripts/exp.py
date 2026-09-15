@@ -65,6 +65,7 @@ def cmd_run(tag, command):
             sys.stdout.buffer.write(chunk)
             sys.stdout.buffer.flush()
             log.write(chunk)
+            log.flush()
         rc = p.wait()
 
     end = now()
@@ -80,6 +81,8 @@ def cmd_run(tag, command):
 
 def fmt(v):
     if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return str(v)
+    if isinstance(v, int):
         return str(v)
     return f"{v:.2f}" if abs(v) >= 1 or v == 0 else f"{v:.4f}"
 
