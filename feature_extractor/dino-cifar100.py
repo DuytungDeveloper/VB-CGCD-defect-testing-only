@@ -110,7 +110,7 @@ if __name__ == '__main__':
     # create data loaders
     train_dataset.set_format("torch")
     train_dataset = train_dataset.with_transform(trans_func)
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, num_workers=6)
     data_loader = train_loader
 
     if (not args.finetuned):

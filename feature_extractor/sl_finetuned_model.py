@@ -86,7 +86,7 @@ def finetune_dino(train_set, num_classes, model_name="facebook/dino-vitb16"):
 
     print(train_set)
 
-    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=2)
+    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=6)
 
     # Training loop
     accum = int(os.environ.get("FT_ACCUM", 1))
@@ -121,6 +121,10 @@ def finetune_dino(train_set, num_classes, model_name="facebook/dino-vitb16"):
 
         print(f"Epoch {epoch}: mean CE = {running / max(nb, 1):.4f} "
               f"(batch={batch_size} accum={accum} effective={batch_size * accum})")
+
+        ckpt = {n: p.detach().cpu() for n, p in lora_model.named_parameters()
+                if p.requires_grad}
+        torch.save({"epoch": epoch, "state": ckpt}, "/tmp/ft_ckpt.pt")
 
     return lora_model.backbone
 

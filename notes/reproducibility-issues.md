@@ -198,3 +198,65 @@ scikit-learn  1.5.2
 `GaussianMixture` initialization (which produces the pseudo-labels), and
 numpyro decides how `Trace_ELBO` scales the subsampled loss — the only loss
 function in the whole system.
+
+## PATCH 3 — raise DataLoader num_workers to 6
+
+**Files.** `sl_finetuned_model.py:89` (2 -> 6),
+`dino-cifar100.py:113` (unset, i.e. 0 -> 6).
+
+**Can this change results? No.** `train_transforms` (dino-cifar100.py:92-99) is
+Resize -> CenterCrop -> ToTensor -> Normalize. All deterministic, no random
+augmentation, so worker RNG streams never enter the pipeline. `shuffle=True`
+runs in the main process and does not depend on worker count.
+
+**Measured effect on fine-tuning: small.**
+  real run (batch 32, num_workers=2)          1.27  s/it
+  synthetic input, no dataloader at all       1.178 s/it
+  => I/O accounts for roughly 7% of fine-tune step time.
+
+**Why keep it anyway.** The measurement above covers the fine-tune phase only,
+where each batch is expensive (forward + backward). The extraction phase is
+forward-only under no_grad, so per-batch compute is much cheaper while the
+decode/resize cost is unchanged — the I/O share should be larger there. That
+loader is exactly the one the authors left at the default of 0. Not measured
+separately.
+
+**Note on the upstream values.** The two loaders disagree (2 vs unset), which
+suggests neither was tuned. On the paper's RTX 8000 with batch 128 the
+difference would be invisible.
+
+**Classification.** Technical fix, not a numerical deviation.
+
+## PATCH 4 — save trainable params after each epoch
+
+**File.** `sl_finetuned_model.py`, end of the epoch loop.
+
+Saves only `requires_grad=True` params (298,084 ~ 1.2 MB) to `/tmp/ft_ckpt.pt`,
+not the full state_dict (86M params, ~346 MB). Frozen weights are recoverable
+from the HuggingFace checkpoint.
+
+**Can this change results? No.** Write-only. Nothing is ever read back; no
+resume logic exists.
+
+**Why.** A forced Windows Update reboot killed a 2.2-hour run at epoch 7 with
+nothing on disk. `/tmp` is ext4, not the drvfs mount (`/mnt/e`) that lost
+directory metadata in that crash — `datasets/cifar100` came back as
+`datasets/cifar10`, and `console.log` was padded with NUL bytes.
+
+**Classification.** Technical fix, not a numerical deviation.
+
+### A5 addendum — final build error identified
+After `export CUDA_HOME=$CONDA_PREFIX`, compilation of both `.cpp` and `.cu`
+succeeds; the build now fails only at the link step:
+
+    gcc fbd_cuda.o fbd_cuda_kernel.cuda.o -shared ... -lcudart -o fbd_cuda.so
+    /usr/bin/ld: cannot find -lcudart: No such file or directory
+
+Likely cause: conda ships `libcudart.so.12` without the unversioned
+`libcudart.so` symlink that `-lcudart` needs. Untested fix:
+`ln -sf $CONDA_PREFIX/lib/libcudart.so.12 $CONDA_PREFIX/lib/libcudart.so`
+plus `export TORCH_CUDA_ARCH_LIST="8.9"` and `LDFLAGS`/`LD_LIBRARY_PATH`
+pointing at `$CONDA_PREFIX/lib`.
+
+Not pursued — see the A5 decision. Note that building it would switch the
+factor from 1 to 2, which changes the training configuration, not just speed.
