@@ -86,7 +86,7 @@ def finetune_dino(train_set, num_classes, model_name="facebook/dino-vitb16"):
 
     print(train_set)
 
-    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=6)
+    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=2)
 
     # Training loop
     accum = int(os.environ.get("FT_ACCUM", 1))
