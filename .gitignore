@@ -193,7 +193,6 @@ datasets/
 checkpoints/
 features/
 logs/
-runs/
 wandb/
 outputs/
 results/
@@ -207,3 +206,10 @@ results/
 .idea/
 .vscode/
 datasets
+
+# --- experiment tracking ---
+runs/latest
+runs/*/console.log
+runs/*/gpu.csv
+runs/*/tb
+runs/*/checkpoints
