@@ -1,0 +1,4 @@
+started           tag           exit  min  dirty  S0_All  S1_New  final_All    M_d   M_f  run
+                  paper            0    -     no   91.68   83.10      81.23  79.14  6.94  paper
+2026-09-15 13:30  extract_c100     0    -      ?       -       -          -      -     -  20260915_1330__extract__cifar100_dino-vitb16-sl
+2026-09-15 16:46  baseline_s0      0    -     no   91.84   67.90      80.37  76.92  6.54  20260915_1646__cifar100_b50t5_seed0__baseline

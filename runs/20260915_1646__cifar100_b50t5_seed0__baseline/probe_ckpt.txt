@@ -1,0 +1,133 @@
+
+========================================================================
+MODULE: classifier.mngmm  ->  checkpoints
+========================================================================
+  LUU Y: ten file dinh lien 'stage0class_covariances.npy' —
+         mngmm.py:298-299 thieu dau '/' trong f-string.
+
+[runs/20260915_1646__cifar100_b50t5_seed0__baseline/checkpoints/stage0class_covariances.npy]  59.0 MB
+  array                    shape=(1, 384, 384)      dtype=float32
+                           min=-0.0250 max=1.0253 mean=0.0025 std=0.0501
+  full shape               (100, 384, 384)
+  per-class stats          (trace/d = 1.0000 nghia la Sigma VAN o khoi tao I)
+    class   0 | trace/d=  0.9781 | logdet=   -10.095 (sign=+1) | ||S-I||_F=  1.9902 | eig=[0.9103, 1.6905] | neg_eig=0
+    class   1 | trace/d=  0.9779 | logdet=    -9.951 (sign=+1) | ||S-I||_F=  1.8246 | eig=[0.9071, 1.6970] | neg_eig=0
+    class  49 | trace/d=  0.9790 | logdet=    -9.531 (sign=+1) | ||S-I||_F=  1.8322 | eig=[0.9127, 1.6693] | neg_eig=0
+    class  50 | trace/d=  1.0000 | logdet=     0.000 (sign=+1) | ||S-I||_F=  0.0000 | eig=[1.0000, 1.0000] | neg_eig=0
+    class  59 | trace/d=  1.0000 | logdet=     0.000 (sign=+1) | ||S-I||_F=  0.0000 | eig=[1.0000, 1.0000] | neg_eig=0
+  -> neg_eig > 0 nghia la Sigma MAT tinh xac dinh duong.
+     class_covs la numpyro.param KHONG rang buoc; mngmm.py:160
+     co nhanh bat NaN, dau hieu tac gia tung gap su co nay.
+
+[runs/20260915_1646__cifar100_b50t5_seed0__baseline/checkpoints/stage0class_means.npy]  0.2 MB
+  array                    shape=(1, 384)           dtype=float32
+                           min=-0.0265 max=0.0270 mean=-0.0002 std=0.0070
+  full shape               (100, 384)
+  ||mu_k|| per class       min=0.00000 max=0.14701 mean=0.06816
+  so lop co mu == 0        50 / 100   (lop chua tung gap van o khoi tao 0)
+
+[runs/20260915_1646__cifar100_b50t5_seed0__baseline/checkpoints/stage1class_covariances.npy]  59.0 MB
+  array                    shape=(1, 384, 384)      dtype=float32
+                           min=-0.0250 max=1.0253 mean=0.0025 std=0.0501
+  full shape               (100, 384, 384)
+  per-class stats          (trace/d = 1.0000 nghia la Sigma VAN o khoi tao I)
+    class   0 | trace/d=  0.9781 | logdet=   -10.095 (sign=+1) | ||S-I||_F=  1.9902 | eig=[0.9103, 1.6905] | neg_eig=0
+    class   1 | trace/d=  0.9779 | logdet=    -9.951 (sign=+1) | ||S-I||_F=  1.8246 | eig=[0.9071, 1.6970] | neg_eig=0
+    class  49 | trace/d=  0.9790 | logdet=    -9.531 (sign=+1) | ||S-I||_F=  1.8322 | eig=[0.9127, 1.6693] | neg_eig=0
+    class  50 | trace/d=  0.9840 | logdet=    -8.165 (sign=+1) | ||S-I||_F=  2.1281 | eig=[0.8858, 1.7261] | neg_eig=0
+    class  59 | trace/d=  0.9829 | logdet=    -8.761 (sign=+1) | ||S-I||_F=  2.3293 | eig=[0.8698, 2.1121] | neg_eig=0
+  -> neg_eig > 0 nghia la Sigma MAT tinh xac dinh duong.
+     class_covs la numpyro.param KHONG rang buoc; mngmm.py:160
+     co nhanh bat NaN, dau hieu tac gia tung gap su co nay.
+
+[runs/20260915_1646__cifar100_b50t5_seed0__baseline/checkpoints/stage1class_means.npy]  0.2 MB
+  array                    shape=(1, 384)           dtype=float32
+                           min=-0.0265 max=0.0270 mean=-0.0002 std=0.0070
+  full shape               (100, 384)
+  ||mu_k|| per class       min=0.00000 max=0.20336 mean=0.08566
+  so lop co mu == 0        40 / 100   (lop chua tung gap van o khoi tao 0)
+
+[runs/20260915_1646__cifar100_b50t5_seed0__baseline/checkpoints/stage2class_covariances.npy]  59.0 MB
+  array                    shape=(1, 384, 384)      dtype=float32
+                           min=-0.0250 max=1.0253 mean=0.0025 std=0.0501
+  full shape               (100, 384, 384)
+  per-class stats          (trace/d = 1.0000 nghia la Sigma VAN o khoi tao I)
+    class   0 | trace/d=  0.9781 | logdet=   -10.095 (sign=+1) | ||S-I||_F=  1.9902 | eig=[0.9103, 1.6905] | neg_eig=0
+    class   1 | trace/d=  0.9779 | logdet=    -9.951 (sign=+1) | ||S-I||_F=  1.8246 | eig=[0.9071, 1.6970] | neg_eig=0
+    class  49 | trace/d=  0.9790 | logdet=    -9.531 (sign=+1) | ||S-I||_F=  1.8322 | eig=[0.9127, 1.6693] | neg_eig=0
+    class  50 | trace/d=  0.9840 | logdet=    -8.165 (sign=+1) | ||S-I||_F=  2.1281 | eig=[0.8858, 1.7261] | neg_eig=0
+    class  59 | trace/d=  0.9829 | logdet=    -8.761 (sign=+1) | ||S-I||_F=  2.3293 | eig=[0.8698, 2.1121] | neg_eig=0
+  -> neg_eig > 0 nghia la Sigma MAT tinh xac dinh duong.
+     class_covs la numpyro.param KHONG rang buoc; mngmm.py:160
+     co nhanh bat NaN, dau hieu tac gia tung gap su co nay.
+
+[runs/20260915_1646__cifar100_b50t5_seed0__baseline/checkpoints/stage2class_means.npy]  0.2 MB
+  array                    shape=(1, 384)           dtype=float32
+                           min=-0.0265 max=0.0270 mean=-0.0002 std=0.0070
+  full shape               (100, 384)
+  ||mu_k|| per class       min=0.00000 max=0.20336 mean=0.10334
+  so lop co mu == 0        30 / 100   (lop chua tung gap van o khoi tao 0)
+
+[runs/20260915_1646__cifar100_b50t5_seed0__baseline/checkpoints/stage3class_covariances.npy]  59.0 MB
+  array                    shape=(1, 384, 384)      dtype=float32
+                           min=-0.0250 max=1.0253 mean=0.0025 std=0.0501
+  full shape               (100, 384, 384)
+  per-class stats          (trace/d = 1.0000 nghia la Sigma VAN o khoi tao I)
+    class   0 | trace/d=  0.9781 | logdet=   -10.095 (sign=+1) | ||S-I||_F=  1.9902 | eig=[0.9103, 1.6905] | neg_eig=0
+    class   1 | trace/d=  0.9779 | logdet=    -9.951 (sign=+1) | ||S-I||_F=  1.8246 | eig=[0.9071, 1.6970] | neg_eig=0
+    class  49 | trace/d=  0.9790 | logdet=    -9.531 (sign=+1) | ||S-I||_F=  1.8322 | eig=[0.9127, 1.6693] | neg_eig=0
+    class  50 | trace/d=  0.9840 | logdet=    -8.165 (sign=+1) | ||S-I||_F=  2.1281 | eig=[0.8858, 1.7261] | neg_eig=0
+    class  59 | trace/d=  0.9829 | logdet=    -8.761 (sign=+1) | ||S-I||_F=  2.3293 | eig=[0.8698, 2.1121] | neg_eig=0
+  -> neg_eig > 0 nghia la Sigma MAT tinh xac dinh duong.
+     class_covs la numpyro.param KHONG rang buoc; mngmm.py:160
+     co nhanh bat NaN, dau hieu tac gia tung gap su co nay.
+
+[runs/20260915_1646__cifar100_b50t5_seed0__baseline/checkpoints/stage3class_means.npy]  0.2 MB
+  array                    shape=(1, 384)           dtype=float32
+                           min=-0.0265 max=0.0270 mean=-0.0002 std=0.0070
+  full shape               (100, 384)
+  ||mu_k|| per class       min=0.00000 max=0.20897 mean=0.12135
+  so lop co mu == 0        20 / 100   (lop chua tung gap van o khoi tao 0)
+
+[runs/20260915_1646__cifar100_b50t5_seed0__baseline/checkpoints/stage4class_covariances.npy]  59.0 MB
+  array                    shape=(1, 384, 384)      dtype=float32
+                           min=-0.0250 max=1.0253 mean=0.0025 std=0.0501
+  full shape               (100, 384, 384)
+  per-class stats          (trace/d = 1.0000 nghia la Sigma VAN o khoi tao I)
+    class   0 | trace/d=  0.9781 | logdet=   -10.095 (sign=+1) | ||S-I||_F=  1.9902 | eig=[0.9103, 1.6905] | neg_eig=0
+    class   1 | trace/d=  0.9779 | logdet=    -9.951 (sign=+1) | ||S-I||_F=  1.8246 | eig=[0.9071, 1.6970] | neg_eig=0
+    class  49 | trace/d=  0.9790 | logdet=    -9.531 (sign=+1) | ||S-I||_F=  1.8322 | eig=[0.9127, 1.6693] | neg_eig=0
+    class  50 | trace/d=  0.9840 | logdet=    -8.165 (sign=+1) | ||S-I||_F=  2.1281 | eig=[0.8858, 1.7261] | neg_eig=0
+    class  59 | trace/d=  0.9829 | logdet=    -8.761 (sign=+1) | ||S-I||_F=  2.3293 | eig=[0.8698, 2.1121] | neg_eig=0
+  -> neg_eig > 0 nghia la Sigma MAT tinh xac dinh duong.
+     class_covs la numpyro.param KHONG rang buoc; mngmm.py:160
+     co nhanh bat NaN, dau hieu tac gia tung gap su co nay.
+
+[runs/20260915_1646__cifar100_b50t5_seed0__baseline/checkpoints/stage4class_means.npy]  0.2 MB
+  array                    shape=(1, 384)           dtype=float32
+                           min=-0.0265 max=0.0270 mean=-0.0002 std=0.0070
+  full shape               (100, 384)
+  ||mu_k|| per class       min=0.00000 max=0.20897 mean=0.13856
+  so lop co mu == 0        10 / 100   (lop chua tung gap van o khoi tao 0)
+
+[runs/20260915_1646__cifar100_b50t5_seed0__baseline/checkpoints/stage5class_covariances.npy]  59.0 MB
+  array                    shape=(1, 384, 384)      dtype=float32
+                           min=-0.0250 max=1.0253 mean=0.0025 std=0.0501
+  full shape               (100, 384, 384)
+  per-class stats          (trace/d = 1.0000 nghia la Sigma VAN o khoi tao I)
+    class   0 | trace/d=  0.9781 | logdet=   -10.095 (sign=+1) | ||S-I||_F=  1.9902 | eig=[0.9103, 1.6905] | neg_eig=0
+    class   1 | trace/d=  0.9779 | logdet=    -9.951 (sign=+1) | ||S-I||_F=  1.8246 | eig=[0.9071, 1.6970] | neg_eig=0
+    class  49 | trace/d=  0.9790 | logdet=    -9.531 (sign=+1) | ||S-I||_F=  1.8322 | eig=[0.9127, 1.6693] | neg_eig=0
+    class  50 | trace/d=  0.9840 | logdet=    -8.165 (sign=+1) | ||S-I||_F=  2.1281 | eig=[0.8858, 1.7261] | neg_eig=0
+    class  59 | trace/d=  0.9829 | logdet=    -8.761 (sign=+1) | ||S-I||_F=  2.3293 | eig=[0.8698, 2.1121] | neg_eig=0
+  -> neg_eig > 0 nghia la Sigma MAT tinh xac dinh duong.
+     class_covs la numpyro.param KHONG rang buoc; mngmm.py:160
+     co nhanh bat NaN, dau hieu tac gia tung gap su co nay.
+
+[runs/20260915_1646__cifar100_b50t5_seed0__baseline/checkpoints/stage5class_means.npy]  0.2 MB
+  array                    shape=(1, 384)           dtype=float32
+                           min=-0.0265 max=0.0270 mean=-0.0002 std=0.0070
+  full shape               (100, 384)
+  ||mu_k|| per class       min=0.09997 max=0.20897 mean=0.15373
+  so lop co mu == 0        0 / 100   (lop chua tung gap van o khoi tao 0)
+

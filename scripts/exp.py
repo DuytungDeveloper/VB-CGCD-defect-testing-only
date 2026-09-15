@@ -127,7 +127,7 @@ def cmd_table(quiet=False):
     for started, cfg, m in rows:
         table.append([started[:16].replace("T", " "), cfg.get("tag", ""),
                       str(cfg.get("exit_code", "-")), str(cfg.get("duration_min", "-")),
-                      "yes" if cfg.get("git", {}).get("dirty") else "no"]
+                      {True: "yes", False: "no"}.get(cfg.get("git", {}).get("dirty"), "?")]
                      + [fmt(m[c]) if c in m else "-" for c in cols] + [cfg.get("run_id", "")])
 
     w = [max(len(r[i]) for r in table) for i in range(len(head))]

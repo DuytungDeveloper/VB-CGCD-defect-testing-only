@@ -1,0 +1,9 @@
+{
+  "run_id": "paper",
+  "tag": "paper",
+  "started": "",
+  "command": [],
+  "git": {"dirty": false},
+  "exit_code": 0,
+  "source": "Dai & Chauhan, ICML 2025. Table 2 (C100, VB-CGCD row), Table 3. Single run, seed 0."
+}
