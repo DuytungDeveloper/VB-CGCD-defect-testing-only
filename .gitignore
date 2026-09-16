@@ -213,3 +213,4 @@ runs/*/console.log
 runs/*/gpu.csv
 runs/*/tb
 runs/*/checkpoints
+archive/
