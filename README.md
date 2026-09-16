@@ -1,62 +1,100 @@
-> **Upstream:** This repository is derived from [daihao42/VB-CGCD](https://github.com/daihao42/VB-CGCD),
-> the official code for *"Continual Generalized Category Discovery: Learning and Forgetting from a
-> Bayesian Perspective"* (Dai & Chauhan, ICML 2025), released under the MIT License.
-> This fork adapts the method to continual learning on industrial surface defect data
-> (NEU-DET, GC10-DET). The original commit history is preserved.
+# VB-CGCD reproduction (fork)
 
-<div align="center">
+Reproduction of VB-CGCD on CIFAR-100, with notes on where the code differs from the paper.
+Planned next: industrial surface defect data (NEU-DET, GC10-DET).
 
-<h2>Continual Generalized Category Discovery:
+Paper:     Dai & Chauhan, "Continual Generalized Category Discovery: Learning and Forgetting
+           from a Bayesian Perspective", ICML 2025.
+           https://proceedings.mlr.press/v267/dai25a.html
+           arXiv: https://arxiv.org/abs/2507.17382
+Upstream:  https://github.com/daihao42/VB-CGCD (its README declares MIT; the upstream repo has no LICENSE file).
 
-Learning and Forgetting from a Bayesian Perspective</h2>
+## 1. What is where
 
-[Hao Dai](https://github.com/daihao42), [Jagmohan Chauhan](https://sites.google.com/view/jagmohan-chauhan/home)
+    scripts/exp.py                     runs any command and records it in runs/<run_id>/
+    scripts/run_phase1_extract.sh      phase 1: fine-tune the backbone, extract features
+    scripts/check_phase1.py            checks the phase 1 output
+    scripts/run_phase2_cl.sh           phase 2: continual learning (main.py)
+    scripts/extract_vbcgcd.py          reads the phase 2 log, writes metrics.json
 
-University College London
+    features/<run_id>/                 phase 1 output: features + fine-tune checkpoint   (not in git)
+    logs/<run_id>_<minute>/            phase 2 output: checkpoints + TensorBoard          (not in git)
+    runs/<run_id>/                     config.json, metrics.json, console.log (log not in git)
+    runs/INDEX.txt                     one line per run, written automatically
+    runs/inputs.txt                    feature folder that phase 2 reads
+    runs/columns.txt                   metrics shown in INDEX.txt and in the LOG
+    runs/paper/                        paper numbers, shown as a reference row
+    notes/LOG.md                       one entry per run (automatic) + open questions
+    notes/reproducibility-issues.md    environment problems and local patches
+    notes/paper-code-discrepancies.md  where the code differs from the paper
+    archive/                           old runs                                           (not in git)
 
-University of Southampton
+## 2. Environment
 
-[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+Tested on WSL2 Ubuntu 22.04, RTX 4060 Laptop 8 GB, Python 3.12.
+Do not install from requirements.txt: it does not work (see notes, A1 and A2).
 
-</div>
-<div align="center">
-<img src="figures/framework.png" alt="Visualization">
-</div>
+    conda create -n vbcgcd python=3.12
+    conda activate vbcgcd
+    pip install -r requirements-lock.txt
 
-## Usage
+Check that JAX uses the GPU. It must print [CudaDevice(id=0)]:
 
-### Installation
+    python -c "import jax; print(jax.devices())"
 
-```
-conda create -n vbcgcd python=3.12.2
-conda activate vbcgcd
-pip install -r requirements.txt
-mkdir datasets
-```
+CIFAR-100 and the DINO weights are downloaded by Hugging Face on first use (~/.cache/huggingface).
 
-## Prepare Datasets
+## 3. Rules
 
-```
-python feature_extractor/dino-cifar100.py --finetuned --output_dir datasets/cifar100
-```
+- Run everything through scripts/exp.py, inside tmux.
+- Commit code before a run. exp.py records the commit; uncommitted code shows dirty = yes.
+- Phase 1 takes about 3 h 15 min on the RTX 4060. Before it: pause Windows Update,
+  disable sleep, close apps that use the GPU on Windows.
 
-## Training
+## 4. Phase 1: features (once per feature set)
 
-```
-python main.py --base 50 --increment 10 --pretrained_model_name dino-vitb16-sl --data_dir datasets/cifar100 --trail_name mix_increment_mngmm_dinovb16_sl_cifar_100
-```
+    tmux new -s extract
+    conda activate vbcgcd
+    cd ~/projects/VB-CGCD-defect
+    python scripts/exp.py run extract_c100 -- bash scripts/run_phase1_extract.sh
 
-## Citation
+Output: features/<run_id>/dino-vitb16-sl/*.npy and features/<run_id>/ft_ckpt.pt.
+The run ends with check_phase1.py, which must print "OK: 0 failed check(s)".
 
-If you find our work useful, please cite our related paper:
+Then tell phase 2 which features to use (one line), and commit it:
 
-```
-# ICML 2025
-@inproceedings{dai2025vbcgcd,
-  title={Continual Generalized Category Discovery: Learning and Forgetting from a Bayesian Perspective},
-  author={Dai, Hao and Chauhan, Jagmohan},
-  booktitle={Proceedings of the 42nd International Conference on Machine Learning (ICML)},
-  year={2025}
-}
+    echo "features/<run_id>/dino-vitb16-sl" > runs/inputs.txt
 
-```
+## 5. Phase 2: continual learning
+
+Smoke test, 5 steps per stage, about 2 min:
+
+    python scripts/exp.py run smoke -- bash scripts/run_phase2_cl.sh --n_epochs 5
+
+Five seeds:
+
+    tmux new -s cl
+    conda activate vbcgcd
+    cd ~/projects/VB-CGCD-defect
+    for s in 0 1 2 3 4; do
+      python scripts/exp.py run baseline_s$s -- bash scripts/run_phase2_cl.sh --seed $s
+    done
+
+Arguments after the script name override its defaults, for example --seed or --n_epochs.
+
+## 6. Results
+
+    python scripts/exp.py table            # prints and writes runs/INDEX.txt
+    python scripts/exp.py agg baseline     # mean/std over baseline_s* -> runs/agg_baseline.txt
+
+After each run, fill in "why" and "note" in notes/LOG.md, then:
+
+    git add runs notes
+    git commit -m "results: <tag>"
+    git push
+
+## 7. tmux and stopping a run
+
+    Ctrl+B then D            detach, the run keeps going
+    tmux attach -t cl        come back
+    Ctrl+C                   stop the run; it is kept with exit_code "interrupted"

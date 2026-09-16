@@ -317,3 +317,14 @@ scikit-learn  1.5.2
 `GaussianMixture` initialization, which produces the pseudo-labels. numpyro
 decides how `Trace_ELBO` scales the subsampled loss — the only loss function
 in the whole system.
+
+`requirements-lock.txt` was regenerated on 2026-09-16 from this working env
+(`pip list --format=freeze`, pip line removed). The first lock (commit fd8316b,
+2026-09-14) captured the broken state from A2 (transformers 5.17.0, peft 0.20.0,
+tokenizers 0.23.2, huggingface_hub 1.31.0), had a conda `@ file://` line, and had no
+`--extra-index-url` for torch cu121, so it could not be installed.
+
+The lock only covers pip packages. Conda packages from A5 (cuda-nvcc, cuda-cccl) are not in it.
+`ninja` is in the lock: on a machine with a complete CUDA toolchain, `fbd_cuda` may build and
+the butterfly factor becomes 2 (a different training setup). `check_phase1.py` catches this:
+the checkpoint would hold 1,072,996 params instead of 888,676.
