@@ -214,3 +214,4 @@ runs/*/gpu.csv
 runs/*/tb
 runs/*/checkpoints
 archive/
+runs/*/artifacts
