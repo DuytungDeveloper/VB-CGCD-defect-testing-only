@@ -81,3 +81,12 @@ impact: the backbone has seen labels of samples that phase 2 treats as unlabeled
 - optimizer: AdamW, lr=1e-3, 10 epochs — matches Appendix C.3.
 - MultiCropWrapper docstring describes multi-resolution forward passes, but forward()
   performs a single pass. Vestigial code copied from the DINO repository.
+
+## D10. PCA fit data: not stated in paper, code fits once on S0 labeled train features
+paper:  Appendix C.3: PCA reduces output features to 384 dims. Does not say which data PCA is fit on.
+code:   mngmm.py:170-176 pre_processing: first call (pca is None) -> fit_transform; later calls -> transform.
+        Call order at stage 0: main.py:128 run() -> mngmm.py:275 train() -> mngmm.py:180 pre_processing(train);
+        all test() calls come later (mngmm.py:279-291). So PCA is fit on S0 labeled train features, then frozen.
+        sklearn 1.5.2 auto solver for 20000x768, 384 comps = covariance_eigh (checked 2026-09-17) -> deterministic.
+impact: PCA is not a source of seed variance. The 384-d space is built from base classes only;
+        new classes may lose variance. Matters more for datasets with few base classes (NEU-DET, GC10-DET).
