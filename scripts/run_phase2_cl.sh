@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # VB-CGCD phase 2 only. Always call it through exp:
-#   python scripts/exp.py run baseline_s1 -- bash scripts/run_phase2_cl.sh --seed 1
+#   python scripts/exp.py run c100_base_s1 -- bash scripts/run_phase2_cl.sh --seed 1
 # 1) feature folder = first line of runs/inputs.txt, e.g. features/<extract_run_id>/dino-vitb16-sl
 # 2) stops if JAX is not on the GPU (silent CPU fallback, see reproducibility-issues.md A1)
 # 3) runs main.py with EVERY argument written out, so console.log holds the full config

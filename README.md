@@ -47,6 +47,8 @@ CIFAR-100 and the DINO weights are downloaded by Hugging Face on first use (~/.c
 ## 3. Rules
 
 - Run everything through scripts/exp.py, inside tmux.
+- Tags: <dataset>_<purpose>[_<variant>][_s<N>], only [a-z0-9_], never "__".
+  Examples: c100_extract, c100_base_s0, c100_base_lr1e5_s0. exp agg groups <name>_s<N> exactly.
 - Commit code before a run. exp.py records the commit; uncommitted code shows dirty = yes.
 - Phase 1 takes about 3 h 15 min on the RTX 4060. Before it: pause Windows Update,
   disable sleep, close apps that use the GPU on Windows.
@@ -56,7 +58,7 @@ CIFAR-100 and the DINO weights are downloaded by Hugging Face on first use (~/.c
     tmux new -s extract
     conda activate vbcgcd
     cd ~/projects/VB-CGCD-defect
-    python scripts/exp.py run extract_c100 -- bash scripts/run_phase1_extract.sh
+    python scripts/exp.py run c100_extract -- bash scripts/run_phase1_extract.sh
 
 Output: features/<run_id>/dino-vitb16-sl/*.npy and features/<run_id>/ft_ckpt.pt.
 The run ends with check_phase1.py, which must print "OK: 0 failed check(s)".
@@ -69,7 +71,7 @@ Then tell phase 2 which features to use (one line), and commit it:
 
 Smoke test, 5 steps per stage, about 2 min:
 
-    python scripts/exp.py run smoke -- bash scripts/run_phase2_cl.sh --n_epochs 5
+    python scripts/exp.py run c100_smoke -- bash scripts/run_phase2_cl.sh --n_epochs 5
 
 Five seeds:
 
@@ -77,7 +79,7 @@ Five seeds:
     conda activate vbcgcd
     cd ~/projects/VB-CGCD-defect
     for s in 0 1 2 3 4; do
-      python scripts/exp.py run baseline_s$s -- bash scripts/run_phase2_cl.sh --seed $s
+      python scripts/exp.py run c100_base_s$s -- bash scripts/run_phase2_cl.sh --seed $s
     done
 
 Arguments after the script name override its defaults, for example --seed or --n_epochs.
@@ -85,7 +87,8 @@ Arguments after the script name override its defaults, for example --seed or --n
 ## 6. Results
 
     python scripts/exp.py table            # prints and writes runs/INDEX.txt
-    python scripts/exp.py agg baseline     # mean/std over baseline_s* -> runs/agg_baseline.txt
+    python scripts/exp.py agg c100_base    # mean/std over c100_base_s* -> runs/agg_c100_base.txt
+Tags: <dataset>_<purpose>[_<variant>][_s<N>], only [a-z0-9_], never "__". Example: c100_base_lr1e5_s0.
 
 After each run, fill in "why" and "note" in notes/LOG.md, then:
 

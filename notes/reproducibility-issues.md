@@ -324,6 +324,9 @@ in the whole system.
 tokenizers 0.23.2, huggingface_hub 1.31.0), had a conda `@ file://` line, and had no
 `--extra-index-url` for torch cu121, so it could not be installed.
 
+`environment.yml` (commit fd8316b) had the same broken pins and a machine-specific `prefix`.
+Removed on 2026-09-17; `requirements-lock.txt` is the only environment file.
+
 The lock only covers pip packages. Conda packages from A5 (cuda-nvcc, cuda-cccl) are not in it.
 `ninja` is in the lock: on a machine with a complete CUDA toolchain, `fbd_cuda` may build and
 the butterfly factor becomes 2 (a different training setup). `check_phase1.py` catches this:
