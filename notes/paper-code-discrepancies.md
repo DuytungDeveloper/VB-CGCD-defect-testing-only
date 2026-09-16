@@ -75,7 +75,8 @@ impact: the backbone has seen labels of samples that phase 2 treats as unlabeled
   "mlp.fc1" / "mlp.fc2" are timm names; they do not exist in the Hugging Face ViT model.
   "output.dense" matches attention.output.dense (12) and ViTOutput.dense (12, the 2nd MLP layer).
   intermediate.dense (the 1st MLP layer) is NOT adapted.
-  Source: earlier session analysis of trainable params; not re-verified yet.
+  Verified: trainable params 221,184 decompose exactly into these 24 modules
+  (reproducibility-issues.md A5); adapting intermediate.dense would give a larger count.
 - Butterfly factor actually runs as 1, not 2: see reproducibility-issues.md A5 (environment issue).
 - optimizer: AdamW, lr=1e-3, 10 epochs — matches Appendix C.3.
 - MultiCropWrapper docstring describes multi-resolution forward passes, but forward()

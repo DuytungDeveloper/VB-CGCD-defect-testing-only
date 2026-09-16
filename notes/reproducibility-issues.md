@@ -5,7 +5,7 @@ Machine: WSL2 Ubuntu 22.04, RTX 4060 Laptop 8GB, Python 3.12.14.
 
 - **Part A** — problems in the upstream repo.
 - **Part B** — changes we made. Each says whether it can change the numbers.
-- **Part C** — run log.
+- **Part C** — run log (frozen; new runs are in `runs/` and `notes/LOG.md`).
 - **Part D** — environment.
 
 Paper-vs-code method differences are in `paper-code-discrepancies.md`.
@@ -58,7 +58,8 @@ stated in the README or the paper.
 
 ## A5. BOFT butterfly factor silently drops from 2 to 1
 
-`sl_finetuned_model.py:126` sets `boft_n_butterfly_factor=2`. When peft cannot
+`sl_finetuned_model.py` (search `boft_n_butterfly_factor`) sets
+`boft_n_butterfly_factor=2`. When peft cannot
 build the CUDA extension `fbd_cuda`, `peft/tuners/boft/layer.py:95-96` catches
 the exception and sets the factor to 1. The only signal is a `UserWarning`.
 
@@ -74,6 +75,11 @@ Measured: `trainable params: 221,184`, which is exactly factor=1:
 
 Factor=2 would double the `boft_R` terms -> 405,504. The number tells you
 which configuration actually ran.
+
+The same decomposition shows which modules are adapted: only the 24
+`output.dense` modules. `intermediate.dense` (1st MLP layer) is not adapted,
+because `mlp.fc1` / `mlp.fc2` in `target_modules` are timm names that do not
+exist in the Hugging Face ViT.
 
 **Attempts to fix, in order.**
 1. `pip install ninja` -> error moved to `CUDA_HOME is not set`.
@@ -149,12 +155,12 @@ backward.
 **Can this change results? YES, unless accumulation is used.** The optimizer is
 `AdamW(lr=1e-3)` with no scheduler. A smaller batch means more
 `optimizer.step()` calls at the same learning rate — a different trajectory.
-Accumulation keeps the effective batch and the step count equal to the paper.
+Accumulation keeps the effective batch and the step count equal to upstream code (the paper gives no batch size).
 
 **Step count check** (CIFAR-100, 50 base classes, 25,000 images):
 
 ```
-paper  batch 128         -> ceil(25000/128) = 196 batches      = 196 steps
+upstream batch 128       -> ceil(25000/128) = 196 batches      = 196 steps
 ours   batch 32, accum 4 -> ceil(25000/32)  = 782 batches
                          -> 782//4 = 195 steps + 1 flush       = 196 steps
 ```
@@ -205,6 +211,16 @@ Saves only `requires_grad=True` params (298,084 ~ 1.2 MB) to
 `/tmp/ft_ckpt.pt`, not the full state_dict (86M params, ~346 MB). Frozen
 weights are recoverable from the HuggingFace checkpoint.
 
+298,084 = 221,184 (BOFT, see A5) + 76,900 (classification head, 768 x 100 + 100).
+
+**Exception: the pooler.** The HF ViT pooler is NOT in the HF checkpoint
+(random init, frozen) and is NOT in `ft_ckpt.pt` (`requires_grad=False`).
+It is only reproducible if the seeded init repeats exactly.
+
+**Other caveats.** The fixed path `/tmp/ft_ckpt.pt` is overwritten by every run
+and is not linked to a run id. `/tmp` may be wiped at boot if systemd tmpfiles
+is active (not checked yet).
+
 **Can this change results? No.** Write-only; nothing is ever read back. There
 is no resume logic.
 
@@ -214,6 +230,8 @@ the drvfs mount (`/mnt/e`) that lost directory metadata in run 1.
 ---
 
 # Part C — Run log
+
+Frozen on 2026-09-16. New runs are recorded in `runs/` and `notes/LOG.md`.
 
 ## Run 1 — 2026-09-15 02:17 — killed by Windows Update reboot
 
@@ -250,7 +268,13 @@ held ~2.2 GB of the 8 GB).
 Windows — baseline VRAM dropped from ~2.2 GB to 805 MiB, giving ~2.7 GB
 headroom instead of ~1.6 GB.
 
-## Run 3 — pending
+## Run 3 — 2026-09-15 13:30 — completed
+
+Features used by baseline seeds 0-2. Moved to `archive/pre-rerun-20260915/`
+on 2026-09-16.
+
+Run 1 is one reason features now live inside the project (ext4), not on
+`/mnt/e` (drvfs).
 
 ---
 
