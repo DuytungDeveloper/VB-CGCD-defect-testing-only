@@ -274,13 +274,30 @@ def cmd_table(quiet=False):
 def cmd_agg(group):
     runs = repo_root() / "runs"
     pattern = re.compile(rf"^{re.escape(group)}_s(\d+)$")
-    picked = [(cfg, m) for _, cfg, m in load_runs(runs)
-              if pattern.match(cfg.get("tag", "")) and cfg.get("exit_code") == 0 and m]
+    tagged = [(cfg, m) for _, cfg, m in load_runs(runs) if pattern.match(cfg.get("tag", ""))]
+    picked = [(cfg, m) for cfg, m in tagged if cfg.get("exit_code") == 0 and m]
     if len(picked) < 2:
         sys.exit(f"exp: need >= 2 finished runs tagged {group}_s<N> with metrics, found {len(picked)}")
     paper = load_json(runs / "paper" / "metrics.json")
     keys = [k for k in picked[0][1]
             if all(isinstance(m.get(k), (int, float)) and not isinstance(m.get(k), bool) for _, m in picked)]
+
+    # consistency checks: warn, do not stop
+    seeds = [pattern.match(cfg["tag"]).group(1) for cfg, _ in picked]
+    warn = []
+    checks = (("commit", lambda c: c.get("git", {}).get("commit")),
+              ("env", lambda c: c.get("env", {}).get("id")),
+              ("inputs", lambda c: json.dumps(c.get("inputs"), sort_keys=True)))
+    for name, get in checks:
+        if len({get(cfg) for cfg, _ in picked}) > 1:
+            warn.append(f"WARNING {name} differs across runs")
+    if any(cfg.get("git", {}).get("dirty") is not False for cfg, _ in picked):
+        warn.append("WARNING some runs are dirty or unknown")
+    dup = sorted({s for s in seeds if seeds.count(s) > 1})
+    if dup:
+        warn.append(f"WARNING duplicate seeds: {' '.join(dup)}")
+    if len(tagged) > len(picked):
+        warn.append(f"WARNING {len(tagged) - len(picked)} tagged run(s) skipped (failed or no metrics)")
 
     table = [["metric", "n", "mean", "std", "min", "max", "paper"]]
     for k in keys:
@@ -288,9 +305,8 @@ def cmd_agg(group):
         d = decimals(v + ([float(paper[k])] if k in paper else []))
         table.append([k, str(len(v)), fmt(st.mean(v), d), fmt(st.stdev(v), d), fmt(min(v), d), fmt(max(v), d),
                       fmt(float(paper[k]), d) if k in paper else "-"])
-    seeds = [pattern.match(cfg["tag"]).group(1) for cfg, _ in picked]
     text = [f"group {group}   seeds {' '.join(seeds)}   std uses n-1   made {now().isoformat(timespec='seconds')}",
-            "runs  " + " ".join(cfg["run_id"] for cfg, _ in picked), ""] + align(table, {0})
+            "runs  " + " ".join(cfg["run_id"] for cfg, _ in picked)] + warn + [""] + align(table, {0})
     (runs / f"agg_{group}.txt").write_text("\n".join(text) + "\n")
     print("\n".join(text))
 
