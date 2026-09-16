@@ -215,7 +215,9 @@ weights are recoverable from the HuggingFace checkpoint.
 
 **Exception: the pooler.** The HF ViT pooler is NOT in the HF checkpoint
 (random init, frozen) and is NOT in `ft_ckpt.pt` (`requires_grad=False`).
-It is only reproducible if the seeded init repeats exactly.
+Checked 2026-09-16: two fresh processes gave the same pooler checksum
+(-23.905103495538352), so the seeded init repeats in this environment.
+Not guaranteed after a torch/transformers version change.
 
 **Other caveats.** The fixed path `/tmp/ft_ckpt.pt` is overwritten by every run
 and is not linked to a run id. `/tmp` may be wiped at boot if systemd tmpfiles
@@ -226,6 +228,27 @@ is no resume logic.
 
 **Why.** Two runs died mid-training with nothing on disk. `/tmp` is ext4, not
 the drvfs mount (`/mnt/e`) that lost directory metadata in run 1.
+
+**Fixed by PATCH 5** (path and pooler caveats).
+
+## PATCH 5 — checkpoint path from env + keep the pooler
+
+**File.** `sl_finetuned_model.py`, end of the epoch loop (search `PATCH 5`).
+
+`FT_CKPT_PATH` sets the checkpoint path; default stays `/tmp/ft_ckpt.pt`.
+The parent folder is created if needed. The saved dict now also holds
+`pooler.dense.weight` (768x768) and `pooler.dense.bias` (768): 590,592 params, ~2.4 MB.
+Total saved: 298,084 + 590,592 = 888,676 params.
+
+**Can this change results? No.** Still write-only, after `optimizer.step()`;
+`.detach().cpu()` copies; no random numbers are drawn.
+
+**Why.** PATCH 4 wrote every run to the same `/tmp` file. The pooler init is
+reproducible in this environment (see PATCH 4), but saving it removes the
+dependency on the RNG sequence and library versions.
+
+**Verify during the next extraction.** After `Epoch 0`, the checkpoint must hold
+888,676 params including 2 pooler keys.
 
 ---
 

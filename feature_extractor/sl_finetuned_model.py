@@ -122,9 +122,12 @@ def finetune_dino(train_set, num_classes, model_name="facebook/dino-vitb16"):
         print(f"Epoch {epoch}: mean CE = {running / max(nb, 1):.4f} "
               f"(batch={batch_size} accum={accum} effective={batch_size * accum})")
 
+        # PATCH 5: path from FT_CKPT_PATH (default unchanged); also keep the frozen, randomly initialised HF pooler
+        ckpt_path = os.environ.get("FT_CKPT_PATH", "/tmp/ft_ckpt.pt")
+        os.makedirs(os.path.dirname(ckpt_path) or ".", exist_ok=True)
         ckpt = {n: p.detach().cpu() for n, p in lora_model.named_parameters()
-                if p.requires_grad}
-        torch.save({"epoch": epoch, "state": ckpt}, "/tmp/ft_ckpt.pt")
+                if p.requires_grad or "pooler.dense" in n}
+        torch.save({"epoch": epoch, "state": ckpt}, ckpt_path)
 
     return lora_model.backbone
 
