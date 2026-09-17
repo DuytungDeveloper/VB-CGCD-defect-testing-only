@@ -176,6 +176,15 @@ stays comparable to upstream.
 
 **Setting used.** `FT_BATCH_SIZE=32`, `FT_ACCUM=4` -> effective batch 128.
 
+**Correction (2026-09-17). 32x4 is NOT fully equivalent to batch 128.**
+BOFT dropout (`peft/tuners/boft/layer.py:141+`) draws a new mask on every forward call.
+The mask acts on `boft_R` (shape factor+1, n_block, H, H), not on the batch. So 32x4 averages
+4 masks per optimizer step; batch 128 uses 1. The extra draws also use the global CPU RNG,
+so sample order likely differs from epoch 1 on (RandomSampler seeds from it). The last batch
+of each epoch is also weighted differently (0.25/0.25 vs 0.8/0.2). Measured effect looks small
+(S0 91.90 vs paper 91.68). The exception in "YES, unless accumulation is used" is wrong:
+effective batch and step count match upstream, but the training trajectory does not.
+
 ## PATCH 3 — raise `num_workers` to 6 — REVERTED
 
 **Files.** `sl_finetuned_model.py:89` (2 -> 6), `dino-cifar100.py:113`
