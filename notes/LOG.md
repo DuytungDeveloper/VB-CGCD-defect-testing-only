@@ -27,3 +27,9 @@ note:   check_phase1 OK (16 PASS). ckpt 888,676 params, 2 pooler keys -> PATCH 5
         Duration 168.3 min (old run 3: ~195 min). VRAM during FT: 6760 MiB (no hang).
         vs archive: labels identical; features NOT bit-identical, max|diff| 2.8e-5, mean|diff| 1.1e-6
         (train), 2.1e-5 / 1.1e-6 (test) -> GPU non-determinism. Saturated |x|>0.9999: 0.019% both.
+
+## 20260917_131731__c100_smoke
+why:    pipeline test after clean rerun, n_epochs 5
+result: S0_All 84.86 | S1_New 31.40 | final_All 61.96 | M_d 40.40 | M_f 0.66
+note:   OK. jax on GPU, 6 stages, 1.4 min, no warnings. S0_All 84.86 = old smoke (5 steps)
+        -> 1e-5 feature diff does not change S0 predictions. S1+ numbers meaningless at 5 steps.
