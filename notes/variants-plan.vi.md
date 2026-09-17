@@ -44,7 +44,7 @@ Chạy song song với hệ thống cũ: `notes/LOG.md` (mỗi run), `notes/pape
 | Q2 | Tiêu chí chọn (λ, τ) | độ chính xác GMM (k = 10, Hungarian) trên 10 lớp mới giả; ràng buộc: acc 40 lớp không giảm nhiều | ? |
 | Q3 | Lưới tìm kiếm | λ ∈ {0, 0.25, 0.5, 0.75} ở τ cố định, rồi τ ∈ {0.07, 0.2, 0.5}; +1 run lặp λ = 0 để đo nhiễu | ? |
 | Q4 | Ngân sách | ~18h GPU cho bước 2 (sửa từ 8h, do chọn phương án C) | **OK** |
-| Q5 | Vector đưa vào L_con | `pooler_output`, chuẩn hóa L2, không projection head | ? |
+| Q5 | Vector đưa vào L_con | `pooler_output` (= h của paper), chuẩn hóa L2, **không projection head**; module mới chỉ tạo khi λ > 0 | **OK** |
 | Q6 | Dạng loss | NT-Xent (SimCLR), 2 view mỗi ảnh | ? |
 | Q7 | Augmentation | RandomResizedCrop + flip + ColorJitter; chỉ khi fine-tune | ? |
 | Q8 | Bộ nhớ 8 GB | batch 32 × 2 view + gradient checkpointing (62 cặp âm) | ? |
@@ -63,6 +63,7 @@ Chạy song song với hệ thống cũ: `notes/LOG.md` (mỗi run), `notes/pape
 - [ ] Thứ hạng (λ, τ) sau 3 epoch có giữ nguyên sau 10 epoch không?
 - [ ] (λ, τ) tốt trên CIFAR-100 có chuyển được sang NEU-DET / GC10-DET không?
 - [ ] Chuyển Hungarian sang đánh giá có đổi kết quả nhiều không? (dự đoán: ít, vì mọi ID lớp mới khởi tạo giống nhau — suy luận)
+- [ ] Nếu λ* = 0 (Eq. 3 đúng như paper không giúp): thử biến thể có projection head (SimCLR/GCD) không?
 - [ ] D9 ảnh hưởng S1–S5 bao nhiêu? (đo bằng `c100_base` so với `base400`)
 - [ ] Thời gian thật mỗi cặp (cấu hình, fold)? Ước lượng ~55 phút (suy luận), cần đo ở smoke test.
 - [ ] Nhiễu fine-tune: Δ giữa 2 run λ = 0 cùng fold F5 lớn cỡ nào?
@@ -138,4 +139,6 @@ Chạy song song với hệ thống cũ: `notes/LOG.md` (mỗi run), `notes/pape
   Giới hạn đã ghi nhận: fold không độc lập (Bengio & Grandvalet 2004), winner's curse → không báo cáo số validation như kết quả.
 - Chốt Q9b (file chỉ số), Q1b (320/80), Q1c (Δ ghép cặp + số fold thắng), Q1d (không trộn).
 - Bước 0b xong: file chỉ số, overlap với cách ngây thơ 15752 / 20000 (khớp lần đo trước).
-- Còn mở: Q2, Q3, Q5–Q8, Q10. Tiếp theo: chốt Q2/Q3/Q5–Q8 (cần cho bước 1), viết D11–D17.
+- Q5 chốt: không projection head, theo đúng Eq. 2 (h dùng chung với Eq. 4 và Algorithm 1).
+- Lỗi: `splits/*.npy` bị `.gitignore` chặn, commit 2c393c6 KHÔNG chứa file chỉ số → sửa ở commit sau.
+- Còn mở: Q2, Q3, Q6–Q8, Q10. Tiếp theo: chốt Q2/Q3/Q5–Q8 (cần cho bước 1), viết D11–D17.

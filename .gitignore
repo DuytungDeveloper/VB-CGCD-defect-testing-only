@@ -215,3 +215,6 @@ runs/*/tb
 runs/*/checkpoints
 archive/
 runs/*/artifacts
+
+# phase-2 labeled-set indices (small, must be tracked)
+!splits/*.npy
