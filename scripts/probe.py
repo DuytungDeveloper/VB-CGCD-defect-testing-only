@@ -5,14 +5,29 @@ Usage (chay tu thu muc goc cua repo):
     python scripts/probe.py cluster     # chay duoc ngay, khong can du lieu
     python scripts/probe.py features    # sau khi trich dac trung
     python scripts/probe.py loader      # sau khi trich dac trung
-    python scripts/probe.py ckpt        # sau khi chay main.py
-    python scripts/probe.py all | tee runs/probe_$(date +%Y%m%d).txt
+    python scripts/probe.py ckpt        # sau phase 2; them runs/<run> de chon run (mac dinh: moi nhat)
+    python scripts/probe.py all | tee /tmp/probe_$(date +%Y%m%d).txt
 """
 import sys, glob, os, re
 import numpy as np
 
-MODEL = "dino-vitb16-sl"
-DATA = "datasets/cifar100"
+# repo root, de import clustering/ va dataloaders/ khi chay "python scripts/probe.py"
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def _feature_dir():
+    """Dong dau cua runs/inputs.txt, vd features/<run_id>/dino-vitb16-sl (giong run_phase2_cl.sh)."""
+    try:
+        with open("runs/inputs.txt") as f:
+            lines = [l.strip() for l in f if l.strip() and not l.strip().startswith("#")]
+    except OSError:
+        lines = []
+    return lines[0] if lines else "features/MISSING/dino-vitb16-sl"
+
+
+FEAT = _feature_dir()
+MODEL = os.path.basename(FEAT)   # dino-vitb16-sl
+DATA = os.path.dirname(FEAT)     # features/<run_id>
 
 
 def hdr(t):
@@ -78,7 +93,7 @@ def probe_features(d=DATA):
                 "dino_vitb16_test_features", "dino_vitb16_test_labels"):
         n = len(glob.glob(f"{d}/{sub}/*.npy"))
         if n:
-            print(f"\n[{sub}/]  {n} shard (rac trung gian, co the xoa)")
+            print(f"\n[{sub}/]  {n} shard (check_phase1 dem so file nay, dung xoa)")
 
 
 # ------------------------------------------------------------------ loader
@@ -168,9 +183,15 @@ def _stage_key(p):
 
 def probe_ckpt():
     hdr("MODULE: classifier.mngmm  ->  checkpoints")
-    fs = sorted(glob.glob("runs/*/checkpoints/*.npy"), key=_stage_key)
+    runs = sorted(glob.glob("runs/*/artifacts/saved_models"))
+    if len(sys.argv) > 2:
+        d = sys.argv[2].rstrip("/") + "/artifacts/saved_models"
+    else:
+        d = runs[-1] if runs else ""
+    print(f"  run: {d}")
+    fs = sorted(glob.glob(f"{d}/*.npy"), key=_stage_key) if d else []
     if not fs:
-        print("  (trong) — chua chay main.py, hoac symlink checkpoints chua tao?")
+        print("  (trong) — chua chay phase 2, hoac thieu symlink runs/<run>/artifacts?")
         return
 
     print("  LUU Y: ten file dinh lien 'stage0class_covariances.npy' —")
