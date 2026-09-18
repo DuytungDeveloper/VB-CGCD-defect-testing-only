@@ -7,11 +7,13 @@ from .clustering_base import ClusteringBase
 
 class GMMCluster(ClusteringBase):
 
-    def __init__(self, num_classes, label_offset = 0, random_state=None):
+    def __init__(self, num_classes, label_offset = 0, random_state=None, n_init=1):
         super().__init__(num_classes, label_offset)
 
         self.random_state = random_state
-        self.model = GaussianMixture(n_components=num_classes, random_state=random_state)
+        self.n_init = n_init      # 1 = upstream default
+        self.model = GaussianMixture(n_components=num_classes, n_init=n_init,
+                                     random_state=random_state)
 
     @override
     def fit(self, features):
