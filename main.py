@@ -22,6 +22,7 @@ from dataloaders.cub200 import CUB200Loader
 from classifier.mngmm import MNGMMClassifier
 
 from clustering.gmm import GMMCluster
+from clustering.kmeans import KMeansCluster
 
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
@@ -32,6 +33,8 @@ def get_current_time():
 def Clustering_alg(alg):
     if alg == 'gmm':
         return GMMCluster
+    elif alg == 'kmeans':
+        return KMeansCluster
     else:
         raise ValueError('Clustering algorithm not supported')
 
