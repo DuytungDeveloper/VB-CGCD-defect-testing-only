@@ -7,6 +7,7 @@ import os
 import sys
 import time
 import argparse
+import functools
 
 import numpy as np
 
@@ -90,6 +91,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--trail_name', type=str, default=f'', help='Name of the trail')
     parser.add_argument('--clustering_alg', type=str, default='gmm', help='Clustering algorithm')
+    parser.add_argument('--kmeans_n_init', type=int, default=10,
+                        help='k-means restarts (kept in config.json by exp.py; ignored for gmm)')
     parser.add_argument('--classifier_alg', type=str, default='mngmm', help='Classifier algorithm')
     parser.add_argument('--num_classes', type=int, default=100, help='Number of classes for the classifier')
     parser.add_argument('--num_dim', type=int, default=384, help='Number of features\' dim for the classifier')
@@ -108,6 +111,8 @@ if __name__ == '__main__':
     rng_key = jax.random.PRNGKey(args.seed)
 
     Clustering = Clustering_alg(args.clustering_alg)
+    if args.clustering_alg == 'kmeans':
+        Clustering = functools.partial(Clustering, n_init=args.kmeans_n_init)
 
     Classifier = Classifier_alg(args.classifier_alg)
 
