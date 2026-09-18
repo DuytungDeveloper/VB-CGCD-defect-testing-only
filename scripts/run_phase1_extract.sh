@@ -22,6 +22,21 @@ case "$GPU" in
   NO_GPU|*Error*) echo "run_phase1_extract: ERROR torch does not see the GPU"; exit 3 ;;
 esac
 
+# Variant knobs. Defaults reproduce upstream exactly (lambda 0 = CE only, no augmentation).
+export FT_LAMBDA="${FT_LAMBDA:-0}"            # Eq. 3 weight. > 0 turns on NT-Xent + 2-view augmentation
+export FT_TAU="${FT_TAU:-0.2}"                # NT-Xent temperature, read only when FT_LAMBDA > 0
+export FT_EPOCHS="${FT_EPOCHS:-10}"           # 10 = upstream; validation runs use 3
+export FT_LABELED_IDX="${FT_LABELED_IDX:-}"   # empty = upstream filter(labels < 50), 500 imgs/class (D9)
+export FT_FOLD="${FT_FOLD:-}"                 # empty = all 50 base classes; F1..F5 = hold out 10 fake-novel classes
+if [ -n "$FT_LABELED_IDX" ] && [ ! -f "$FT_LABELED_IDX" ]; then
+  echo "run_phase1_extract: ERROR FT_LABELED_IDX=$FT_LABELED_IDX not found"; exit 2
+fi
+if [ -n "$FT_FOLD" ] && [ -z "$FT_LABELED_IDX" ]; then
+  echo "run_phase1_extract: ERROR FT_FOLD needs FT_LABELED_IDX (folds are defined on that index order)"; exit 2
+fi
+echo "run_phase1_extract: FT_LAMBDA=$FT_LAMBDA FT_TAU=$FT_TAU FT_EPOCHS=$FT_EPOCHS" \
+     "FT_LABELED_IDX=${FT_LABELED_IDX:-<none>} FT_FOLD=${FT_FOLD:-<none>}"
+
 mkdir -p "$OUT"
 export FT_BATCH_SIZE="${FT_BATCH_SIZE:-32}"   # PATCH 2: 32 x 4 = effective batch 128 on 8 GB VRAM
 export FT_ACCUM="${FT_ACCUM:-4}"

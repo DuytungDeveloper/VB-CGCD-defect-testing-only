@@ -108,6 +108,24 @@ if __name__ == '__main__':
         return {"images": images, "labels": labels}
 
     # create data loaders
+    # Q7: augmentation for the contrastive term. Only used when FT_LAMBDA > 0.
+    aug_transforms = torchvision.transforms.Compose([
+            torchvision.transforms.RandomResizedCrop(image_size, scale=(0.5, 1.0), interpolation=interpolation),
+            torchvision.transforms.RandomHorizontalFlip(),
+            torchvision.transforms.RandomApply(
+                [torchvision.transforms.ColorJitter(0.2, 0.2, 0.2, 0.05)], p=0.8),
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize(
+                        mean=torch.tensor(mean),
+                        std=torch.tensor(std))
+        ])
+
+    def two_view_func(examples):
+        labels = torch.tensor(examples["fine_label"])
+        return {"images": [aug_transforms(img) for img in examples["img"]],
+                "images2": [aug_transforms(img) for img in examples["img"]],
+                "labels": labels}
+
     train_dataset.set_format("torch")
     train_dataset = train_dataset.with_transform(trans_func)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size)
@@ -140,7 +158,22 @@ if __name__ == '__main__':
     else:
 
         # transfrom the dataset to have only 50 classes
-        finetune_dataset = train_dataset.filter(lambda x: x["labels"] < 50)
+        ft_idx = os.environ.get("FT_LABELED_IDX", "")
+        ft_fold = os.environ.get("FT_FOLD", "") or None
+        if ft_idx:
+            from ft_data import labeled_subset
+            sub = labeled_subset(ft_idx, ft_fold)
+            finetune_dataset = train_dataset.select(sub["train_idx"])
+            print(f"dino-cifar100: fine-tune on {len(finetune_dataset)} imgs "
+                  f"from {ft_idx}, fold={ft_fold} (D9 fixed)")
+        else:
+            finetune_dataset = train_dataset.filter(lambda x: x["labels"] < 50)
+            print(f"dino-cifar100: fine-tune on {len(finetune_dataset)} imgs "
+                  f"(upstream filter, 500/class, D9)")
+
+        if float(os.environ.get("FT_LAMBDA", 0)) > 0:
+            finetune_dataset = finetune_dataset.with_transform(two_view_func)
+            print("dino-cifar100: 2-view augmentation ON (FT_LAMBDA > 0)")
 
         dino = finetune_dino(finetune_dataset, 100, model_name=args.model)
 

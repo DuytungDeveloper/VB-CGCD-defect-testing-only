@@ -57,6 +57,20 @@ class MultiCropWrapper(nn.Module):
 
         return cls_output, pooler_output
 
+def nt_xent(z, tau):
+    """NT-Xent (SimCLR Eq. 1). z: (2N, D), rows 0..N-1 = view 1, N..2N-1 = view 2, same order.
+
+    Paper Eq. 2 is underspecified (no outer sum, unclear denominator and anchor set), see Q6.
+    Here: 2N anchors, symmetric, denominator = all other 2N-1 views, positive included.
+    """
+    n = z.shape[0] // 2
+    z = F.normalize(z, dim=1)
+    sim = (z @ z.t()) / tau
+    sim.fill_diagonal_(float("-inf"))          # a view is never its own negative
+    target = torch.cat([torch.arange(n, 2 * n), torch.arange(0, n)]).to(z.device)
+    return F.cross_entropy(sim, target)
+
+
 def finetune_dino(train_set, num_classes, model_name="facebook/dino-vitb16"):
         
     interpolation = 3
@@ -75,7 +89,7 @@ def finetune_dino(train_set, num_classes, model_name="facebook/dino-vitb16"):
 
     batch_size = int(os.environ.get("FT_BATCH_SIZE", 128))
 
-    epochs = 10
+    epochs = int(os.environ.get("FT_EPOCHS", 10))
 
     lora_model = load_model(num_classes, model_name)
 
@@ -90,19 +104,29 @@ def finetune_dino(train_set, num_classes, model_name="facebook/dino-vitb16"):
 
     # Training loop
     accum = int(os.environ.get("FT_ACCUM", 1))
+    lam = float(os.environ.get("FT_LAMBDA", 0))    # Eq. 3; 0 = upstream (CE only)
+    tau = float(os.environ.get("FT_TAU", 0.2))
     for epoch in range(epochs):  # Adjust epochs as needed
         optimizer.zero_grad()
-        pending, running, nb = 0, 0.0, 0
+        pending, running, running_con, nb = 0, 0.0, 0.0, 0
 
         for bidx, batch in tqdm(enumerate(train_loader)):
 
             images = batch["images"].to(device)
+            labels = batch["labels"].to(device)
 
-            output, pooler_output = lora_model(images)
-
-            cls_loss = F.cross_entropy(output, batch["labels"].to(device))
-
-            loss = cls_loss / accum
+            if lam > 0:
+                # one forward over 2N images: rows 0..N-1 = view 1, N..2N-1 = view 2
+                images = torch.cat([images, batch["images2"].to(device)], dim=0)
+                output, pooler_output = lora_model(images)
+                cls_loss = F.cross_entropy(output[:labels.shape[0]], labels)   # CE on view 1
+                con_loss = nt_xent(pooler_output, tau)
+                loss = ((1 - lam) * cls_loss + lam * con_loss) / accum
+            else:
+                output, pooler_output = lora_model(images)
+                cls_loss = F.cross_entropy(output, labels)
+                con_loss = None
+                loss = cls_loss / accum
 
             # Backward pass and optimization
             loss.backward()
@@ -114,13 +138,17 @@ def finetune_dino(train_set, num_classes, model_name="facebook/dino-vitb16"):
                 pending = 0
 
             running += cls_loss.item(); nb += 1
+            if con_loss is not None:
+                running_con += con_loss.item()
 
         if pending > 0:          # flush phan du cuoi epoch
             optimizer.step()
             optimizer.zero_grad()
 
         print(f"Epoch {epoch}: mean CE = {running / max(nb, 1):.4f} "
-              f"(batch={batch_size} accum={accum} effective={batch_size * accum})")
+              f"mean CON = {running_con / max(nb, 1):.4f} "
+              f"(lambda={lam} tau={tau} batch={batch_size} accum={accum} "
+              f"effective={batch_size * accum} views={2 if lam > 0 else 1})")
 
         # PATCH 5: path from FT_CKPT_PATH (default unchanged); also keep the frozen, randomly initialised HF pooler
         ckpt_path = os.environ.get("FT_CKPT_PATH", "/tmp/ft_ckpt.pt")
