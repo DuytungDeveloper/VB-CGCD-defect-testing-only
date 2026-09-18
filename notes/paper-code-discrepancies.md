@@ -69,6 +69,14 @@ code:   dino-cifar100.py, search 'x["labels"] < 50': all 500 train images of eac
 impact: the backbone has seen labels of samples that phase 2 treats as unlabeled (train split only; test not involved).
 
 ## D18. Clustering: paper says k-means, code uses GMM with full covariance in 384 dims
+
+**DISPUTED 2026-09-19, do not cite yet.** On the real S1 data (5250 imgs, 384 dims, after PCA)
+GMM and k-means give the SAME partition (differ by 1-2 of 5250 samples), and k-means n_init=1
+equals n_init=10 there. In the pipeline, c100_km1 (k-means, n_init=1) reproduces the GMM
+baseline exactly on all 43 metrics, while c100_km (n_init=10) is much better. So the gain may
+come from the 10 restarts, not from the algorithm or the covariance type. The bimodal 81/94.8
+result below was measured on validation fold F5 (1-epoch features, 40 classes, 4000 novel-only
+images) and does not transfer to the real S1 mix. Missing cell to settle it: GMM with n_init=10.
 paper:  Appendix C.3 says standard k-means. Sec 3.2.1 / Alg. 1 only say "clustering".
 code:   clustering/gmm.py:14 GaussianMixture(n_components, random_state) with every default:
         covariance_type='full', n_init=1, reg_covar=1e-6. No k-means anywhere in the repo.
