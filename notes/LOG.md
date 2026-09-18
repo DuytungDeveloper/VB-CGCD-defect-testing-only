@@ -83,3 +83,39 @@ note:   OK, 16 PASS, ckpt 888,676 (no new module, Q5 = no projection head).
         16x8 = effective 128, 800 it/epoch. 26.5 min for 1 epoch + extraction (~21 min fine-tune)
         -> re-estimate: 1 validation run (3 epochs) ~68 min, step 2 total ~22h, not 16h.
         Features from this run are NOT for phase 2 (1 epoch, 40 classes only).
+
+## 20260918_221837__c100_km_smoke
+why:
+result: S0_All 84.86 | S1_New 39.90 | final_All 63.68 | M_d 44.64 | M_f 0.88
+note:
+
+## 20260919_000549__c100_km_s0
+why:
+result: S0_All 91.84 | S1_New 80.20 | final_All 81.86 | M_d 80.14 | M_f 6.64
+note:
+
+## 20260919_001802__c100_km_s1
+why:
+result: S0_All 92.00 | S1_New 80.60 | final_All 81.60 | M_d 79.66 | M_f 6.74
+note:
+
+## 20260919_003013__c100_km_s2
+why:
+result: S0_All 91.96 | S1_New 79.70 | final_All 81.80 | M_d 79.72 | M_f 6.46
+note:
+
+## 20260919_004223__c100_km_s3
+why:
+result: S0_All 91.84 | S1_New 80.40 | final_All 81.78 | M_d 80.12 | M_f 6.74
+note:
+
+## 20260919_005443__c100_km_s4
+why:
+result: S0_All 91.86 | S1_New 80.50 | final_All 81.78 | M_d 79.76 | M_f 6.46
+note:   5-seed k-means summary (runs/agg_c100_km.txt), no agg warnings. vs GMM baseline:
+        S0_All identical 91.90+-0.07 (control: k-means must not touch S0) -> OK.
+        S1_New 73.68+-6.00 -> 80.28+-0.36 (std / 17). final_All 79.86 -> 81.76. M_d 76.51 -> 79.88.
+        M_f 7.16 -> 6.61. Beats paper on final_All (81.23), M_d (79.14), M_f (6.94).
+        Only gap left: S1_New 80.28 vs paper 83.10 (7.8 sigma); S2-S4 New now ABOVE paper.
+        Confirms D18: GMM(full) 739k params / 4000 samples -> degenerate solutions, ELBO
+        anti-correlates with cluster accuracy (r = -0.999 on c100_consmoke/F5).
