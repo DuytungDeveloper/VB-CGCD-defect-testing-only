@@ -74,3 +74,12 @@ note:   5-seed summary (runs/agg_c100_base.txt), no agg warnings.
         Numeric changes vs upstream: PATCH 2 (32x4, BOFT dropout masks differ) + butterfly factor 1.
         Verified: git diff upstream-baseline touches only dino-cifar100.py (+1, PATCH 1),
         sl_finetuned_model.py (+30/-4, PATCH 2+5) and .gitattributes (EOL only); phase-2 code unchanged.
+
+## 20260918_120719__c100_consmoke
+why:    smoke test for Eq.3 implementation (NT-Xent + 2-view aug, fold F5, 1 epoch)
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:   OK, 16 PASS, ckpt 888,676 (no new module, Q5 = no projection head).
+        CE 1.2269, CON 0.4779 (log(31) = 3.43 = chance) -> contrastive learns in epoch 0.
+        16x8 = effective 128, 800 it/epoch. 26.5 min for 1 epoch + extraction (~21 min fine-tune)
+        -> re-estimate: 1 validation run (3 epochs) ~68 min, step 2 total ~22h, not 16h.
+        Features from this run are NOT for phase 2 (1 epoch, 40 classes only).

@@ -31,8 +31,8 @@ Chạy song song với hệ thống cũ: `notes/LOG.md` (mỗi run), `notes/pape
 | 0b | Tạo `splits/c100_labeled_hf_idx.npy` (20000 chỉ số HF) bằng `scripts/make_labeled_idx.py` | không | **xong** |
 | 0c | Đo VRAM bằng `scripts/vram_probe.py` | ~10 phút | **xong** |
 | 1 | Cài Eq. 2/3 (mặc định λ = 0) + augmentation 2 view + tùy chọn fine-tune theo file chỉ số; smoke test | vài phút | chưa |
-| 2a | Tìm (λ, τ), giai đoạn 1: 7 run trên fold F5 | ~6h | chưa |
-| 2b | Giai đoạn 2: λ = 0 + top-2, trên F1–F4 (12 run) | ~10h | chưa |
+| 2a | Tìm (λ, τ), giai đoạn 1: 7 run trên fold F5 | ~8h | chưa |
+| 2b | Giai đoạn 2: λ = 0 + 1 cấu hình, trên F1–F4 (8 run). **Bỏ hẳn nếu λ\* = 0 ở 2a** | ~9h | chưa |
 | 2c | Kiểm chứng giới hạn cặp âm: 1 run 32×2 view + checkpointing ở (λ*, τ*), cùng fold F5 | ~1h | chưa |
 | 3a | `base400`: phase 1 fine-tune chỉ trên tập có nhãn (`FT_LABELED_IDX`) + 5 seed phase 2 (`scripts/overnight_base400.sh`) | ~4h | chạy qua đêm |
 | 3b | Phase 1 `con` với (λ, τ) đã chọn + 5 seed | ~6h + 65 phút | chưa |
@@ -45,8 +45,8 @@ Chạy song song với hệ thống cũ: `notes/LOG.md` (mỗi run), `notes/pape
 |---|---|---|---|
 | Q1 | Cách validation | 5-fold theo lớp trên lớp 0–49 (F1 = 0–9, …, F5 = 40–49), mỗi fold: 10 lớp mới giả + 40 lớp đã biết giả; thiết kế ghép cặp; 2 giai đoạn (phương án C) | **OK** |
 | Q2 | Tiêu chí chọn (λ, τ) | chính: acc phân cụm (PCA 384 fit trên train 40 lớp đã biết giả → GMM k = 10, Hungarian) trên 4000 ảnh của 10 lớp mới giả, trung bình 5 seed GMM. Ràng buộc: acc của head CE trên 3200 ảnh val (40 lớp × 80) không giảm > 1.0 điểm so với λ = 0 | **OK** |
-| Q3 | Lưới tìm kiếm | giai đoạn 1 trên F5: λ ∈ {0, 0.25, 0.5, 0.75} ở τ = 0.2 (4 run), rồi τ ∈ {0.07, 0.5} ở λ tốt nhất (2 run), + 1 run lặp λ = 0 để đo nhiễu = **7 run ≈ 6h**. Giai đoạn 2: λ = 0 + top-2, trên F1–F4 = 12 run ≈ 10h | **OK** |
-| Q4 | Ngân sách | ~18h GPU cho bước 2 (sửa từ 8h, do chọn phương án C) | **OK** |
+| Q3 | Lưới tìm kiếm | giai đoạn 1 trên F5: λ ∈ {0, 0.25, 0.5, 0.75} ở τ = 0.2 (4 run), rồi τ ∈ {0.07, 0.5} ở λ tốt nhất (2 run), + 1 run lặp λ = 0 để đo nhiễu = **7 run ≈ 6h**. Giai đoạn 2: λ = 0 + **1 cấu hình đã chọn**, trên F1–F4 = 8 run ≈ 9h. Chốt cấu hình trước khi chạy 2b (tránh đa kiểm định). Nếu 2 cấu hình đầu chênh nhau nhỏ hơn nhiễu (đo bằng run lặp λ = 0), chọn cái có λ nhỏ hơn | **OK** |
+| Q4 | Ngân sách | **~17h** GPU cho bước 2 (15 run × ~68 phút). Sửa 2 lần: 8h → 18h (phương án C) → 17h (số đo thật từ smoke test) | **OK** |
 | Q5 | Vector đưa vào L_con | `pooler_output` (= h của paper), chuẩn hóa L2, **không projection head**; module mới chỉ tạo khi λ > 0 | **OK** |
 | Q6 | Dạng loss | NT-Xent (SimCLR), 2N view, đối xứng; Eq. 2 của paper viết thiếu (loss âm nếu cài đúng chữ nghĩa) | **OK** |
 | Q7 | Augmentation | RandomResizedCrop(224, scale 0.5–1.0, bicubic) + HorizontalFlip + ColorJitter(0.2,0.2,0.2,0.05) p=0.8; không grayscale/blur; CE trên view 1; chỉ bật khi λ > 0 | **OK** |
@@ -61,6 +61,9 @@ Chạy song song với hệ thống cũ: `notes/LOG.md` (mỗi run), `notes/pape
 ## 5. Câu hỏi
 
 ### Đang mở
+- [ ] `utilization.gpu` khi chạy 16×2 view: nếu < 85% thì nút cổ chai là CPU (2 view, num_workers=2)
+  → thử num_workers 6, có thể giảm 15–20% mỗi run (tiết kiệm 2–3h).
+- [ ] CON tụt dưới ~0.1 sau 2–3 epoch? Nếu có, augmentation quá nhẹ → gradient L_con tắt sớm.
 - [ ] Chỉ có 30 cặp âm mỗi neo (giới hạn 8 GB). Nếu Eq. 3 không giúp, không phân biệt được
   "Eq. 3 vô dụng" với "quá ít cặp âm" → bước 2c để kiểm.
 - [ ] `clustering_base.evaluate()` (dòng 76–79) có được `main.py` gọi không?
@@ -155,3 +158,18 @@ Chạy song song với hệ thống cũ: `notes/LOG.md` (mỗi run), `notes/pape
 - Lỗi nhỏ trong `vram_probe.py`: đề xuất batch lớn nhất chạy được kể cả mốc RUI RO → đã sửa.
 - Chuẩn bị chạy qua đêm bước 3a (`base400`). Lưu ý: 20000 ảnh → ~156 bước tối ưu/epoch (baseline 196);
   chênh lệch này là một phần của việc sửa D9, không tách riêng được. Tiếp theo: chốt Q2/Q3/Q5–Q8 (cần cho bước 1), viết D11–D17.
+
+### 2026-09-18
+- Bước 1 xong. Sửa: `run_phase1_extract.sh` (+15: FT_LAMBDA/TAU/EPOCHS/LABELED_IDX/FOLD + 2 guard),
+  `ft_data.py` (mới: fold F1–F5, 320/80/400 mỗi lớp), `dino-cifar100.py` (+34: aug 2 view, select theo
+  file chỉ số), `sl_finetuned_model.py` (+37: nt_xent, forward 2 view, log CE và CON).
+- Kiểm tra: ft_data (3 tập rời nhau, phủ đúng file chỉ số, 320/lớp); nt_xent (trường hợp hoàn hảo
+  0.0396 khớp công thức tay, đối xứng, gradient hữu hạn); transform (det tất định, 2 view khác nhau).
+- Smoke test `c100_consmoke` (F5, λ = 0.5, 1 epoch): exit 0, 16 PASS, ckpt 888,676.
+  CE 1.2269, CON 0.4779 so với mức đoán bừa log(31) = 3.43 → contrastive học ngay epoch 0.
+  **26.5 phút cho 1 epoch + trích đặc trưng** → 1 run 3 epoch ≈ 68 phút, không phải 48.
+- Sửa Q3/Q4: giai đoạn 2b chỉ chạy 1 cấu hình (8 run), tổng bước 2 ≈ 17h. Lý do: cắt fold sẽ
+  giết sức mạnh thống kê (3 fold → p tối thiểu 0.125), cắt quét τ sẽ lẫn "Eq. 3 vô dụng" với
+  "τ = 0.2 quá dễ"; cắt cấu hình ở 2b vừa rẻ vừa tránh đa kiểm định.
+- Đặc trưng của `c100_consmoke` KHÔNG dùng cho phase 2 (1 epoch, 40 lớp).
+- Tiếp theo: kiểm `utilization.gpu`, viết script đánh giá validation (Q2), rồi chạy 2a.
