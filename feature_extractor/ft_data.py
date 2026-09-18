@@ -39,3 +39,19 @@ def labeled_subset(idx_path, fold=None):
     return {"train_idx": per_class[known, :TRAIN_PER_CLASS].reshape(-1),
             "val_idx": per_class[known, TRAIN_PER_CLASS:].reshape(-1),
             "novel_idx": per_class[novel, :].reshape(-1)}
+
+
+def hf_to_npy_row(n=50000, extract_bs=128):
+    """Map HF train index -> row in the merged .npy (see D17 and scripts/make_labeled_idx.py).
+
+    Row order = shard files sorted as strings; shard b = HF rows extract_bs*b ...
+    Returns an array `row` with row[hf_index] = npy_row.
+    """
+    import numpy as np
+    n_shards = -(-n // extract_bs)
+    names = sorted(f"labels_{b}.npy" for b in range(n_shards))
+    order = [int(f[len("labels_"):-len(".npy")]) for f in names]
+    P = np.concatenate([np.arange(b * extract_bs, min((b + 1) * extract_bs, n)) for b in order])
+    row = np.empty(n, dtype=np.int64)
+    row[P] = np.arange(n)
+    return row
