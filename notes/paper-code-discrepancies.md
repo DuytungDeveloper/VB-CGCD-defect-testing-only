@@ -68,6 +68,34 @@ code:   dino-cifar100.py, search 'x["labels"] < 50': all 500 train images of eac
         the other 100/class go to the unlabeled pool of later sessions.
 impact: the backbone has seen labels of samples that phase 2 treats as unlabeled (train split only; test not involved).
 
+## D18. Clustering: paper says k-means, code uses GMM with full covariance in 384 dims
+paper:  Appendix C.3 says standard k-means. Sec 3.2.1 / Alg. 1 only say "clustering".
+code:   clustering/gmm.py:14 GaussianMixture(n_components, random_state) with every default:
+        covariance_type='full', n_init=1, reg_covar=1e-6. No k-means anywhere in the repo.
+why it matters:
+        10 components x full 384x384 covariance = 10 * 384*385/2 = 739,200 parameters,
+        fitted on ~4000 unlabeled samples per stage (185 parameters per sample).
+evidence (all on this machine, 2026-09-18/19):
+        1. c100_consmoke/F5, 4000 imgs, 384 dims, 10 GMM seeds: accuracy is bimodal,
+           81 (7 seeds) vs 94.8 (3 seeds). ELBO vs cluster accuracy correlation = -0.999:
+           the HIGHER the likelihood, the WORSE the clustering -> variance collapse.
+           So n_init must NOT be used with this GMM: it would pick the worst solution.
+           k-means on the same data: 94.7 (deterministic, n_init=10).
+        2. Full pipeline, 5 seeds each, same features (c100_extract), only clustering changed:
+                          GMM(full)        k-means         paper
+           S0_All         91.90 +- 0.07    91.90 +- 0.07   91.68   (control: unchanged, as expected)
+           S1_New         73.68 +- 6.00    80.28 +- 0.36   83.10
+           S1_All         86.89 +- 1.18    88.26 +- 0.07   88.40
+           final_All      79.86 +- 1.68    81.76 +- 0.10   81.23
+           M_d            76.51 +- 3.00    79.88 +- 0.23   79.14
+           M_f             7.16 +- 0.54     6.61 +- 0.14    6.94
+impact: with k-means the code beats the paper on final_All, M_d and M_f, and the seed spread
+        collapses (S1_New std 6.00 -> 0.36, 17x). The large seed variance reported for the GMM
+        baseline is therefore an artefact of degenerate GMM solutions, not a property of VB-CGCD.
+        Remaining gap: S1_New 80.28 vs paper 83.10 (7.8 sigma); S2-S4 New are now ABOVE the paper.
+code added: clustering/kmeans.py (KMeansCluster, n_init=10), main.py Clustering_alg('kmeans').
+        Default stays 'gmm', so the upstream path is unchanged.
+
 ## Additional notes on the fine-tuning implementation
 - BOFT config declared: boft_block_size=4, boft_n_butterfly_factor=2, boft_dropout=0.1,
   bias="boft_only", target_modules=["output.dense","mlp.fc1","mlp.fc2"].
