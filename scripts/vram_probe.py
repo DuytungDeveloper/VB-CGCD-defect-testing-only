@@ -98,12 +98,15 @@ def main():
         act = peak - base
         head = f0 - peak
         verdict = "OK" if head > 0.8 else ("SAT MEP" if head > 0.2 else "RUI RO")
-        ok.append(bs)
+        if verdict == "OK":
+            ok.append(bs)
         print(f"{bs:>6} | {peak:>8.2f} GB | {act:>8.2f} GB | "
               f"{head:>4.2f} GB | {verdict}")
 
     if ok:
         best = max(ok)
+        pow2 = [b for b in (1, 2, 4, 8, 16, 32, 64, 128) if b <= best]
+        best = max(pow2) if pow2 else best   # uoc cua 128 -> batch hieu dung khop upstream
         accum = max(1, round(128 / best))
         print(f"\nDe xuat: FT_BATCH_SIZE={best}  FT_ACCUM={accum}  "
               f"-> batch hieu dung {best * accum}")
