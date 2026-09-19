@@ -58,7 +58,10 @@ def main():
     accs_diag = [cluster_acc(yn, GaussianMixture(n_components=k, covariance_type="diag",
                                                  random_state=s).fit_predict(Xn))
                  for s in range(N_GMM_SEEDS)]
-    acc_km = cluster_acc(yn, KMeans(n_clusters=k, n_init=10, random_state=0).fit_predict(Xn))
+    # primary since 2026-09-19: k-means n_init=10 is the best phase-2 config (D18).
+    accs_km = [cluster_acc(yn, KMeans(n_clusters=k, n_init=10, random_state=s).fit_predict(Xn))
+               for s in range(N_GMM_SEEDS)]
+    acc_km = float(np.mean(accs_km))
 
     ck = f"{os.path.dirname(a.feat_dir.rstrip('/'))}/ft_ckpt.pt"
     st = torch.load(ck, map_location="cpu", weights_only=True)["state"]
@@ -72,7 +75,10 @@ def main():
            "novel_acc_seeds": [round(x, 2) for x in accs],
            "novel_acc_diag": float(np.mean(accs_diag)),
            "novel_acc_diag_se": float(np.std(accs_diag, ddof=1) / np.sqrt(len(accs_diag))),
-           "novel_acc_kmeans": float(acc_km),
+           "novel_acc_kmeans": acc_km,
+           "novel_acc_kmeans_se": float(np.std(accs_km, ddof=1) / np.sqrt(len(accs_km))),
+           "novel_acc_kmeans_min": float(np.min(accs_km)),
+           "novel_acc_kmeans_max": float(np.max(accs_km)),
            "known_acc": known_acc, "n_train": len(tr), "n_val": len(va), "n_novel": len(nv)}
     print(json.dumps(out, indent=2))
     if a.out:
