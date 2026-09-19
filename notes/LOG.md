@@ -119,3 +119,63 @@ note:   5-seed k-means summary (runs/agg_c100_km.txt), no agg warnings. vs GMM b
         Only gap left: S1_New 80.28 vs paper 83.10 (7.8 sigma); S2-S4 New now ABOVE paper.
         Confirms D18: GMM(full) 739k params / 4000 samples -> degenerate solutions, ELBO
         anti-correlates with cluster accuracy (r = -0.999 on c100_consmoke/F5).
+
+## 20260919_012906__c100_km1_s0
+why:
+result: S0_All 91.84 | S1_New 67.90 | final_All 80.37 | M_d 76.92 | M_f 6.54
+note:
+
+## 20260919_014105__c100_km1_s1
+why:
+result: S0_All 92.00 | S1_New 80.70 | final_All 81.75 | M_d 79.84 | M_f 6.80
+note:
+
+## 20260919_015303__c100_km1_s2
+why:
+result: S0_All 91.96 | S1_New 76.40 | final_All 78.47 | M_d 74.84 | M_f 7.88
+note:
+
+## 20260919_020524__c100_km1_s3
+why:
+result: S0_All 91.84 | S1_New 76.50 | final_All 80.96 | M_d 78.62 | M_f 7.04
+note:
+
+## 20260919_021729__c100_km1_s4
+why:
+result: S0_All 91.86 | S1_New 66.90 | final_All 77.77 | M_d 72.34 | M_f 7.52
+note:
+
+## 20260919_023837__c100_regress_s0
+why:
+result: S0_All 91.84 | S1_New 67.90 | final_All 80.37 | M_d 76.92 | M_f 6.54
+note:
+
+## 20260919_025223__c100_gmm10_s0
+why:
+result: S0_All 91.84 | S1_New 74.30 | final_All 80.50 | M_d 77.96 | M_f 7.10
+note:
+
+## 20260919_030759__c100_gmm10_s1
+why:
+result: S0_All 92.00 | S1_New 85.20 | final_All 81.26 | M_d 78.94 | M_f 6.96
+note:
+
+## 20260919_032332__c100_gmm10_s2
+why:
+result: S0_All 91.96 | S1_New 75.50 | final_All 81.79 | M_d 79.62 | M_f 6.62
+note:
+
+## 20260919_033943__c100_gmm10_s3
+why:
+result: S0_All 91.84 | S1_New 76.50 | final_All 80.77 | M_d 78.30 | M_f 7.08
+note:
+
+## 20260919_035659__c100_gmm10_s4
+why:
+result: S0_All 91.86 | S1_New 75.10 | final_All 82.41 | M_d 80.74 | M_f 6.46
+note:
+
+## 20260919_095904__c100_regress_s0
+why:
+result: S0_All 91.84 | S1_New 67.90 | final_All 80.37 | M_d 76.92 | M_f 6.54
+note:

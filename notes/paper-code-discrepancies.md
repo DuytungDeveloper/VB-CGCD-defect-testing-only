@@ -68,41 +68,45 @@ code:   dino-cifar100.py, search 'x["labels"] < 50': all 500 train images of eac
         the other 100/class go to the unlabeled pool of later sessions.
 impact: the backbone has seen labels of samples that phase 2 treats as unlabeled (train split only; test not involved).
 
-## D18. Clustering: paper says k-means, code uses GMM with full covariance in 384 dims
-
-**DISPUTED 2026-09-19, do not cite yet.** On the real S1 data (5250 imgs, 384 dims, after PCA)
-GMM and k-means give the SAME partition (differ by 1-2 of 5250 samples), and k-means n_init=1
-equals n_init=10 there. In the pipeline, c100_km1 (k-means, n_init=1) reproduces the GMM
-baseline exactly on all 43 metrics, while c100_km (n_init=10) is much better. So the gain may
-come from the 10 restarts, not from the algorithm or the covariance type. The bimodal 81/94.8
-result below was measured on validation fold F5 (1-epoch features, 40 classes, 4000 novel-only
-images) and does not transfer to the real S1 mix. Missing cell to settle it: GMM with n_init=10.
+## D18. Clustering runs once (n_init=1); restarts matter more than the algorithm
 paper:  Appendix C.3 says standard k-means. Sec 3.2.1 / Alg. 1 only say "clustering".
-code:   clustering/gmm.py:14 GaussianMixture(n_components, random_state) with every default:
-        covariance_type='full', n_init=1, reg_covar=1e-6. No k-means anywhere in the repo.
-why it matters:
-        10 components x full 384x384 covariance = 10 * 384*385/2 = 739,200 parameters,
-        fitted on ~4000 unlabeled samples per stage (185 parameters per sample).
-evidence (all on this machine, 2026-09-18/19):
-        1. c100_consmoke/F5, 4000 imgs, 384 dims, 10 GMM seeds: accuracy is bimodal,
-           81 (7 seeds) vs 94.8 (3 seeds). ELBO vs cluster accuracy correlation = -0.999:
-           the HIGHER the likelihood, the WORSE the clustering -> variance collapse.
-           So n_init must NOT be used with this GMM: it would pick the worst solution.
-           k-means on the same data: 94.7 (deterministic, n_init=10).
-        2. Full pipeline, 5 seeds each, same features (c100_extract), only clustering changed:
-                          GMM(full)        k-means         paper
-           S0_All         91.90 +- 0.07    91.90 +- 0.07   91.68   (control: unchanged, as expected)
-           S1_New         73.68 +- 6.00    80.28 +- 0.36   83.10
-           S1_All         86.89 +- 1.18    88.26 +- 0.07   88.40
-           final_All      79.86 +- 1.68    81.76 +- 0.10   81.23
-           M_d            76.51 +- 3.00    79.88 +- 0.23   79.14
-           M_f             7.16 +- 0.54     6.61 +- 0.14    6.94
-impact: with k-means the code beats the paper on final_All, M_d and M_f, and the seed spread
-        collapses (S1_New std 6.00 -> 0.36, 17x). The large seed variance reported for the GMM
-        baseline is therefore an artefact of degenerate GMM solutions, not a property of VB-CGCD.
-        Remaining gap: S1_New 80.28 vs paper 83.10 (7.8 sigma); S2-S4 New are now ABOVE the paper.
-code added: clustering/kmeans.py (KMeansCluster, n_init=10), main.py Clustering_alg('kmeans').
-        Default stays 'gmm', so the upstream path is unchanged.
+code:   clustering/gmm.py GaussianMixture(n_components, random_state), all defaults:
+        covariance_type='full', n_init=1, reg_covar=1e-6. No k-means in the repo.
+
+2x2 design, 5 seeds per cell, SAME features (c100_extract), only the clustering changed:
+
+                    n_init=1                      n_init=10
+  GMM         final 79.86 +- 1.68  (c100_base)  final 81.35 +- 0.77  (c100_gmm10)
+              M_d   76.51 +- 3.00               M_d   79.11 +- 1.11
+  k-means     final 79.86 +- 1.68  (c100_km1)   final 81.76 +- 0.10  (c100_km)
+              M_d   76.51 +- 3.00               M_d   79.88 +- 0.23
+  paper: final 81.23, M_d 79.14, M_f 6.94, S1_New 83.10
+
+main effects:
+  restarts    +1.49 (GMM) / +1.90 (k-means) on final_All; +2.60 / +3.37 on M_d. Consistent.
+  algorithm   +0.00 at n_init=1, +0.41 at n_init=10. About 4x smaller. No real interaction.
+  stability   here the algorithm dominates: std of final_All 0.10 (k-means,10) vs 0.77 (GMM,10)
+              vs 1.68 (either, n_init=1). Likely because GMM picks by likelihood while k-means
+              picks by inertia, which is tied to cluster geometry. [INFERENCE]
+  control     S0_All is 91.90 +- 0.07 in all four cells (S0 uses no clustering), as expected.
+
+c100_km1 reproduces c100_base EXACTLY on all 43 metrics. On the real S1 data (5250 imgs,
+384 dims after PCA) GMM and k-means partitions differ by only 1-2 of 5250 samples, so the
+two are effectively the same clustering when each runs once.
+
+WITHDRAWN: an earlier version of this entry claimed GMM(full) is degenerate in 384 dims
+(bimodal 81 / 94.8 accuracy, ELBO vs accuracy r = -0.999). That was measured on validation
+fold F5 only (1-epoch features, 40 classes, 4000 novel-only images) and does NOT transfer to
+the real S1 mix. Kept here as a warning: do not generalise from the fold-F5 setup.
+
+impact: best config is k-means with n_init=10, i.e. what C.3 describes plus 10 restarts:
+        final_All 81.76 vs paper 81.23, M_d 79.88 vs 79.14, M_f 6.61 vs 6.94 (lower is better),
+        and the seed spread nearly vanishes. Remaining gap: S1_New 80.28 vs paper 83.10.
+code added: clustering/kmeans.py (KMeansCluster), main.py Clustering_alg('kmeans'),
+        --kmeans_n_init (default 10) and --gmm_n_init (default 1 = upstream).
+        Regression check: --gmm_n_init default reproduces c100_base_s0 exactly (c100_regress_s0).
+open:   c100_gmm10 has S4_New 87.02 (4 of 5 seeds 87.7-88.7) but the lowest S5_New 71.82.
+        Possible cross-session trade-off; r(S4_New, S5_New) = -0.55, n = 5, not significant.
 
 ## Additional notes on the fine-tuning implementation
 - BOFT config declared: boft_block_size=4, boft_n_butterfly_factor=2, boft_dropout=0.1,
