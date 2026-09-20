@@ -29,7 +29,8 @@ import utils
 import argparse
 import os
 
-torch.manual_seed(42)  # Set random seed for reproducibility
+FT_SEED = int(os.environ.get("FT_SEED", 42))   # 42 = upstream; other values measure phase-1 noise
+torch.manual_seed(FT_SEED)  # Set random seed for reproducibility
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

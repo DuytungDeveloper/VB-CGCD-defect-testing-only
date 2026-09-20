@@ -27,6 +27,7 @@ export FT_LAMBDA="${FT_LAMBDA:-0}"            # Eq. 3 weight. > 0 turns on NT-Xe
 export FT_TAU="${FT_TAU:-0.2}"                # NT-Xent temperature, read only when FT_LAMBDA > 0
 export FT_EPOCHS="${FT_EPOCHS:-10}"           # 10 = upstream; validation runs use 3
 export FT_LABELED_IDX="${FT_LABELED_IDX:-}"   # empty = upstream filter(labels < 50), 500 imgs/class (D9)
+export FT_SEED="${FT_SEED:-42}"               # 42 = upstream; also passed to --seed below
 export FT_FOLD="${FT_FOLD:-}"                 # empty = all 50 base classes; F1..F5 = hold out 10 fake-novel classes
 if [ -n "$FT_LABELED_IDX" ] && [ ! -f "$FT_LABELED_IDX" ]; then
   echo "run_phase1_extract: ERROR FT_LABELED_IDX=$FT_LABELED_IDX not found"; exit 2
@@ -34,7 +35,7 @@ fi
 if [ -n "$FT_FOLD" ] && [ -z "$FT_LABELED_IDX" ]; then
   echo "run_phase1_extract: ERROR FT_FOLD needs FT_LABELED_IDX (folds are defined on that index order)"; exit 2
 fi
-echo "run_phase1_extract: FT_LAMBDA=$FT_LAMBDA FT_TAU=$FT_TAU FT_EPOCHS=$FT_EPOCHS" \
+echo "run_phase1_extract: FT_LAMBDA=$FT_LAMBDA FT_TAU=$FT_TAU FT_EPOCHS=$FT_EPOCHS FT_SEED=$FT_SEED" \
      "FT_LABELED_IDX=${FT_LABELED_IDX:-<none>} FT_FOLD=${FT_FOLD:-<none>}"
 
 mkdir -p "$OUT"
@@ -44,7 +45,7 @@ export FT_CKPT_PATH="$OUT/ft_ckpt.pt"         # PATCH 5
 echo "run_phase1_extract: FT_BATCH_SIZE=$FT_BATCH_SIZE FT_ACCUM=$FT_ACCUM FT_CKPT_PATH=$FT_CKPT_PATH"
 
 ARGS=(--finetuned --output_dir "$OUT"
-      --model dino_vitb16 --device cuda --seed 42
+      --model dino_vitb16 --device cuda --seed "$FT_SEED"
       --batch-size 128                        # keep 128: merge_npy file order decides the labeled split
       --num-workers 8 --img_size 224 --labeled_classes 50)   # these 3 are parsed but never used
 
