@@ -259,3 +259,277 @@ note:   CE 0.2868, CON 0.3423 at epoch 2. CON falls monotonically with lambda (0
         Scope: one fold, one phase-1 seed, tau=0.2 only, 30 negatives per anchor, and the fold
         task is near its ceiling (95.5 of ~97.9). Not yet a conclusion about Eq. 3.
         All 5 grid runs: commit 3f2320f, dirty only scripts/eval_fold.py (evaluation tool).
+## 20260919_234953__f5_l025_t007
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260920_005051__f5_l05_t007
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260920_015334__f5_l075_t007
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260920_025511__f5_l025_t05
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260920_035516__f5_l05_t05
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260920_045513__f5_l075_t05
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260920_074552__c100_extract_con
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260920_132656__c100_con_s0
+why:
+result: S0_All 92.10 | S1_New 84.30 | final_All 82.31 | M_d 80.60 | M_f 6.58
+note:
+
+## 20260920_133925__c100_con_s1
+why:
+result: S0_All 91.90 | S1_New 80.00 | final_All 81.94 | M_d 80.08 | M_f 6.58
+note:
+
+## 20260920_135143__c100_con_s2
+why:
+result: S0_All 91.88 | S1_New 80.30 | final_All 81.72 | M_d 79.84 | M_f 6.74
+note:
+
+## 20260920_140401__c100_con_s3
+why:
+result: S0_All 91.96 | S1_New 80.90 | final_All 81.82 | M_d 79.68 | M_f 6.52
+note:
+
+## 20260920_141618__c100_con_s4
+why:
+result: S0_All 91.74 | S1_New 80.40 | final_All 81.81 | M_d 79.96 | M_f 6.52
+note:
+
+## 20260920_144616__c100_extract_ft16
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260920_195205__c100_ft16_s0
+why:
+result: S0_All 91.80 | S1_New 80.70 | final_All 81.75 | M_d 80.02 | M_f 6.72
+note:
+
+## 20260920_200418__c100_ft16_s1
+why:
+result: S0_All 91.72 | S1_New 80.40 | final_All 81.71 | M_d 79.90 | M_f 6.64
+note:
+
+## 20260920_201636__c100_ft16_s2
+why:
+result: S0_All 91.72 | S1_New 80.00 | final_All 81.52 | M_d 79.56 | M_f 6.68
+note:
+
+## 20260920_202855__c100_ft16_s3
+why:
+result: S0_All 91.96 | S1_New 81.20 | final_All 81.69 | M_d 79.98 | M_f 7.00
+note:
+
+## 20260920_204120__c100_ft16_s4
+why:
+result: S0_All 91.80 | S1_New 83.40 | final_All 81.97 | M_d 80.46 | M_f 6.72
+note:
+
+## 20260920_224309__c100_seedcheck
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260920_235027__c100_extract_ft16_sd43
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260921_041554__c100_extract_ft16_sd44
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260921_123050__c100_ft16sd43_s0
+why:
+result: S0_All 91.90 | S1_New 79.90 | final_All 81.99 | M_d 80.08 | M_f 6.32
+note:
+
+## 20260921_124304__c100_ft16sd43_s1
+why:
+result: S0_All 91.78 | S1_New 80.00 | final_All 81.74 | M_d 79.56 | M_f 6.12
+note:
+
+## 20260921_125510__c100_ft16sd43_s2
+why:
+result: S0_All 91.74 | S1_New 78.30 | final_All 81.55 | M_d 79.44 | M_f 6.44
+note:
+
+## 20260921_130729__c100_ft16sd43_s3
+why:
+result: S0_All 91.82 | S1_New 79.90 | final_All 81.58 | M_d 79.44 | M_f 6.30
+note:
+
+## 20260921_131953__c100_ft16sd43_s4
+why:
+result: S0_All 91.78 | S1_New 79.50 | final_All 81.69 | M_d 79.84 | M_f 6.44
+note:
+
+## 20260921_133213__c100_ft16sd44_s0
+why:
+result: S0_All 91.78 | S1_New 79.80 | final_All 81.78 | M_d 79.94 | M_f 6.54
+note:
+
+## 20260921_134434__c100_ft16sd44_s1
+why:
+result: S0_All 91.86 | S1_New 79.30 | final_All 81.82 | M_d 80.08 | M_f 6.62
+note:
+
+## 20260921_135648__c100_ft16sd44_s2
+why:
+result: S0_All 91.88 | S1_New 78.70 | final_All 81.86 | M_d 79.90 | M_f 6.42
+note:
+
+## 20260921_140936__c100_ft16sd44_s3
+why:
+result: S0_All 91.98 | S1_New 79.70 | final_All 81.97 | M_d 80.42 | M_f 6.86
+note:
+
+## 20260921_142159__c100_ft16sd44_s4
+why:
+result: S0_All 91.74 | S1_New 79.20 | final_All 82.04 | M_d 80.30 | M_f 6.48
+note:
+
+## 20260921_161513__c100_extract_ft16_sd45
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260921_204122__c100_ft16sd45_s0
+why:
+result: S0_All 91.82 | S1_New 79.50 | final_All 81.99 | M_d 80.16 | M_f 6.48
+note:
+
+## 20260921_205352__c100_ft16sd45_s1
+why:
+result: S0_All 91.84 | S1_New 79.70 | final_All 81.99 | M_d 80.52 | M_f 6.62
+note:
+
+## 20260921_210622__c100_ft16sd45_s2
+why:
+result: S0_All 91.72 | S1_New 79.20 | final_All 81.78 | M_d 80.12 | M_f 6.64
+note:
+
+## 20260921_211849__c100_ft16sd45_s3
+why:
+result: S0_All 91.62 | S1_New 79.70 | final_All 81.92 | M_d 80.18 | M_f 6.48
+note:
+
+## 20260921_213122__c100_ft16sd45_s4
+why:
+result: S0_All 91.70 | S1_New 79.70 | final_All 81.98 | M_d 80.12 | M_f 6.38
+note:
+
+## 20260921_214348__c100_extract_con_sd43
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260922_031414__c100_consd43_s0
+why:
+result: S0_All 91.86 | S1_New 79.90 | final_All 81.96 | M_d 79.96 | M_f 6.40
+note:
+
+## 20260922_032613__c100_consd43_s1
+why:
+result: S0_All 91.84 | S1_New 79.70 | final_All 81.82 | M_d 79.94 | M_f 6.56
+note:
+
+## 20260922_033820__c100_consd43_s2
+why:
+result: S0_All 91.88 | S1_New 79.80 | final_All 81.46 | M_d 79.42 | M_f 6.82
+note:
+
+## 20260922_035025__c100_consd43_s3
+why:
+result: S0_All 91.92 | S1_New 80.20 | final_All 81.67 | M_d 79.74 | M_f 6.74
+note:
+
+## 20260922_040236__c100_consd43_s4
+why:
+result: S0_All 91.96 | S1_New 80.00 | final_All 81.72 | M_d 79.84 | M_f 6.70
+note:
+
+## 20260922_041443__c100_extract_ft16_sd46
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260922_083829__c100_ft16sd46_s0
+why:
+result: S0_All 92.12 | S1_New 80.10 | final_All 81.95 | M_d 80.04 | M_f 6.76
+note:
+
+## 20260922_085042__c100_ft16sd46_s1
+why:
+result: S0_All 91.98 | S1_New 79.70 | final_All 82.15 | M_d 80.28 | M_f 6.64
+note:
+
+## 20260922_090254__c100_ft16sd46_s2
+why:
+result: S0_All 91.94 | S1_New 79.30 | final_All 81.71 | M_d 79.80 | M_f 6.86
+note:
+
+## 20260922_091512__c100_ft16sd46_s3
+why:
+result: S0_All 91.98 | S1_New 80.50 | final_All 81.87 | M_d 80.32 | M_f 7.06
+note:
+
+## 20260922_092734__c100_ft16sd46_s4
+why:
+result: S0_All 91.90 | S1_New 80.30 | final_All 82.00 | M_d 80.52 | M_f 6.92
+note:
+
+## 20260922_093949__c100_extract_con_sd44
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260922_150955__c100_consd44_s0
+why:
+result: S0_All 91.66 | S1_New 79.10 | final_All 81.36 | M_d 79.14 | M_f 6.62
+note:
+
+## 20260922_152216__c100_consd44_s1
+why:
+result: S0_All 91.60 | S1_New 79.10 | final_All 81.35 | M_d 79.32 | M_f 6.80
+note:
+
+## 20260922_153418__c100_consd44_s2
+why:
+result: S0_All 91.52 | S1_New 78.90 | final_All 81.57 | M_d 79.54 | M_f 6.42
+note:
+
+## 20260922_154627__c100_consd44_s3
+why:
+result: S0_All 91.88 | S1_New 79.90 | final_All 81.63 | M_d 79.80 | M_f 6.86
+note:
+
+## 20260922_155840__c100_consd44_s4
+why:
+result: S0_All 91.68 | S1_New 79.70 | final_All 81.51 | M_d 79.50 | M_f 6.60
+note:
