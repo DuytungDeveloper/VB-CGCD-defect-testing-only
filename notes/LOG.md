@@ -653,3 +653,63 @@ note:
 why:
 result: S0_All 91.92 | S1_New 79.30 | final_All 81.67 | M_d 79.64 | M_f 6.76
 note:
+
+## 20260924_084033__c100_extract_con_l05_t007_sd42
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260924_140731__c100_con_l05_t007_sd42_s0
+why:
+result: S0_All 92.04 | S1_New 80.70 | final_All 82.19 | M_d 80.48 | M_f 6.68
+note:
+
+## 20260924_141934__c100_con_l05_t007_sd42_s1
+why:
+result: S0_All 92.14 | S1_New 81.00 | final_All 82.20 | M_d 80.46 | M_f 6.74
+note:
+
+## 20260924_143151__c100_con_l05_t007_sd42_s2
+why:
+result: S0_All 92.04 | S1_New 80.80 | final_All 82.00 | M_d 80.24 | M_f 6.80
+note:
+
+## 20260924_144351__c100_con_l05_t007_sd42_s3
+why:
+result: S0_All 92.16 | S1_New 81.50 | final_All 82.23 | M_d 80.52 | M_f 6.78
+note:
+
+## 20260924_145601__c100_con_l05_t007_sd42_s4
+why:
+result: S0_All 92.12 | S1_New 80.70 | final_All 82.05 | M_d 80.22 | M_f 6.72
+note:
+
+## 20260924_150804__c100_extract_con_l05_t05_sd42
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260924_203440__c100_con_l05_t05_sd42_s0
+why:
+result: S0_All 91.14 | S1_New 79.00 | final_All 80.58 | M_d 78.42 | M_f 6.54
+note:
+
+## 20260924_204659__c100_con_l05_t05_sd42_s1
+why:
+result: S0_All 91.12 | S1_New 78.60 | final_All 80.64 | M_d 78.48 | M_f 6.48
+note:
+
+## 20260924_205913__c100_con_l05_t05_sd42_s2
+why:
+result: S0_All 91.18 | S1_New 78.10 | final_All 80.27 | M_d 77.80 | M_f 6.72
+note:
+
+## 20260924_211155__c100_con_l05_t05_sd42_s3
+why:
+result: S0_All 91.28 | S1_New 78.90 | final_All 79.57 | M_d 76.28 | M_f 6.56
+note:
+
+## 20260924_212534__c100_con_l05_t05_sd42_s4
+why:
+result: S0_All 91.18 | S1_New 78.80 | final_All 80.24 | M_d 77.76 | M_f 6.58
+note:

@@ -8,7 +8,7 @@ cd "$(git rev-parse --show-toplevel)"
 BACKUP=$(mktemp); cp runs/inputs.txt "$BACKUP"
 trap 'cp "$BACKUP" runs/inputs.txt; echo "queue: runs/inputs.txt restored"' EXIT
 
-CELLS=("0.5 0.07" "0.5 0.5")
+CELLS=("0.5 0.07")
 
 finished() {   # $1 = exact tag -> latest run dir with exit 0, or empty
   python - "$1" << 'PY'
