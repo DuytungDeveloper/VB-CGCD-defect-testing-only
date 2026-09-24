@@ -1,0 +1,36 @@
+{
+  "run_id": "20260924_000649__c100_con_l01_t02_sd43_s2",
+  "tag": "c100_con_l01_t02_sd43_s2",
+  "command": [
+    "bash",
+    "scripts/run_phase2_cl.sh",
+    "--clustering_alg",
+    "kmeans",
+    "--seed",
+    "2"
+  ],
+  "cwd": "/home/rito/projects/VB-CGCD-defect",
+  "started": "2026-09-24T00:06:49+07:00",
+  "git": {
+    "commit": "9bb1d8c0b2fe807c2eb5c7ba75e471db3d26e384",
+    "dirty": true,
+    "dirty_files": [
+      "M scripts/queue_grid.sh"
+    ]
+  },
+  "env": {
+    "id": "f70b1aeb7805",
+    "pip_freeze": "runs/envs/f70b1aeb7805.txt",
+    "conda_env": "vbcgcd",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU, 616.92"
+  },
+  "python": "3.12.14",
+  "host": "Rito",
+  "inputs": {
+    "features/20260923_181654__c100_extract_con_l01_t02_sd43/dino-vitb16-sl": "d0820ff6f9f8c57d"
+  },
+  "warnings": [],
+  "finished": "2026-09-24T00:18:57+07:00",
+  "duration_min": 12.1,
+  "exit_code": 0
+}
