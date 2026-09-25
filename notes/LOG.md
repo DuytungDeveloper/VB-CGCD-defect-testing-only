@@ -832,3 +832,63 @@ note:   CONCLUSION for Eq. 3 (cell lambda=0.5, tau=0.07, now n=3 phase-1 seeds),
         whether that reaches the final metric varies by seed.
         Scope: tau swept at full scale only at lambda=0.5; 30 negatives per anchor; augmentation
         and NT-Xent form are our choices (the paper underspecifies Eq. 2).
+
+## 20260925_111920__c100_extract_con_l05_t003_sd42
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260925_164557__c100_con_l05_t003_sd42_s0
+why:
+result: S0_All 92.04 | S1_New 80.80 | final_All 82.13 | M_d 80.36 | M_f 6.60
+note:
+
+## 20260925_165802__c100_con_l05_t003_sd42_s1
+why:
+result: S0_All 92.10 | S1_New 80.30 | final_All 82.08 | M_d 80.32 | M_f 6.72
+note:
+
+## 20260925_171001__c100_con_l05_t003_sd42_s2
+why:
+result: S0_All 92.12 | S1_New 80.60 | final_All 82.08 | M_d 80.46 | M_f 6.96
+note:
+
+## 20260925_172216__c100_con_l05_t003_sd42_s3
+why:
+result: S0_All 92.24 | S1_New 81.30 | final_All 81.85 | M_d 80.16 | M_f 7.08
+note:
+
+## 20260925_173426__c100_con_l05_t003_sd42_s4
+why:
+result: S0_All 92.16 | S1_New 80.50 | final_All 82.14 | M_d 80.46 | M_f 6.80
+note:
+
+## 20260925_174631__c100_extract_con_l05_t012_sd42
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260925_231551__c100_con_l05_t012_sd42_s0
+why:
+result: S0_All 91.92 | S1_New 80.30 | final_All 82.04 | M_d 80.40 | M_f 6.64
+note:
+
+## 20260925_232758__c100_con_l05_t012_sd42_s1
+why:
+result: S0_All 91.92 | S1_New 79.80 | final_All 82.12 | M_d 80.50 | M_f 6.62
+note:
+
+## 20260925_234006__c100_con_l05_t012_sd42_s2
+why:
+result: S0_All 91.92 | S1_New 79.80 | final_All 82.13 | M_d 80.34 | M_f 6.66
+note:
+
+## 20260925_235216__c100_con_l05_t012_sd42_s3
+why:
+result: S0_All 91.94 | S1_New 76.70 | final_All 81.36 | M_d 79.42 | M_f 7.08
+note:
+
+## 20260926_000430__c100_con_l05_t012_sd42_s4
+why:
+result: S0_All 91.70 | S1_New 80.00 | final_All 81.88 | M_d 80.42 | M_f 6.80
+note:
