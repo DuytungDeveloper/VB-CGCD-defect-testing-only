@@ -260,456 +260,575 @@ note:   CE 0.2868, CON 0.3423 at epoch 2. CON falls monotonically with lambda (0
         task is near its ceiling (95.5 of ~97.9). Not yet a conclusion about Eq. 3.
         All 5 grid runs: commit 3f2320f, dirty only scripts/eval_fold.py (evaluation tool).
 ## 20260919_234953__f5_l025_t007
-why:
+why:    grid stage 2a: lambda=0.25, tau=0.07, fold F5, 3 epochs, 400 imgs/class
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260920_005051__f5_l05_t007
-why:
+why:    grid stage 2a: lambda=0.5, tau=0.07, fold F5, 3 epochs, 400 imgs/class
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260920_015334__f5_l075_t007
-why:
+why:    grid stage 2a: lambda=0.75, tau=0.07, fold F5, 3 epochs, 400 imgs/class
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260920_025511__f5_l025_t05
-why:
+why:    grid stage 2a: lambda=0.25, tau=0.5, fold F5, 3 epochs, 400 imgs/class
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260920_035516__f5_l05_t05
-why:
+why:    grid stage 2a: lambda=0.5, tau=0.5, fold F5, 3 epochs, 400 imgs/class
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260920_045513__f5_l075_t05
-why:
+why:    grid stage 2a: lambda=0.75, tau=0.5, fold F5, 3 epochs, 400 imgs/class
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   validation grid complete, 3 lambda x 3 tau, fold F5, 3 epochs
+        (scripts/pick_lambda.py, k-means n_init=10, 5 clustering seeds). Cluster acc on the 4000
+        fake-novel images; lambda=0 baseline 95.48:
+          lambda \ tau     0.07     0.2      0.5
+          0.25            95.31    95.42    95.38
+          0.5             95.36    95.16    95.30
+          0.75            95.25    94.81    94.64
+        No cell beats lambda=0. Effect of lambda (mean -0.10 / -0.20 / -0.58) is 2-3x the effect
+        of tau (-0.17 / -0.35 / -0.37). Interaction visible at lambda 0.75 (tau 0.07 -0.22 vs
+        tau 0.5 -0.84). WARNING: this criterion later turned out NOT to predict downstream
+        results (it said lambda 0.25 was -0.05; at full scale it was +0.19 then -0.13 at n=3).
+        The fold task is near its ceiling: 95.5 of ~97.9.
 
 ## 20260920_074552__c100_extract_con
-why:
+why:    phase 1 with Eq. 3: lambda=0.25, tau=0.2, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   337.5 min. First full-scale Eq. 3 run: 500 imgs/class, 50 classes, 10 epochs.
+        Batch forced to 16x8 because 32 x 2 views = 7.68 GB > 6.93 GB available (OOM).
+        Effective batch still 128. 30 negatives per anchor.
 
 ## 20260920_132656__c100_con_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: c100_extract_con)
 result: S0_All 92.10 | S1_New 84.30 | final_All 82.31 | M_d 80.60 | M_f 6.58
-note:
+note:   -
 
 ## 20260920_133925__c100_con_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: c100_extract_con)
 result: S0_All 91.90 | S1_New 80.00 | final_All 81.94 | M_d 80.08 | M_f 6.58
-note:
+note:   -
 
 ## 20260920_135143__c100_con_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: c100_extract_con)
 result: S0_All 91.88 | S1_New 80.30 | final_All 81.72 | M_d 79.84 | M_f 6.74
-note:
+note:   -
 
 ## 20260920_140401__c100_con_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: c100_extract_con)
 result: S0_All 91.96 | S1_New 80.90 | final_All 81.82 | M_d 79.68 | M_f 6.52
-note:
+note:   -
 
 ## 20260920_141618__c100_con_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: c100_extract_con)
 result: S0_All 91.74 | S1_New 80.40 | final_All 81.81 | M_d 79.96 | M_f 6.52
-note:
+note:   5-seed summary (agg_c100_con.txt). S0_All 91.92+-0.13, S1_New 81.18+-1.77,
+        final_All 81.92+-0.23, M_d 80.03+-0.35, M_f 6.59+-0.09. S1_All 88.40 = paper exactly.
+        vs c100_km (lambda 0, batch 32x4): +0.16 final_All. NOT interpretable on its own:
+        two variables changed (contrastive AND batch) -> see the control c100_ft16.
 
 ## 20260920_144616__c100_extract_ft16
-why:
+why:    phase-1 CONTROL for Eq. 3: lambda=0, batch 16x8 (isolates batch size from contrastive)
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260920_195205__c100_ft16_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: c100_extract_ft16)
 result: S0_All 91.80 | S1_New 80.70 | final_All 81.75 | M_d 80.02 | M_f 6.72
-note:
+note:   -
 
 ## 20260920_200418__c100_ft16_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: c100_extract_ft16)
 result: S0_All 91.72 | S1_New 80.40 | final_All 81.71 | M_d 79.90 | M_f 6.64
-note:
+note:   -
 
 ## 20260920_201636__c100_ft16_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: c100_extract_ft16)
 result: S0_All 91.72 | S1_New 80.00 | final_All 81.52 | M_d 79.56 | M_f 6.68
-note:
+note:   -
 
 ## 20260920_202855__c100_ft16_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: c100_extract_ft16)
 result: S0_All 91.96 | S1_New 81.20 | final_All 81.69 | M_d 79.98 | M_f 7.00
-note:
+note:   -
 
 ## 20260920_204120__c100_ft16_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: c100_extract_ft16)
 result: S0_All 91.80 | S1_New 83.40 | final_All 81.97 | M_d 80.46 | M_f 6.72
-note:
+note:   5-seed summary (agg_c100_ft16.txt). final_All 81.73+-0.16, M_d 79.98+-0.32.
+        vs c100_km (same lambda 0, batch 32x4): 81.76 vs 81.73 -> batch size alone changes nothing.
+        So the clean Eq. 3 comparison is this run vs c100_con: +0.19 final_All, +0.05 M_d.
 
 ## 20260920_224309__c100_seedcheck
-why:
+why:    regression check after adding FT_SEED: default 42 must reproduce upstream
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   FT_SEED default 42 reproduces c100_con0_probe: mean CE 1.1756 identical,
+        features max|diff| 1.15e-5 (GPU noise only). The flag does not change the default path.
 
 ## 20260920_235027__c100_extract_ft16_sd43
-why:
+why:    phase-1 noise measurement: lambda=0, batch 16x8, FT_SEED 43
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260921_041554__c100_extract_ft16_sd44
-why:
+why:    phase-1 noise measurement: lambda=0, batch 16x8, FT_SEED 44
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260921_123050__c100_ft16sd43_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: ft16 FT_SEED 43)
 result: S0_All 91.90 | S1_New 79.90 | final_All 81.99 | M_d 80.08 | M_f 6.32
-note:
+note:   -
 
 ## 20260921_124304__c100_ft16sd43_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: ft16 FT_SEED 43)
 result: S0_All 91.78 | S1_New 80.00 | final_All 81.74 | M_d 79.56 | M_f 6.12
-note:
+note:   -
 
 ## 20260921_125510__c100_ft16sd43_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: ft16 FT_SEED 43)
 result: S0_All 91.74 | S1_New 78.30 | final_All 81.55 | M_d 79.44 | M_f 6.44
-note:
+note:   -
 
 ## 20260921_130729__c100_ft16sd43_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: ft16 FT_SEED 43)
 result: S0_All 91.82 | S1_New 79.90 | final_All 81.58 | M_d 79.44 | M_f 6.30
-note:
+note:   -
 
 ## 20260921_131953__c100_ft16sd43_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: ft16 FT_SEED 43)
 result: S0_All 91.78 | S1_New 79.50 | final_All 81.69 | M_d 79.84 | M_f 6.44
-note:
+note:   -
 
 ## 20260921_133213__c100_ft16sd44_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: ft16 FT_SEED 44)
 result: S0_All 91.78 | S1_New 79.80 | final_All 81.78 | M_d 79.94 | M_f 6.54
-note:
+note:   -
 
 ## 20260921_134434__c100_ft16sd44_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: ft16 FT_SEED 44)
 result: S0_All 91.86 | S1_New 79.30 | final_All 81.82 | M_d 80.08 | M_f 6.62
-note:
+note:   -
 
 ## 20260921_135648__c100_ft16sd44_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: ft16 FT_SEED 44)
 result: S0_All 91.88 | S1_New 78.70 | final_All 81.86 | M_d 79.90 | M_f 6.42
-note:
+note:   -
 
 ## 20260921_140936__c100_ft16sd44_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: ft16 FT_SEED 44)
 result: S0_All 91.98 | S1_New 79.70 | final_All 81.97 | M_d 80.42 | M_f 6.86
-note:
+note:   -
 
 ## 20260921_142159__c100_ft16sd44_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: ft16 FT_SEED 44)
 result: S0_All 91.74 | S1_New 79.20 | final_All 82.04 | M_d 80.30 | M_f 6.48
-note:
+note:   -
 
 ## 20260921_161513__c100_extract_ft16_sd45
-why:
+why:    phase-1 noise measurement: lambda=0, batch 16x8, FT_SEED 45
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260921_204122__c100_ft16sd45_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: ft16 FT_SEED 45)
 result: S0_All 91.82 | S1_New 79.50 | final_All 81.99 | M_d 80.16 | M_f 6.48
-note:
+note:   -
 
 ## 20260921_205352__c100_ft16sd45_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: ft16 FT_SEED 45)
 result: S0_All 91.84 | S1_New 79.70 | final_All 81.99 | M_d 80.52 | M_f 6.62
-note:
+note:   -
 
 ## 20260921_210622__c100_ft16sd45_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: ft16 FT_SEED 45)
 result: S0_All 91.72 | S1_New 79.20 | final_All 81.78 | M_d 80.12 | M_f 6.64
-note:
+note:   -
 
 ## 20260921_211849__c100_ft16sd45_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: ft16 FT_SEED 45)
 result: S0_All 91.62 | S1_New 79.70 | final_All 81.92 | M_d 80.18 | M_f 6.48
-note:
+note:   -
 
 ## 20260921_213122__c100_ft16sd45_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: ft16 FT_SEED 45)
 result: S0_All 91.70 | S1_New 79.70 | final_All 81.98 | M_d 80.12 | M_f 6.38
-note:
+note:   -
 
 ## 20260921_214348__c100_extract_con_sd43
-why:
+why:    extra phase-1 seed for cell (lambda 0.25, tau 0.2): FT_SEED 43
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260922_031414__c100_consd43_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: con lambda 0.25 tau 0.2, FT_SEED 43)
 result: S0_All 91.86 | S1_New 79.90 | final_All 81.96 | M_d 79.96 | M_f 6.40
-note:
+note:   -
 
 ## 20260922_032613__c100_consd43_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: con lambda 0.25 tau 0.2, FT_SEED 43)
 result: S0_All 91.84 | S1_New 79.70 | final_All 81.82 | M_d 79.94 | M_f 6.56
-note:
+note:   -
 
 ## 20260922_033820__c100_consd43_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: con lambda 0.25 tau 0.2, FT_SEED 43)
 result: S0_All 91.88 | S1_New 79.80 | final_All 81.46 | M_d 79.42 | M_f 6.82
-note:
+note:   -
 
 ## 20260922_035025__c100_consd43_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: con lambda 0.25 tau 0.2, FT_SEED 43)
 result: S0_All 91.92 | S1_New 80.20 | final_All 81.67 | M_d 79.74 | M_f 6.74
-note:
+note:   -
 
 ## 20260922_040236__c100_consd43_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: con lambda 0.25 tau 0.2, FT_SEED 43)
 result: S0_All 91.96 | S1_New 80.00 | final_All 81.72 | M_d 79.84 | M_f 6.70
-note:
+note:   -
 
 ## 20260922_041443__c100_extract_ft16_sd46
-why:
+why:    phase-1 noise measurement: lambda=0, batch 16x8, FT_SEED 46
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260922_083829__c100_ft16sd46_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: ft16 FT_SEED 46)
 result: S0_All 92.12 | S1_New 80.10 | final_All 81.95 | M_d 80.04 | M_f 6.76
-note:
+note:   -
 
 ## 20260922_085042__c100_ft16sd46_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: ft16 FT_SEED 46)
 result: S0_All 91.98 | S1_New 79.70 | final_All 82.15 | M_d 80.28 | M_f 6.64
-note:
+note:   -
 
 ## 20260922_090254__c100_ft16sd46_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: ft16 FT_SEED 46)
 result: S0_All 91.94 | S1_New 79.30 | final_All 81.71 | M_d 79.80 | M_f 6.86
-note:
+note:   -
 
 ## 20260922_091512__c100_ft16sd46_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: ft16 FT_SEED 46)
 result: S0_All 91.98 | S1_New 80.50 | final_All 81.87 | M_d 80.32 | M_f 7.06
-note:
+note:   -
 
 ## 20260922_092734__c100_ft16sd46_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: ft16 FT_SEED 46)
 result: S0_All 91.90 | S1_New 80.30 | final_All 82.00 | M_d 80.52 | M_f 6.92
-note:
+note:   PHASE-1 NOISE FLOOR, the number every phase-1 comparison needs.
+        5 phase-1 seeds at lambda=0 (42..46), each = mean of 5 phase-2 seeds:
+          final_All  81.73 / 81.71 / 81.89 / 81.93 / 81.94  -> 81.84 +- 0.11
+          M_d        79.98 / 79.67 / 80.13 / 80.22 / 80.19  -> 80.04 +- 0.23
+          S0_All                                            -> 91.84 +- 0.09
+          S1_New     81.14 / 79.52 / 79.34 / 79.56 / 79.98  -> 79.91 +- 0.73
+        Consequences: (1) the +0.19 of c100_con is 1.2 sigma, not significant; (2) beating the
+        paper IS significant: final_All +0.55 (5 sigma), M_d +0.79 (3.4 sigma); (3) the S1_New
+        gap to the paper (2.8 points) is only ~2.8 sigma, not the 7.8 claimed earlier from
+        phase-2 spread. n = number of PHASE-1 runs; the 5 phase-2 seeds are not independent units.
 
 ## 20260922_093949__c100_extract_con_sd44
-why:
+why:    extra phase-1 seed for cell (lambda 0.25, tau 0.2): FT_SEED 44
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260922_150955__c100_consd44_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: con lambda 0.25 tau 0.2, FT_SEED 44)
 result: S0_All 91.66 | S1_New 79.10 | final_All 81.36 | M_d 79.14 | M_f 6.62
-note:
+note:   -
 
 ## 20260922_152216__c100_consd44_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: con lambda 0.25 tau 0.2, FT_SEED 44)
 result: S0_All 91.60 | S1_New 79.10 | final_All 81.35 | M_d 79.32 | M_f 6.80
-note:
+note:   -
 
 ## 20260922_153418__c100_consd44_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: con lambda 0.25 tau 0.2, FT_SEED 44)
 result: S0_All 91.52 | S1_New 78.90 | final_All 81.57 | M_d 79.54 | M_f 6.42
-note:
+note:   -
 
 ## 20260922_154627__c100_consd44_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: con lambda 0.25 tau 0.2, FT_SEED 44)
 result: S0_All 91.88 | S1_New 79.90 | final_All 81.63 | M_d 79.80 | M_f 6.86
-note:
+note:   -
 
 ## 20260922_155840__c100_consd44_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: con lambda 0.25 tau 0.2, FT_SEED 44)
 result: S0_All 91.68 | S1_New 79.70 | final_All 81.51 | M_d 79.50 | M_f 6.60
-note:
+note:   cell (0.25, 0.2) now has 3 phase-1 seeds: final_All 81.92 / 81.73 / 81.48
+        -> 81.71 +- 0.22, i.e. BELOW the lambda=0 mean 81.84. The single-seed +0.19 did not hold.
 
 ## 20260922_192320__c100_extract_con_l01_t02_sd42
-why:
+why:    grid cell at full scale: lambda=0.1, tau=0.2, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260923_011302__c100_con_l01_t02_sd42_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: lambda 0.1, tau 0.2, FT_SEED 42)
 result: S0_All 92.18 | S1_New 80.50 | final_All 82.12 | M_d 80.00 | M_f 6.50
-note:
+note:   -
 
 ## 20260923_012517__c100_con_l01_t02_sd42_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: lambda 0.1, tau 0.2, FT_SEED 42)
 result: S0_All 92.20 | S1_New 80.80 | final_All 82.27 | M_d 80.20 | M_f 6.38
-note:
+note:   -
 
 ## 20260923_013718__c100_con_l01_t02_sd42_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: lambda 0.1, tau 0.2, FT_SEED 42)
 result: S0_All 92.08 | S1_New 80.10 | final_All 82.24 | M_d 80.18 | M_f 6.34
-note:
+note:   -
 
 ## 20260923_014926__c100_con_l01_t02_sd42_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: lambda 0.1, tau 0.2, FT_SEED 42)
 result: S0_All 92.28 | S1_New 81.10 | final_All 82.14 | M_d 80.10 | M_f 6.58
-note:
+note:   -
 
 ## 20260923_020134__c100_con_l01_t02_sd42_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: lambda 0.1, tau 0.2, FT_SEED 42)
 result: S0_All 92.00 | S1_New 80.10 | final_All 82.09 | M_d 79.84 | M_f 6.28
-note:
+note:   -
 
 ## 20260923_095021__c100_extract_con_l05_t02_sd42
-why:
+why:    grid cell at full scale: lambda=0.5, tau=0.2, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260923_151415__c100_con_l05_t02_sd42_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: lambda 0.5, tau 0.2, FT_SEED 42)
 result: S0_All 91.20 | S1_New 79.70 | final_All 81.15 | M_d 79.34 | M_f 6.68
-note:
+note:   -
 
 ## 20260923_152605__c100_con_l05_t02_sd42_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: lambda 0.5, tau 0.2, FT_SEED 42)
 result: S0_All 91.30 | S1_New 79.10 | final_All 81.09 | M_d 79.26 | M_f 6.70
-note:
+note:   -
 
 ## 20260923_153801__c100_con_l05_t02_sd42_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: lambda 0.5, tau 0.2, FT_SEED 42)
 result: S0_All 91.30 | S1_New 79.10 | final_All 81.16 | M_d 79.24 | M_f 6.62
-note:
+note:   -
 
 ## 20260923_154958__c100_con_l05_t02_sd42_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: lambda 0.5, tau 0.2, FT_SEED 42)
 result: S0_All 91.44 | S1_New 79.60 | final_All 81.31 | M_d 79.50 | M_f 6.74
-note:
+note:   -
 
 ## 20260923_160157__c100_con_l05_t02_sd42_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: lambda 0.5, tau 0.2, FT_SEED 42)
 result: S0_All 91.22 | S1_New 79.50 | final_All 81.02 | M_d 79.20 | M_f 6.74
-note:
+note:   -
 
 ## 20260923_181654__c100_extract_con_l01_t02_sd43
-why:
+why:    grid cell at full scale: lambda=0.1, tau=0.2, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 43
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260923_234257__c100_con_l01_t02_sd43_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: lambda 0.1, tau 0.2, FT_SEED 43)
 result: S0_All 92.18 | S1_New 80.50 | final_All 82.06 | M_d 79.96 | M_f 6.34
-note:
+note:   -
 
 ## 20260923_235449__c100_con_l01_t02_sd43_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: lambda 0.1, tau 0.2, FT_SEED 43)
 result: S0_All 92.12 | S1_New 79.70 | final_All 82.31 | M_d 80.16 | M_f 6.10
-note:
+note:   -
 
 ## 20260924_000649__c100_con_l01_t02_sd43_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: lambda 0.1, tau 0.2, FT_SEED 43)
 result: S0_All 92.22 | S1_New 80.00 | final_All 82.23 | M_d 79.90 | M_f 6.16
-note:
+note:   -
 
 ## 20260924_001857__c100_con_l01_t02_sd43_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: lambda 0.1, tau 0.2, FT_SEED 43)
 result: S0_All 92.28 | S1_New 78.10 | final_All 81.76 | M_d 79.78 | M_f 7.02
-note:
+note:   -
 
 ## 20260924_003103__c100_con_l01_t02_sd43_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: lambda 0.1, tau 0.2, FT_SEED 43)
 result: S0_All 92.16 | S1_New 80.40 | final_All 82.29 | M_d 80.42 | M_f 6.46
-note:
+note:   -
 
 ## 20260924_004303__c100_extract_con_l01_t02_sd44
-why:
+why:    grid cell at full scale: lambda=0.1, tau=0.2, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 44
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260924_060930__c100_con_l01_t02_sd44_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: lambda 0.1, tau 0.2, FT_SEED 44)
 result: S0_All 91.76 | S1_New 79.80 | final_All 81.68 | M_d 80.04 | M_f 6.90
-note:
+note:   -
 
 ## 20260924_062138__c100_con_l01_t02_sd44_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: lambda 0.1, tau 0.2, FT_SEED 44)
 result: S0_All 91.84 | S1_New 79.10 | final_All 81.36 | M_d 79.28 | M_f 6.80
-note:
+note:   -
 
 ## 20260924_063347__c100_con_l01_t02_sd44_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: lambda 0.1, tau 0.2, FT_SEED 44)
 result: S0_All 91.80 | S1_New 78.40 | final_All 81.39 | M_d 79.44 | M_f 6.84
-note:
+note:   -
 
 ## 20260924_064552__c100_con_l01_t02_sd44_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: lambda 0.1, tau 0.2, FT_SEED 44)
 result: S0_All 92.08 | S1_New 79.40 | final_All 81.55 | M_d 79.70 | M_f 7.02
-note:
+note:   -
 
 ## 20260924_065803__c100_con_l01_t02_sd44_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: lambda 0.1, tau 0.2, FT_SEED 44)
 result: S0_All 91.92 | S1_New 79.30 | final_All 81.67 | M_d 79.64 | M_f 6.76
-note:
+note:   LAMBDA AXIS at tau=0.2 (500 imgs/class, 10 epochs, k-means n_init=10).
+        n = phase-1 runs; each value = mean of 5 phase-2 seeds:
+          lambda 0     n=5  final 81.84+-0.11  M_d 80.04+-0.23
+          lambda 0.1   n=3  final 81.94+-0.36  M_d 79.91+-0.25
+          lambda 0.25  n=3  final 81.71+-0.22  M_d 79.76+-0.29
+          lambda 0.5   n=1  final 81.15        M_d 79.31
+        Slope final_All -1.17 per unit lambda (p=0.027), M_d -1.35 (p=0.011), 12 phase-1 runs.
+        LESSON: lambda 0.1 seed 42 alone gave 82.17 (+0.33, looked like a real gain); seed 44 gave
+        81.53 and the n=3 mean fell to +0.10. Never conclude from n=1.
+        Contrastive also seems to RAISE phase-1 variance: std 0.36 (l0.1) and 0.22 (l0.25) vs 0.11 (l0).
+        dirty only scripts/queue_grid.sh (queue driver, not read by phase 1 or phase 2).
 
 ## 20260924_084033__c100_extract_con_l05_t007_sd42
-why:
+why:    grid cell at full scale: lambda=0.5, tau=0.07, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260924_140731__c100_con_l05_t007_sd42_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: lambda 0.5, tau 0.07, FT_SEED 42)
 result: S0_All 92.04 | S1_New 80.70 | final_All 82.19 | M_d 80.48 | M_f 6.68
-note:
+note:   -
 
 ## 20260924_141934__c100_con_l05_t007_sd42_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: lambda 0.5, tau 0.07, FT_SEED 42)
 result: S0_All 92.14 | S1_New 81.00 | final_All 82.20 | M_d 80.46 | M_f 6.74
-note:
+note:   -
 
 ## 20260924_143151__c100_con_l05_t007_sd42_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: lambda 0.5, tau 0.07, FT_SEED 42)
 result: S0_All 92.04 | S1_New 80.80 | final_All 82.00 | M_d 80.24 | M_f 6.80
-note:
+note:   -
 
 ## 20260924_144351__c100_con_l05_t007_sd42_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: lambda 0.5, tau 0.07, FT_SEED 42)
 result: S0_All 92.16 | S1_New 81.50 | final_All 82.23 | M_d 80.52 | M_f 6.78
-note:
+note:   -
 
 ## 20260924_145601__c100_con_l05_t007_sd42_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: lambda 0.5, tau 0.07, FT_SEED 42)
 result: S0_All 92.12 | S1_New 80.70 | final_All 82.05 | M_d 80.22 | M_f 6.72
-note:
+note:   -
 
 ## 20260924_150804__c100_extract_con_l05_t05_sd42
-why:
+why:    grid cell at full scale: lambda=0.5, tau=0.5, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260924_203440__c100_con_l05_t05_sd42_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: lambda 0.5, tau 0.5, FT_SEED 42)
 result: S0_All 91.14 | S1_New 79.00 | final_All 80.58 | M_d 78.42 | M_f 6.54
-note:
+note:   -
 
 ## 20260924_204659__c100_con_l05_t05_sd42_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: lambda 0.5, tau 0.5, FT_SEED 42)
 result: S0_All 91.12 | S1_New 78.60 | final_All 80.64 | M_d 78.48 | M_f 6.48
-note:
+note:   -
 
 ## 20260924_205913__c100_con_l05_t05_sd42_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: lambda 0.5, tau 0.5, FT_SEED 42)
 result: S0_All 91.18 | S1_New 78.10 | final_All 80.27 | M_d 77.80 | M_f 6.72
-note:
+note:   -
 
 ## 20260924_211155__c100_con_l05_t05_sd42_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: lambda 0.5, tau 0.5, FT_SEED 42)
 result: S0_All 91.28 | S1_New 78.90 | final_All 79.57 | M_d 76.28 | M_f 6.56
-note:
+note:   -
 
 ## 20260924_212534__c100_con_l05_t05_sd42_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: lambda 0.5, tau 0.5, FT_SEED 42)
 result: S0_All 91.18 | S1_New 78.80 | final_All 80.24 | M_d 77.76 | M_f 6.58
-note:
+note:   TAU AXIS at lambda=0.5, n=1 per cell, vs the lambda=0 baseline 81.84 / 91.84:
+          tau 0.07   S0 92.10   final 82.13   M_d 80.38
+          tau 0.2    S0 91.29   final 81.15   M_d 79.31
+          tau 0.5    S0 91.18   final 80.26   M_d 77.75
+        Range on the tau axis is 1.87 points of final_All, vs 0.79 on the lambda axis -> tau is the
+        more important hyper-parameter, and it INTERACTS with lambda. The whole lambda sweep was run
+        at tau=0.2, which happens to be a harmful setting; that is why the earlier conclusion
+        ("Eq. 3 does not help") was premature.
+
+## 20260924_214316__c100_extract_con_l05_t007_sd43
+why:    grid cell at full scale: lambda=0.5, tau=0.07, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 43
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:   -
+
+## 20260925_033039__c100_con_l05_t007_sd43_s0
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: lambda 0.5, tau 0.07, FT_SEED 43)
+result: S0_All 92.24 | S1_New 80.70 | final_All 82.14 | M_d 80.18 | M_f 6.50
+note:   -
+
+## 20260925_034236__c100_con_l05_t007_sd43_s1
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: lambda 0.5, tau 0.07, FT_SEED 43)
+result: S0_All 92.08 | S1_New 80.20 | final_All 82.18 | M_d 80.16 | M_f 6.28
+note:   -
+
+## 20260925_035429__c100_con_l05_t007_sd43_s2
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: lambda 0.5, tau 0.07, FT_SEED 43)
+result: S0_All 92.16 | S1_New 80.10 | final_All 82.17 | M_d 80.20 | M_f 6.38
+note:   -
+
+## 20260925_040627__c100_con_l05_t007_sd43_s3
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: lambda 0.5, tau 0.07, FT_SEED 43)
+result: S0_All 92.28 | S1_New 80.50 | final_All 82.09 | M_d 80.18 | M_f 6.56
+note:   -
+
+## 20260925_041827__c100_con_l05_t007_sd43_s4
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: lambda 0.5, tau 0.07, FT_SEED 43)
+result: S0_All 92.14 | S1_New 80.70 | final_All 82.22 | M_d 80.20 | M_f 6.16
+note:   -
+
+## 20260925_043020__c100_extract_con_l05_t007_sd44
+why:    grid cell at full scale: lambda=0.5, tau=0.07, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 44
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:   -
+
+## 20260925_095506__c100_con_l05_t007_sd44_s0
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: lambda 0.5, tau 0.07, FT_SEED 44)
+result: S0_All 92.06 | S1_New 79.90 | final_All 81.81 | M_d 80.06 | M_f 7.04
+note:   -
+
+## 20260925_100705__c100_con_l05_t007_sd44_s1
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: lambda 0.5, tau 0.07, FT_SEED 44)
+result: S0_All 91.98 | S1_New 79.40 | final_All 81.79 | M_d 80.04 | M_f 7.00
+note:   -
+
+## 20260925_101906__c100_con_l05_t007_sd44_s2
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: lambda 0.5, tau 0.07, FT_SEED 44)
+result: S0_All 92.12 | S1_New 79.40 | final_All 81.55 | M_d 79.56 | M_f 7.08
+note:   -
+
+## 20260925_103104__c100_con_l05_t007_sd44_s3
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: lambda 0.5, tau 0.07, FT_SEED 44)
+result: S0_All 92.20 | S1_New 80.20 | final_All 81.57 | M_d 79.76 | M_f 7.22
+note:   -
+
+## 20260925_104308__c100_con_l05_t007_sd44_s4
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: lambda 0.5, tau 0.07, FT_SEED 44)
+result: S0_All 92.08 | S1_New 79.60 | final_All 82.09 | M_d 80.26 | M_f 6.68
+note:   CONCLUSION for Eq. 3 (cell lambda=0.5, tau=0.07, now n=3 phase-1 seeds),
+        Welch t-test vs lambda=0 (n=5):
+          S0_All     91.84+-0.09 -> 92.12+-0.05   +0.29   t=+5.73  p=0.001   SIGNIFICANT
+          final_All  81.84+-0.11 -> 82.02+-0.22   +0.18   t=+1.30  p=0.298
+          M_d        80.04+-0.23 -> 80.17+-0.22   +0.13   t=+0.79  p=0.473
+          S1_New     79.91+-0.73 -> 80.36+-0.62   +0.45   t=+0.93  p=0.395
+        So Eq. 3 with a SMALL tau measurably improves the backbone (S0, supervised session), and all
+        three continual metrics move the same way but are not significant at this sample size:
+        variance grows along the pipeline (sigma 0.09 at S0 -> 0.22 at final_All -> 0.62 at S1_New).
+        Reaching p<0.05 on final_All would need ~14 phase-1 runs per arm (>100 h). Seed 44 gives
+        final 81.76 (no gain) yet S0 92.09 like the others: the backbone improves every time, but
+        whether that reaches the final metric varies by seed.
+        Scope: tau swept at full scale only at lambda=0.5; 30 negatives per anchor; augmentation
+        and NT-Xent form are our choices (the paper underspecifies Eq. 2).
