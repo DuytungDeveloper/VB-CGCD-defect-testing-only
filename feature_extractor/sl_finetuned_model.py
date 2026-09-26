@@ -124,8 +124,13 @@ def finetune_dino(train_set, num_classes, model_name="facebook/dino-vitb16"):
                 con_loss = nt_xent(pooler_output, tau)
                 loss = ((1 - lam) * cls_loss + lam * con_loss) / accum
             else:
-                output, pooler_output = lora_model(images)
-                cls_loss = F.cross_entropy(output, labels)
+                if "images2" in batch:      # FT_AUG=1 with lambda=0: augmentation, no contrastive
+                    images = torch.cat([images, batch["images2"].to(device)], dim=0)
+                    output, pooler_output = lora_model(images)
+                    cls_loss = F.cross_entropy(output[:labels.shape[0]], labels)
+                else:
+                    output, pooler_output = lora_model(images)
+                    cls_loss = F.cross_entropy(output, labels)
                 con_loss = None
                 loss = cls_loss / accum
 

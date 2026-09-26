@@ -27,6 +27,7 @@ export FT_LAMBDA="${FT_LAMBDA:-0}"            # Eq. 3 weight. > 0 turns on NT-Xe
 export FT_TAU="${FT_TAU:-0.2}"                # NT-Xent temperature, read only when FT_LAMBDA > 0
 export FT_EPOCHS="${FT_EPOCHS:-10}"           # 10 = upstream; validation runs use 3
 export FT_LABELED_IDX="${FT_LABELED_IDX:-}"   # empty = upstream filter(labels < 50), 500 imgs/class (D9)
+export FT_AUG="${FT_AUG:-}"                   # "" = follow FT_LAMBDA; 1 = force on; 0 = force off
 export FT_SEED="${FT_SEED:-42}"               # 42 = upstream; also passed to --seed below
 export FT_FOLD="${FT_FOLD:-}"                 # empty = all 50 base classes; F1..F5 = hold out 10 fake-novel classes
 if [ -n "$FT_LABELED_IDX" ] && [ ! -f "$FT_LABELED_IDX" ]; then
@@ -35,7 +36,7 @@ fi
 if [ -n "$FT_FOLD" ] && [ -z "$FT_LABELED_IDX" ]; then
   echo "run_phase1_extract: ERROR FT_FOLD needs FT_LABELED_IDX (folds are defined on that index order)"; exit 2
 fi
-echo "run_phase1_extract: FT_LAMBDA=$FT_LAMBDA FT_TAU=$FT_TAU FT_EPOCHS=$FT_EPOCHS FT_SEED=$FT_SEED" \
+echo "run_phase1_extract: FT_LAMBDA=$FT_LAMBDA FT_TAU=$FT_TAU FT_EPOCHS=$FT_EPOCHS FT_SEED=$FT_SEED FT_AUG=${FT_AUG:-<unset>}" \
      "FT_LABELED_IDX=${FT_LABELED_IDX:-<none>} FT_FOLD=${FT_FOLD:-<none>}"
 
 mkdir -p "$OUT"

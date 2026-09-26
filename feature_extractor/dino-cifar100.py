@@ -171,9 +171,16 @@ if __name__ == '__main__':
             print(f"dino-cifar100: fine-tune on {len(finetune_dataset)} imgs "
                   f"(upstream filter, 500/class, D9)")
 
-        if float(os.environ.get("FT_LAMBDA", 0)) > 0:
+        # FT_AUG: "" = follow FT_LAMBDA (upstream-compatible), 1 = force on, 0 = force off.
+        # FT_AUG=1 with FT_LAMBDA=0 isolates augmentation from the contrastive term.
+        ft_aug = os.environ.get("FT_AUG", "")
+        lam_on = float(os.environ.get("FT_LAMBDA", 0)) > 0
+        aug_on = lam_on if ft_aug == "" else ft_aug == "1"
+        if aug_on:
             finetune_dataset = finetune_dataset.with_transform(two_view_func)
-            print("dino-cifar100: 2-view augmentation ON (FT_LAMBDA > 0)")
+            print(f"dino-cifar100: 2-view augmentation ON (FT_LAMBDA>0={lam_on}, FT_AUG={ft_aug or '<unset>'})")
+        else:
+            print(f"dino-cifar100: augmentation OFF (FT_LAMBDA>0={lam_on}, FT_AUG={ft_aug or '<unset>'})")
 
         dino = finetune_dino(finetune_dataset, 100, model_name=args.model)
 
