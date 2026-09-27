@@ -225,3 +225,87 @@ impact: changing --batch-size at extraction silently changes which images phase 
         labeled. Keep 128. splits/c100_labeled_hf_idx.npy stores the 20000 HF indices so that
         phase 1 can be restricted to exactly that set (the D9 fix), and the folds in
         feature_extractor/ft_data.py are defined on the same index order.
+
+## D19. Eq. 2 / Eq. 3 (contrastive fine-tuning) is described but not implemented, and adding it does not help
+paper:  Eq. 2 defines an InfoNCE-style L_con; Eq. 3 combines it with cross-entropy,
+        L_ft = (1-lambda)*L_ce + lambda*L_con. Algorithm 1 line 15 uses the same formula.
+        NOT given anywhere in the paper: lambda, tau, the augmentation, whether a projection
+        head is used, the anchor set, or whether the positive is in the denominator of Eq. 2.
+code:   feature_extractor/sl_finetuned_model.py has only F.cross_entropy. No L_con, no lambda,
+        no tau, no augmentation (the fine-tuning transform is Resize + CenterCrop, deterministic).
+        This is D3; D19 is what happens when Eq. 3 IS implemented.
+
+our implementation (all choices are ours, the paper underspecifies Eq. 2):
+        NT-Xent (SimCLR Eq. 1): 2N anchors, symmetric, denominator = all other 2N-1 views.
+        Taken literally, Eq. 2 gives a NEGATIVE loss (positive missing from the denominator)
+        and only N-1 negatives per anchor.
+        L_con on the L2-normalised pooler_output, NO projection head (Eq. 2 uses the same h(.)
+        as Eq. 4 and Algorithm 1). Augmentation: RandomResizedCrop(224, scale 0.5-1.0) +
+        HorizontalFlip + ColorJitter(0.2,0.2,0.2,0.05) p=0.8; CE on view 1.
+        Batch 16 x 2 views x accum 8 (32 x 2 views = 7.68 GB > 6.93 GB available). Effective
+        batch 128, same as upstream, but only 30 NEGATIVES PER ANCHOR.
+        Control: c100_ft16 (lambda 0, batch 16x8) = 81.73 vs c100_km (32x4) = 81.76, so the
+        batch change alone is not the cause of anything below.
+
+statistical unit: ONE phase-1 run (FT_SEED). Its value = mean of 5 phase-2 seeds (k-means,
+        n_init 10). The 5 phase-2 seeds share one feature set and are NOT independent units.
+        Phase-1 noise at lambda=0, n=5 (FT_SEED 42-46): sigma = 0.09 (S0_All), 0.11 (final_All),
+        0.23 (M_d), 0.73 (S1_New). Every comparison below uses these as the error bars.
+
+lambda axis (tau = 0.2, 500 imgs/class, 10 epochs):
+          lambda 0     n=5  final 81.84+-0.11   M_d 80.04+-0.23
+          lambda 0.1   n=3  final 81.94+-0.36   M_d 79.91+-0.25
+          lambda 0.25  n=3  final 81.71+-0.22   M_d 79.76+-0.29
+          lambda 0.5   n=1  final 81.15         M_d 79.31
+        slope final_All -1.17 per unit lambda (p = 0.027), M_d -1.35 (p = 0.011), 12 phase-1 runs.
+
+tau axis (lambda = 0.5, n=1 unless noted), with the final CON value from the log:
+          tau 0.03        CON 0.0008   S0 92.13         final 82.06
+          tau 0.07  n=3   CON 0.005    S0 92.12+-0.05   final 82.02+-0.22
+          tau 0.12        CON  -       S0 91.88         final 81.91
+          tau 0.2         CON 0.34     S0 91.29         final 81.15
+          tau 0.5         CON  -       S0 91.18         final 80.26
+          tau 5.0         CON 3.27     S0 92.13         final 81.92
+        Range on the tau axis is 1.87 points of final_All vs 0.79 on the lambda axis, and the two
+        interact: the whole lambda sweep above was run at tau = 0.2, which is a harmful setting.
+
+why tau matters: it is a SWITCH, not a tunable weight. Chance level for 30 negatives is
+        log(31) = 3.43. At tau <= 0.07 the contrastive task is solved (CON ~ 0, no gradient left);
+        at tau = 5.0 it is flat (CON 3.27, no gradient either). Both extremes disable L_con and
+        both give S0 ~ 92.1. In between (tau 0.12-0.5) L_con is actually active, and every such
+        configuration is WORSE than the lambda = 0 baseline. So the contrastive term helps in
+        exactly the regimes where it does nothing.
+
+isolating augmentation (FT_AUG=1 with lambda=0: augmentation, 2 forwards, no L_con, CE weight 1.0):
+                              n   S0_All          p       final_All       p
+          lambda 0 (no aug)   5   91.84+-0.09     -       81.84+-0.11     -
+          aug only            3   92.09+-0.26   0.229     81.90+-0.40   0.827
+          lambda 0.5 tau 0.07 3   92.12+-0.05   0.001     82.02+-0.22   0.298
+        Welch t-test vs the lambda=0 arm.
+
+conclusions:
+        1. No configuration with an ACTIVE contrastive term beats the baseline. Larger lambda at
+           tau = 0.2 hurts systematically (slope p = 0.027).
+        2. The gain that does appear (~ +0.25 on S0_All) comes from the augmentation, not from
+           L_con: it is reproduced with L_con disabled at both tau extremes and with FT_AUG=1.
+        3. Augmentation alone is UNSTABLE across phase-1 seeds: sigma 0.26 vs 0.05 for the same
+           augmentation plus a near-zero L_con at tau = 0.07, on 3 seeds each (92.20 / 92.28 /
+           91.79 vs 92.10 / 92.18 / 92.09). Only the latter reaches p < 0.05. A near-zero L_con
+           may act as a mild stabiliser; with n = 3 this is a hypothesis, not a result. [INFERENCE]
+        4. No configuration improves the continual metrics (final_All, M_d, S1_New) significantly.
+           Reaching 80% power on final_All at the observed effect sizes needs ~14 phase-1 runs per
+           arm (> 100 h on this machine).
+        5. Taken together: the paper's reported numbers are very unlikely to depend on Eq. 3.
+           The released code reaches them with plain cross-entropy (S0 91.90 vs paper 91.68).
+
+limits: one dataset; tau swept at full scale only at lambda = 0.5; 30 negatives per anchor, so a
+        null result cannot separate "Eq. 3 does not help" from "too few negatives"; no projection
+        head (deliberate, to follow Eq. 2 literally) - the SimCLR-style variant with a head is
+        untested; the validation grid on fold F5 (3 epochs, 400 imgs/class) did NOT predict these
+        full-scale results and should not be used as a proxy again.
+
+runs:   c100_extract_con*, c100_con*, c100_ft16*, c100_augonly*, f5_* (validation grid),
+        c100_con0_probe / c100_consmoke (1-epoch probe), c100_augcheck + c100_seedcheck
+        (regression checks that FT_AUG and FT_SEED defaults reproduce upstream).
+knobs:  FT_LAMBDA (0), FT_TAU (0.2), FT_AUG ("" = follow FT_LAMBDA), FT_SEED (42), all default
+        to upstream behaviour.
