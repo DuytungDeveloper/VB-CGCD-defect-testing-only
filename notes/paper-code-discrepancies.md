@@ -68,60 +68,6 @@ code:   dino-cifar100.py, search 'x["labels"] < 50': all 500 train images of eac
         the other 100/class go to the unlabeled pool of later sessions.
 impact: the backbone has seen labels of samples that phase 2 treats as unlabeled (train split only; test not involved).
 
-## D18. Clustering runs once (n_init=1); restarts matter more than the algorithm
-paper:  Appendix C.3 says standard k-means. Sec 3.2.1 / Alg. 1 only say "clustering".
-code:   clustering/gmm.py GaussianMixture(n_components, random_state), all defaults:
-        covariance_type='full', n_init=1, reg_covar=1e-6. No k-means in the repo.
-
-2x2 design, 5 seeds per cell, SAME features (c100_extract), only the clustering changed:
-
-                    n_init=1                      n_init=10
-  GMM         final 79.86 +- 1.68  (c100_base)  final 81.35 +- 0.77  (c100_gmm10)
-              M_d   76.51 +- 3.00               M_d   79.11 +- 1.11
-  k-means     final 79.86 +- 1.68  (c100_km1)   final 81.76 +- 0.10  (c100_km)
-              M_d   76.51 +- 3.00               M_d   79.88 +- 0.23
-  paper: final 81.23, M_d 79.14, M_f 6.94, S1_New 83.10
-
-main effects:
-  restarts    +1.49 (GMM) / +1.90 (k-means) on final_All; +2.60 / +3.37 on M_d. Consistent.
-  algorithm   +0.00 at n_init=1, +0.41 at n_init=10. About 4x smaller. No real interaction.
-  stability   here the algorithm dominates: std of final_All 0.10 (k-means,10) vs 0.77 (GMM,10)
-              vs 1.68 (either, n_init=1). Likely because GMM picks by likelihood while k-means
-              picks by inertia, which is tied to cluster geometry. [INFERENCE]
-  control     S0_All is 91.90 +- 0.07 in all four cells (S0 uses no clustering), as expected.
-
-c100_km1 reproduces c100_base EXACTLY on all 43 metrics. On the real S1 data (5250 imgs,
-384 dims after PCA) GMM and k-means partitions differ by only 1-2 of 5250 samples, so the
-two are effectively the same clustering when each runs once.
-
-WITHDRAWN: an earlier version of this entry claimed GMM(full) is degenerate in 384 dims
-(bimodal 81 / 94.8 accuracy, ELBO vs accuracy r = -0.999). That was measured on validation
-fold F5 only (1-epoch features, 40 classes, 4000 novel-only images) and does NOT transfer to
-the real S1 mix. Kept here as a warning: do not generalise from the fold-F5 setup.
-
-impact: best config is k-means with n_init=10, i.e. what C.3 describes plus 10 restarts:
-        final_All 81.76 vs paper 81.23, M_d 79.88 vs 79.14, M_f 6.61 vs 6.94 (lower is better),
-        and the seed spread nearly vanishes. Remaining gap: S1_New 80.28 vs paper 83.10.
-code added: clustering/kmeans.py (KMeansCluster), main.py Clustering_alg('kmeans'),
-        --kmeans_n_init (default 10) and --gmm_n_init (default 1 = upstream).
-        Regression check: --gmm_n_init default reproduces c100_base_s0 exactly (c100_regress_s0).
-open:   c100_gmm10 has S4_New 87.02 (4 of 5 seeds 87.7-88.7) but the lowest S5_New 71.82.
-        Possible cross-session trade-off; r(S4_New, S5_New) = -0.55, n = 5, not significant.
-
-## Additional notes on the fine-tuning implementation
-- BOFT config declared: boft_block_size=4, boft_n_butterfly_factor=2, boft_dropout=0.1,
-  bias="boft_only", target_modules=["output.dense","mlp.fc1","mlp.fc2"].
-- Only PARTLY matches "updating only the MLP and output dense layers":
-  "mlp.fc1" / "mlp.fc2" are timm names; they do not exist in the Hugging Face ViT model.
-  "output.dense" matches attention.output.dense (12) and ViTOutput.dense (12, the 2nd MLP layer).
-  intermediate.dense (the 1st MLP layer) is NOT adapted.
-  Verified: trainable params 221,184 decompose exactly into these 24 modules
-  (reproducibility-issues.md A5); adapting intermediate.dense would give a larger count.
-- Butterfly factor actually runs as 1, not 2: see reproducibility-issues.md A5 (environment issue).
-- optimizer: AdamW, lr=1e-3, 10 epochs — matches Appendix C.3.
-- MultiCropWrapper docstring describes multi-resolution forward passes, but forward()
-  performs a single pass. Vestigial code copied from the DINO repository.
-
 ## D10. PCA fit data: not stated in paper, code fits once on S0 labeled train features
 paper:  Appendix C.3: PCA reduces output features to 384 dims. Does not say which data PCA is fit on.
 code:   mngmm.py:170-176 pre_processing: first call (pca is None) -> fit_transform; later calls -> transform.
@@ -172,7 +118,7 @@ code:   main.py: clustering.predict(train_data._x, train_data._y, with_known=Tru
         and those names become the pseudo-labels used for training.
 scope:  this is the ONLY place where true labels of unlabeled data enter training (verified by
         grep over clustering_base.py and mngmm.py). Early stopping does NOT use test labels:
-        mngmm.py:118 stops on covariance determinants and step count only; the test accuracy at
+        mngmm.py:116-118 stops on covariance determinants and step count only; the test accuracy at
         :124 and :147 is computed after the decision and only logged.
 impact: the mapping is one-to-one over the 10 new ids, so it cannot make a cluster purer, but the
         standard GCD protocol computes this alignment at EVALUATION time on the test set, not
@@ -185,7 +131,7 @@ paper:  Eq. 11 stops when R < epsilon = 0.01; Algorithm 1 uses det(Sigma_i) >= a
 code:   mngmm.py calculate_metrics_on_covariances compares the MEAN det of the new classes with
         the MEAN det of the old ones, scaled by sqrt(n/(total+n)) in the S-pass or
         (label_offset+increment)/num_base in the F-pass, with the comparison direction depending on
-        whether dets[0] > 1. It is active only after step > num_steps/3 (mngmm.py:118) and rolls
+        whether dets[0] > 1. It is active only after step > num_steps/3 (the if at mngmm.py:118, dets from :116) and rolls
         back one step. --early_stop_ratio (main.py) is parsed and never read.
 impact: Tables 11-13 (the R sweep) cannot be reproduced with this code. Measured: S-pass stop step
         falls across sessions in every seed (752 -> 707 -> 704 -> 651 -> 597 at lambda 0, GMM),
@@ -225,6 +171,46 @@ impact: changing --batch-size at extraction silently changes which images phase 
         labeled. Keep 128. splits/c100_labeled_hf_idx.npy stores the 20000 HF indices so that
         phase 1 can be restricted to exactly that set (the D9 fix), and the folds in
         feature_extractor/ft_data.py are defined on the same index order.
+
+## D18. Clustering runs once (n_init=1); restarts matter more than the algorithm
+paper:  Appendix C.3 says standard k-means. Sec 3.2.1 / Alg. 1 only say "clustering".
+code:   clustering/gmm.py GaussianMixture(n_components, random_state), all defaults:
+        covariance_type='full', n_init=1, reg_covar=1e-6. No k-means in the repo.
+
+2x2 design, 5 seeds per cell, SAME features (c100_extract), only the clustering changed:
+
+                    n_init=1                      n_init=10
+  GMM         final 79.86 +- 1.68  (c100_base)  final 81.35 +- 0.77  (c100_gmm10)
+              M_d   76.51 +- 3.00               M_d   79.11 +- 1.11
+  k-means     final 79.86 +- 1.68  (c100_km1)   final 81.76 +- 0.10  (c100_km)
+              M_d   76.51 +- 3.00               M_d   79.88 +- 0.23
+  paper: final 81.23, M_d 79.14, M_f 6.94, S1_New 83.10
+
+main effects:
+  restarts    +1.49 (GMM) / +1.90 (k-means) on final_All; +2.60 / +3.37 on M_d. Consistent.
+  algorithm   +0.00 at n_init=1, +0.41 at n_init=10. About 4x smaller. No real interaction.
+  stability   here the algorithm dominates: std of final_All 0.10 (k-means,10) vs 0.77 (GMM,10)
+              vs 1.68 (either, n_init=1). Likely because GMM picks by likelihood while k-means
+              picks by inertia, which is tied to cluster geometry. [INFERENCE]
+  control     S0_All is 91.90 +- 0.07 in all four cells (S0 uses no clustering), as expected.
+
+c100_km1 reproduces c100_base EXACTLY on all 43 metrics. On the real S1 data (5250 imgs,
+384 dims after PCA) GMM and k-means partitions differ by only 1-2 of 5250 samples, so the
+two are effectively the same clustering when each runs once.
+
+WITHDRAWN: an earlier version of this entry claimed GMM(full) is degenerate in 384 dims
+(bimodal 81 / 94.8 accuracy, ELBO vs accuracy r = -0.999). That was measured on validation
+fold F5 only (1-epoch features, 40 classes, 4000 novel-only images) and does NOT transfer to
+the real S1 mix. Kept here as a warning: do not generalise from the fold-F5 setup.
+
+impact: best config is k-means with n_init=10, i.e. what C.3 describes plus 10 restarts:
+        final_All 81.76 vs paper 81.23, M_d 79.88 vs 79.14, M_f 6.61 vs 6.94 (lower is better),
+        and the seed spread nearly vanishes. Remaining gap: S1_New 80.28 vs paper 83.10.
+code added: clustering/kmeans.py (KMeansCluster), main.py Clustering_alg('kmeans'),
+        --kmeans_n_init (default 10) and --gmm_n_init (default 1 = upstream).
+        Regression check: --gmm_n_init default reproduces c100_base_s0 exactly (c100_regress_s0).
+open:   c100_gmm10 has S4_New 87.02 (4 of 5 seeds 87.7-88.7) but the lowest S5_New 71.82.
+        Possible cross-session trade-off; r(S4_New, S5_New) = -0.55, n = 5, not significant.
 
 ## D19. Eq. 2 / Eq. 3 (contrastive fine-tuning) is described but not implemented, and adding it does not help
 paper:  Eq. 2 defines an InfoNCE-style L_con; Eq. 3 combines it with cross-entropy,
@@ -309,3 +295,17 @@ runs:   c100_extract_con*, c100_con*, c100_ft16*, c100_augonly*, f5_* (validatio
         (regression checks that FT_AUG and FT_SEED defaults reproduce upstream).
 knobs:  FT_LAMBDA (0), FT_TAU (0.2), FT_AUG ("" = follow FT_LAMBDA), FT_SEED (42), all default
         to upstream behaviour.
+## Additional notes on the fine-tuning implementation
+- BOFT config declared: boft_block_size=4, boft_n_butterfly_factor=2, boft_dropout=0.1,
+  bias="boft_only", target_modules=["output.dense","mlp.fc1","mlp.fc2"].
+- Only PARTLY matches "updating only the MLP and output dense layers":
+  "mlp.fc1" / "mlp.fc2" are timm names; they do not exist in the Hugging Face ViT model.
+  "output.dense" matches attention.output.dense (12) and ViTOutput.dense (12, the 2nd MLP layer).
+  intermediate.dense (the 1st MLP layer) is NOT adapted.
+  Verified: trainable params 221,184 decompose exactly into these 24 modules
+  (reproducibility-issues.md A5); adapting intermediate.dense would give a larger count.
+- Butterfly factor actually runs as 1, not 2: see reproducibility-issues.md A5 (environment issue).
+- optimizer: AdamW, lr=1e-3, 10 epochs — matches Appendix C.3.
+- MultiCropWrapper docstring describes multi-resolution forward passes, but forward()
+  performs a single pass. Vestigial code copied from the DINO repository.
+
