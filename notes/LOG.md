@@ -834,186 +834,223 @@ note:   CONCLUSION for Eq. 3 (cell lambda=0.5, tau=0.07, now n=3 phase-1 seeds),
         and NT-Xent form are our choices (the paper underspecifies Eq. 2).
 
 ## 20260925_111920__c100_extract_con_l05_t003_sd42
-why:
+why:    tau-axis cell: lambda=0.5, tau=0.03, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   mean CON falls to 0.0008 by epoch 9 (chance = log(31) = 3.43), i.e. the contrastive task is
+        SOLVED and L_con has almost no gradient left. CE 0.1293, same as tau=0.07 (0.126).
 
 ## 20260925_164557__c100_con_l05_t003_sd42_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: lambda 0.5, tau 0.03, FT_SEED 42)
 result: S0_All 92.04 | S1_New 80.80 | final_All 82.13 | M_d 80.36 | M_f 6.60
-note:
+note:   -
 
 ## 20260925_165802__c100_con_l05_t003_sd42_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: lambda 0.5, tau 0.03, FT_SEED 42)
 result: S0_All 92.10 | S1_New 80.30 | final_All 82.08 | M_d 80.32 | M_f 6.72
-note:
+note:   -
 
 ## 20260925_171001__c100_con_l05_t003_sd42_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: lambda 0.5, tau 0.03, FT_SEED 42)
 result: S0_All 92.12 | S1_New 80.60 | final_All 82.08 | M_d 80.46 | M_f 6.96
-note:
+note:   -
 
 ## 20260925_172216__c100_con_l05_t003_sd42_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: lambda 0.5, tau 0.03, FT_SEED 42)
 result: S0_All 92.24 | S1_New 81.30 | final_All 81.85 | M_d 80.16 | M_f 7.08
-note:
+note:   -
 
 ## 20260925_173426__c100_con_l05_t003_sd42_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: lambda 0.5, tau 0.03, FT_SEED 42)
 result: S0_All 92.16 | S1_New 80.50 | final_All 82.14 | M_d 80.46 | M_f 6.80
-note:
+note:   -
 
 ## 20260925_174631__c100_extract_con_l05_t012_sd42
-why:
+why:    tau-axis cell: lambda=0.5, tau=0.12, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260925_231551__c100_con_l05_t012_sd42_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: lambda 0.5, tau 0.12, FT_SEED 42)
 result: S0_All 91.92 | S1_New 80.30 | final_All 82.04 | M_d 80.40 | M_f 6.64
-note:
+note:   -
 
 ## 20260925_232758__c100_con_l05_t012_sd42_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: lambda 0.5, tau 0.12, FT_SEED 42)
 result: S0_All 91.92 | S1_New 79.80 | final_All 82.12 | M_d 80.50 | M_f 6.62
-note:
+note:   -
 
 ## 20260925_234006__c100_con_l05_t012_sd42_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: lambda 0.5, tau 0.12, FT_SEED 42)
 result: S0_All 91.92 | S1_New 79.80 | final_All 82.13 | M_d 80.34 | M_f 6.66
-note:
+note:   -
 
 ## 20260925_235216__c100_con_l05_t012_sd42_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: lambda 0.5, tau 0.12, FT_SEED 42)
 result: S0_All 91.94 | S1_New 76.70 | final_All 81.36 | M_d 79.42 | M_f 7.08
-note:
+note:   -
 
 ## 20260926_000430__c100_con_l05_t012_sd42_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: lambda 0.5, tau 0.12, FT_SEED 42)
 result: S0_All 91.70 | S1_New 80.00 | final_All 81.88 | M_d 80.42 | M_f 6.80
-note:
+note:   TAU CURVE at lambda=0.5, 5 points now (n=1 except tau 0.07 which has n=3), vs the lambda=0
+        baseline S0 91.84+-0.09 / final 81.84+-0.11:
+          tau 0.03   S0 92.13   final 82.06   CON 0.0008
+          tau 0.07   S0 92.12   final 82.02   CON 0.005    (n=3)
+          tau 0.12   S0 91.88   final 81.91
+          tau 0.2    S0 91.29   final 81.15   CON 0.34 (fold-F5 value)
+          tau 0.5    S0 91.18   final 80.26
+        Monotone in tau, but SATURATED at tau <= 0.07 (0.03 and 0.07 are equal within noise).
+        The threshold sits between 0.07 and 0.2: at tau 0.12 S0 91.88 is already back at baseline.
 
 ## 20260926_002800__c100_extract_con_l05_t50_sd42
-why:
+why:    tau-axis cell: lambda=0.5, tau=5.0, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   CONTROL: tau deliberately huge, so the softmax over 31 candidates is nearly flat.
+        mean CON stays at 3.27 for all 10 epochs (chance = 3.43) -> L_con provides essentially no
+        gradient, while the augmentation and the 2 forwards are unchanged. CE 0.1262, same as
+        tau 0.03 / 0.07. This separates "contrastive active" from "augmentation present".
 
 ## 20260926_055420__c100_con_l05_t50_sd42_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: lambda 0.5, tau 5.0, FT_SEED 42)
 result: S0_All 92.22 | S1_New 80.10 | final_All 81.88 | M_d 79.72 | M_f 6.62
-note:
+note:   -
 
 ## 20260926_060641__c100_con_l05_t50_sd42_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: lambda 0.5, tau 5.0, FT_SEED 42)
 result: S0_All 92.04 | S1_New 80.40 | final_All 82.05 | M_d 79.80 | M_f 6.36
-note:
+note:   -
 
 ## 20260926_061857__c100_con_l05_t50_sd42_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: lambda 0.5, tau 5.0, FT_SEED 42)
 result: S0_All 92.06 | S1_New 82.80 | final_All 82.19 | M_d 80.22 | M_f 6.38
-note:
+note:   -
 
 ## 20260926_063114__c100_con_l05_t50_sd42_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: lambda 0.5, tau 5.0, FT_SEED 42)
 result: S0_All 92.16 | S1_New 80.60 | final_All 81.77 | M_d 79.36 | M_f 6.48
-note:
+note:   -
 
 ## 20260926_064334__c100_con_l05_t50_sd42_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: lambda 0.5, tau 5.0, FT_SEED 42)
 result: S0_All 92.16 | S1_New 80.20 | final_All 81.73 | M_d 79.52 | M_f 6.66
-note:
+note:   tau=5.0 gives S0 92.13 / final 81.92, i.e. the SAME as tau 0.03 (92.13) and tau 0.07 (92.12),
+        although the mechanism is the opposite end of the temperature range.
+        Three configurations with L_con disabled all land at S0 ~ 92.1; every configuration where
+        L_con is actually active (tau 0.12-0.5) is at or below the baseline 91.84.
+        -> tau is a SWITCH, not a weight, and the gain does not come from the contrastive term.
 
 ## 20260926_111754__c100_augcheck
-why:
+why:    regression check after adding FT_AUG: default must reproduce upstream (no augmentation)
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   FT_AUG unset reproduces c100_con0_probe exactly: "augmentation OFF", views=1, mean CE 1.1756
+        identical, features max|diff| 1.15e-5 (GPU noise). The new flag leaves the default path alone.
 
 ## 20260926_121316__c100_extract_augonly
-why:
+why:    AUGMENTATION ONLY: FT_AUG=1 with lambda=0 (2 forwards, no L_con, CE weight 1.0), FT_SEED 42
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   The decisive control for D19: augmentation with NO contrastive term at all and CE weight 1.0
+        (lambda=0, FT_AUG=1). Both views are forwarded so the dropout / RNG stream matches the
+        tau=5.0 run; CE is computed on view 1 only. NOTE: the log line prints views=1 because that
+        field follows FT_LAMBDA, not FT_AUG - the real evidence is the "augmentation ON" line.
 
 ## 20260926_182158__c100_augonly_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: augmentation only, FT_SEED 42)
 result: S0_All 92.18 | S1_New 80.90 | final_All 82.01 | M_d 80.24 | M_f 6.86
-note:
+note:   -
 
 ## 20260926_183412__c100_augonly_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: augmentation only, FT_SEED 42)
 result: S0_All 92.18 | S1_New 80.20 | final_All 81.97 | M_d 80.48 | M_f 7.04
-note:
+note:   -
 
 ## 20260926_184618__c100_augonly_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: augmentation only, FT_SEED 42)
 result: S0_All 92.12 | S1_New 80.80 | final_All 81.96 | M_d 80.10 | M_f 6.74
-note:
+note:   -
 
 ## 20260926_185829__c100_augonly_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: augmentation only, FT_SEED 42)
 result: S0_All 92.32 | S1_New 84.20 | final_All 82.41 | M_d 80.96 | M_f 6.88
-note:
+note:   -
 
 ## 20260926_191036__c100_augonly_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: augmentation only, FT_SEED 42)
 result: S0_All 92.18 | S1_New 80.30 | final_All 82.08 | M_d 80.34 | M_f 6.78
-note:
+note:   5-seed summary, FT_SEED 42: S0_All 92.20+-0.07, final_All 82.09+-0.19, M_d 80.42+-0.33,
+        S1_New 81.28+-1.66. Highest single cell in the whole project at this point; beats the paper
+        on every metric except S1_New (81.28 vs 83.10). With n=1 this looked like "augmentation is
+        the whole story" - seeds 43 and 44 changed that, see c100_augonly_sd44_s4.
 
 ## 20260926_200516__c100_extract_augonly_sd43
-why:
+why:    augmentation only (FT_AUG=1, lambda=0), FT_SEED 43
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260927_015724__c100_augonly_sd43_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: augmentation only, FT_SEED 43)
 result: S0_All 92.26 | S1_New 80.30 | final_All 82.08 | M_d 79.82 | M_f 6.38
-note:
+note:   -
 
 ## 20260927_021049__c100_augonly_sd43_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: augmentation only, FT_SEED 43)
 result: S0_All 92.20 | S1_New 80.60 | final_All 82.14 | M_d 80.16 | M_f 6.44
-note:
+note:   -
 
 ## 20260927_022510__c100_augonly_sd43_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: augmentation only, FT_SEED 43)
 result: S0_All 92.18 | S1_New 80.30 | final_All 82.18 | M_d 79.78 | M_f 6.10
-note:
+note:   -
 
 ## 20260927_023902__c100_augonly_sd43_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: augmentation only, FT_SEED 43)
 result: S0_All 92.44 | S1_New 80.20 | final_All 82.13 | M_d 80.04 | M_f 6.62
-note:
+note:   -
 
 ## 20260927_025231__c100_augonly_sd43_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: augmentation only, FT_SEED 43)
 result: S0_All 92.30 | S1_New 80.40 | final_All 82.31 | M_d 80.32 | M_f 6.54
-note:
+note:   FT_SEED 43: S0_All 92.28+-0.10, final_All 82.17+-0.09. Consistent with seed 42.
 
 ## 20260927_030528__c100_extract_augonly_sd44
-why:
+why:    augmentation only (FT_AUG=1, lambda=0), FT_SEED 44
 result: (no metrics.json yet; copy from runs/INDEX.txt later)
-note:
+note:   -
 
 ## 20260927_082727__c100_augonly_sd44_s0
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 0 (features: augmentation only, FT_SEED 44)
 result: S0_All 91.76 | S1_New 79.10 | final_All 81.65 | M_d 79.80 | M_f 6.68
-note:
+note:   -
 
 ## 20260927_083933__c100_augonly_sd44_s1
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 1 (features: augmentation only, FT_SEED 44)
 result: S0_All 91.74 | S1_New 78.40 | final_All 81.62 | M_d 79.82 | M_f 6.58
-note:
+note:   -
 
 ## 20260927_085147__c100_augonly_sd44_s2
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 2 (features: augmentation only, FT_SEED 44)
 result: S0_All 91.72 | S1_New 78.40 | final_All 81.76 | M_d 80.14 | M_f 6.74
-note:
+note:   -
 
 ## 20260927_090400__c100_augonly_sd44_s3
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 3 (features: augmentation only, FT_SEED 44)
 result: S0_All 92.04 | S1_New 78.90 | final_All 80.84 | M_d 78.52 | M_f 7.18
-note:
+note:   -
 
 ## 20260927_091617__c100_augonly_sd44_s4
-why:
+why:    phase 2 on those features (k-means n_init=10), seed 4 (features: augmentation only, FT_SEED 44)
 result: S0_All 91.70 | S1_New 79.20 | final_All 81.33 | M_d 79.14 | M_f 6.70
-note:
+note:   FINAL PICTURE for Eq. 3 / augmentation, Welch t-test vs the lambda=0 arm (n=5):
+                              n   S0_All          p       final_All       p
+          lambda 0 (no aug)   5   91.84+-0.09     -       81.84+-0.11     -
+          aug only            3   92.09+-0.26   0.229     81.90+-0.40   0.827
+          lambda 0.5 tau 0.07 3   92.12+-0.05   0.001     82.02+-0.22   0.298
+        Per-seed S0: aug only 92.20 / 92.28 / 91.79 (seed 44 drops to baseline);
+                     tau 0.07  92.10 / 92.18 / 92.09 (tight).
+        So the two arms have the SAME mean but sigma differs 5x (0.26 vs 0.05), and only the arm
+        with a near-zero L_con reaches p < 0.05. Hypothesis: a near-zero L_con acts as a mild
+        stabiliser for augmented training. With n=3 per arm this is NOT a result. [INFERENCE]
+        CORRECTION: after seed 42 alone I wrote "augmentation is the only cause" - seed 44
+        (S0 91.79, final 81.65) shows that arm is unstable. Third time in this project that n=1
+        produced a wrong conclusion (see also lambda 0.1 and cell 0.25/0.2).
+        No configuration improves the continual metrics significantly; ~14 phase-1 runs per arm
+        would be needed for 80% power on final_All (>100 h). Full write-up in D19.
