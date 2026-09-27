@@ -957,3 +957,63 @@ note:
 why:
 result: S0_All 92.18 | S1_New 80.30 | final_All 82.08 | M_d 80.34 | M_f 6.78
 note:
+
+## 20260926_200516__c100_extract_augonly_sd43
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260927_015724__c100_augonly_sd43_s0
+why:
+result: S0_All 92.26 | S1_New 80.30 | final_All 82.08 | M_d 79.82 | M_f 6.38
+note:
+
+## 20260927_021049__c100_augonly_sd43_s1
+why:
+result: S0_All 92.20 | S1_New 80.60 | final_All 82.14 | M_d 80.16 | M_f 6.44
+note:
+
+## 20260927_022510__c100_augonly_sd43_s2
+why:
+result: S0_All 92.18 | S1_New 80.30 | final_All 82.18 | M_d 79.78 | M_f 6.10
+note:
+
+## 20260927_023902__c100_augonly_sd43_s3
+why:
+result: S0_All 92.44 | S1_New 80.20 | final_All 82.13 | M_d 80.04 | M_f 6.62
+note:
+
+## 20260927_025231__c100_augonly_sd43_s4
+why:
+result: S0_All 92.30 | S1_New 80.40 | final_All 82.31 | M_d 80.32 | M_f 6.54
+note:
+
+## 20260927_030528__c100_extract_augonly_sd44
+why:
+result: (no metrics.json yet; copy from runs/INDEX.txt later)
+note:
+
+## 20260927_082727__c100_augonly_sd44_s0
+why:
+result: S0_All 91.76 | S1_New 79.10 | final_All 81.65 | M_d 79.80 | M_f 6.68
+note:
+
+## 20260927_083933__c100_augonly_sd44_s1
+why:
+result: S0_All 91.74 | S1_New 78.40 | final_All 81.62 | M_d 79.82 | M_f 6.58
+note:
+
+## 20260927_085147__c100_augonly_sd44_s2
+why:
+result: S0_All 91.72 | S1_New 78.40 | final_All 81.76 | M_d 80.14 | M_f 6.74
+note:
+
+## 20260927_090400__c100_augonly_sd44_s3
+why:
+result: S0_All 92.04 | S1_New 78.90 | final_All 80.84 | M_d 78.52 | M_f 7.18
+note:
+
+## 20260927_091617__c100_augonly_sd44_s4
+why:
+result: S0_All 91.70 | S1_New 79.20 | final_All 81.33 | M_d 79.14 | M_f 6.70
+note:
