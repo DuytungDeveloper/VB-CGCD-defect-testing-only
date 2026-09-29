@@ -2,6 +2,7 @@
 """exp - minimal experiment runner.
 
   exp run TAG -- COMMAND ...     run COMMAND, save runs/<run>/config.json + console.log
+      [--inputs PATH... | --inputs -] before "--": inputs for this run instead of runs/inputs.txt (- = none)
   exp table                      build runs/INDEX.txt from every run
   exp agg GROUP                  mean/std over runs tagged GROUP_s<N> -> runs/agg_GROUP.txt
 
@@ -101,8 +102,9 @@ def hash_path(p):
     return h.hexdigest()[:16]
 
 
-def inputs_info(root, started):
-    paths = read_list(root / "runs" / "inputs.txt")
+def inputs_info(root, started, paths=None):
+    if paths is None:
+        paths = read_list(root / "runs" / "inputs.txt")
     if not paths:
         return {}, []
     print("exp: hashing inputs ...", flush=True)
@@ -120,7 +122,7 @@ def inputs_info(root, started):
 
 
 # ---------------------------------------------------------------- run
-def cmd_run(tag, command):
+def cmd_run(tag, command, source="inputs.txt", paths=None):
     root = repo_root()
     start = now()
     run_id = start.strftime("%Y%m%d_%H%M%S") + "__" + tag
@@ -138,7 +140,8 @@ def cmd_run(tag, command):
         "python": sys.version.split()[0],
         "host": platform.node(),
     }
-    config["inputs"], config["warnings"] = inputs_info(root, config["started"])
+    config["inputs_source"] = source
+    config["inputs"], config["warnings"] = inputs_info(root, config["started"], paths)
     (run_dir / "config.json").write_text(json.dumps(config, indent=2) + "\n")
     print(f"exp: {run_id}", flush=True)
     for w in config["warnings"]:
@@ -317,8 +320,19 @@ def main():
         return cmd_table()
     if len(argv) == 2 and argv[0] == "agg":
         return cmd_agg(argv[1])
-    if len(argv) >= 4 and argv[0] == "run" and argv[2] == "--":
-        sys.exit(cmd_run(argv[1], argv[3:]))
+    if len(argv) >= 4 and argv[0] == "run" and "--" in argv[2:]:
+        sep = argv.index("--", 2)
+        opts, command = argv[2:sep], argv[sep + 1:]
+        if not opts:
+            source, paths = "inputs.txt", None          # old behaviour
+        elif opts == ["--inputs", "-"]:
+            source, paths = "none", []
+        elif opts[0] == "--inputs" and len(opts) > 1 and "-" not in opts[1:]:
+            source, paths = "cli", opts[1:]
+        else:
+            sys.exit(__doc__)
+        if command:
+            sys.exit(cmd_run(argv[1], command, source, paths))
     sys.exit(__doc__)
 
 
