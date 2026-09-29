@@ -113,6 +113,10 @@ paper — and it changes the training configuration, not just speed.
 Rule: adding files is free; editing an upstream file needs its own commit with
 a stated reason.
 
+Scope: Part B lists only the patches needed to run the upstream pipeline on this machine
+(PATCH 1-5). Experimental variants added later (FT_SEED, FT_AUG, NT-Xent, FT_LABELED_IDX/FT_FOLD,
+k-means, --gmm_n_init) are listed in `code-changes.vi.md` and discussed in D18/D19.
+
 ## PATCH 1 — `@torch.no_grad()` on feature extraction
 
 **File.** `dino-cifar100.py`, one new line above line 17.
