@@ -1,17 +1,18 @@
-# Theo dõi: biến thể Eq. 3 (contrastive) và Hungarian khi đánh giá
+# Kế hoạch, quyết định, câu hỏi — VB-CGCD fork
 
-File theo dõi riêng, viết tiếng Việt, cập nhật mỗi phiên.
-Chạy song song với hệ thống cũ: `notes/LOG.md` (mỗi run), `notes/paper-code-discrepancies.md`,
-`notes/reproducibility-issues.md` (tiếng Anh). File này chỉ ghi **kế hoạch, câu hỏi, quyết định**.
+Viết tiếng Việt, cập nhật mỗi buổi làm việc. Đây là **nơi duy nhất** chứa câu hỏi mở của repo
+(`notes/LOG.md` chỉ trỏ về đây). Không chép số liệu vào file này: trỏ tới entry LOG, `runs/agg_*.txt`
+hoặc mã D-xx trong `notes/paper-code-discrepancies.md`. Tên cũ: `notes/variants-plan.vi.md` (đổi 29/9).
 
 ---
 
 ## 1. Mục tiêu
 
-1. Cài Eq. 2 + Eq. 3 của paper: `L_ft = (1-λ)·L_ce + λ·L_con`, kèm augmentation (cặp dương).
-2. Tìm (λ, τ) bằng validation, **không dùng tập test**.
-3. Loại rò rỉ nhãn: Hungarian chỉ dùng khi đánh giá (Q10); fine-tune chỉ trên đúng tập có nhãn của phase 2 (D9).
-4. So với baseline `c100_base` (5 seed, `runs/agg_c100_base.txt`).
+1. **GĐ1 — Eq. 2/3 (contrastive fine-tuning): đã đóng 27/9.** Kết luận ở D19.
+2. **GĐ2 — loại hai rò rỉ nhãn trên CIFAR-100**, so với `c100_km` (k-means `n_init=10`, D18):
+   D13 (Hungarian chỉ khi đánh giá, thiết kế Q10) và D9 (`base400`). Làm trước NEU-DET để mang
+   sang một pipeline sạch và một Δ đo được.
+3. **GĐ3 — NEU-DET**, sau đó GC10-DET.
 
 ## 2. Quy tắc
 
@@ -21,25 +22,27 @@ Chạy song song với hệ thống cũ: `notes/LOG.md` (mỗi run), `notes/pape
 - Chọn (λ, τ) **không được** nhìn tập test hoặc nhãn của lớp 50–99.
 - **Không đổi batch size lúc trích đặc trưng (128)**: nó quyết định tập có nhãn của phase 2 (D17).
 - Commit code trước mỗi run (dirty = no).
-- Tag dự kiến: `c100_extract_base400`, `c100_extract_con`, `c100_con_s0..s4`, `c100_base_evhung_s0..s4`.
+- Tag GĐ2: `c100_km_evhung_s0..s4` (D13); `c100_extract_base400` + `c100_km_base400_s0..s4` (D9). So với `c100_km`.
+- Phase 1 luôn gọi qua `exp.py run TAG --inputs - -- …` (phase 1 không đọc `runs/inputs.txt`).
 
 ## 3. Kế hoạch
 
-| Bước | Việc | GPU | Trạng thái |
-|---|---|---|---|
-| 0 | Xác nhận các điểm rò rỉ; viết D11–D17 | không | đang làm (rò rỉ: xong; D11–D17: chưa) |
-| 0b | Tạo `splits/c100_labeled_hf_idx.npy` (20000 chỉ số HF) bằng `scripts/make_labeled_idx.py` | không | **xong** |
-| 0c | Đo VRAM bằng `scripts/vram_probe.py` | ~10 phút | **xong** |
-| 1 | Cài Eq. 2/3 (mặc định λ = 0) + augmentation 2 view + tùy chọn fine-tune theo file chỉ số; smoke test | vài phút | chưa |
-| 2a | Tìm (λ, τ), giai đoạn 1: 7 run trên fold F5 | ~8h | chưa |
-| 2b | Giai đoạn 2: λ = 0 + 1 cấu hình, trên F1–F4 (8 run). **Bỏ hẳn nếu λ\* = 0 ở 2a** | ~9h | chưa |
-| 2c | Kiểm chứng giới hạn cặp âm: 1 run 32×2 view + checkpointing ở (λ*, τ*), cùng fold F5 | ~1h | chưa |
-| 3a | `base400`: phase 1 fine-tune chỉ trên tập có nhãn (`FT_LABELED_IDX`) + 5 seed phase 2 (`scripts/overnight_base400.sh`) | ~4h | chạy qua đêm |
-| 3b | Phase 1 `con` với (λ, τ) đã chọn + 5 seed | ~6h + 65 phút | chưa |
-| 4 | Phase 2, 5 seed mỗi bộ đặc trưng | ~65 phút/bộ | chưa |
-| B | Hungarian khi đánh giá (độc lập, dùng đặc trưng hiện có) | ~65 phút | chưa |
+Cập nhật 29/9. Không ghi số liệu ở đây; xem mã tham chiếu.
 
-## 4. Quyết định cần chốt
+| Bước | Việc | Trạng thái |
+|---|---|---|
+| 0 | Xác nhận các điểm rò rỉ; viết D11–D17 | xong (17/9) |
+| 0b | File chỉ số tập có nhãn (`scripts/make_labeled_idx.py`) | xong (17/9) |
+| 0c | Đo VRAM (`scripts/vram_probe.py`) | xong (17/9) |
+| 1 | Cài Eq. 2/3, augmentation 2 view, fine-tune theo file chỉ số | xong (18/9) |
+| 2a | Lưới (λ, τ) trên fold F5, 3 epoch | xong (20/9); không dự đoán được kết quả full-scale (D19) |
+| 2b | Giai đoạn 2 trên F1–F4 | bỏ, thay bằng lưới full-scale 3 seed phase 1 mỗi ô (D19). *Suy luận từ LOG: không có run F1–F4* |
+| 2c | Kiểm giới hạn 30 cặp âm | chưa làm; vẫn là giới hạn mở của D19. *Suy luận từ LOG* |
+| 3a | `base400`: fine-tune chỉ trên tập có nhãn (sửa D9) | chưa chạy → GĐ2 |
+| 3b, 4 | Phase 1 `con` + 5 seed phase 2 | thay bằng lưới full-scale, xong 27/9 (D19) |
+| B | Hungarian khi đánh giá (sửa D13) | chưa cài → GĐ2, **việc tiếp theo** |
+
+## 4. Quyết định
 
 | # | Quyết định | Đề xuất | Chốt |
 |---|---|---|---|
@@ -58,25 +61,48 @@ Chạy song song với hệ thống cũ: `notes/LOG.md` (mỗi run), `notes/pape
 | Q1d | GMM trên lớp mới giả có trộn mẫu lớp đã biết không (giống S1: 25 mẫu/lớp) | không trộn cho tiêu chí chính; có trộn làm chỉ số phụ (CPU) | **OK: không trộn** |
 | Q10 | Hungarian khi đánh giá | huấn luyện gán ID lớp mới theo thứ tự cụm (tất định, không dùng nhãn). Khi đánh giá: Hungarian trên khối 10 ID mới × 10 lớp mới của **tập test phiên đó**, tính **một lần** tại phiên phát hiện rồi **đóng băng** cho các phiên sau. Bật bằng `--hungarian_on eval` (mặc định `train` = upstream) | **OK** |
 
-## 5. Câu hỏi
+**Đã thay thế (ghi 29/9; các dòng trên giữ làm lịch sử):**
+- Q2: tiêu chí chính chuyển từ GMM sang k-means `n_init=10` ngày 19/9 (D18, `scripts/eval_fold.py`).
+- Q3/Q4: bỏ giai đoạn 2b trên F1–F4; thay bằng lưới full-scale với 3 seed phase 1 mỗi ô (D19).
+- Q7: augmentation không còn gắn với λ > 0; cờ `FT_AUG` tách hai thứ (nhánh `augonly`, D19).
 
-### Đang mở
-- [ ] `utilization.gpu` khi chạy 16×2 view: nếu < 85% thì nút cổ chai là CPU (2 view, num_workers=2)
-  → thử num_workers 6, có thể giảm 15–20% mỗi run (tiết kiệm 2–3h).
-- [ ] CON tụt dưới ~0.1 sau 2–3 epoch? Nếu có, augmentation quá nhẹ → gradient L_con tắt sớm.
-- [ ] Chỉ có 30 cặp âm mỗi neo (giới hạn 8 GB). Nếu Eq. 3 không giúp, không phân biệt được
-  "Eq. 3 vô dụng" với "quá ít cặp âm" → bước 2c để kiểm.
-- [ ] `clustering_base.evaluate()` (dòng 76–79) có được `main.py` gọi không?
-- [ ] VRAM thực tế khi 2 view: có OOM không, checkpointing chậm bao nhiêu?
-- [ ] Thứ hạng (λ, τ) sau 3 epoch có giữ nguyên sau 10 epoch không?
-- [ ] (λ, τ) tốt trên CIFAR-100 có chuyển được sang NEU-DET / GC10-DET không?
-- [ ] Chuyển Hungarian sang đánh giá có đổi kết quả nhiều không? (dự đoán: ít, vì mọi ID lớp mới khởi tạo giống nhau — suy luận)
-- [ ] Nếu λ* = 0 (Eq. 3 đúng như paper không giúp): thử biến thể có projection head (SimCLR/GCD) không?
-- [ ] D9 ảnh hưởng S1–S5 bao nhiêu? (đo bằng `c100_base` so với `base400`)
-- [ ] Thời gian thật mỗi cặp (cấu hình, fold)? Ước lượng ~55 phút (suy luận), cần đo ở smoke test.
-- [ ] Nhiễu fine-tune: Δ giữa 2 run λ = 0 cùng fold F5 lớn cỡ nào?
+## 5. Câu hỏi
+Danh sách duy nhất của repo. Câu đã trả lời ghi kèm nơi có bằng chứng; không chép số liệu.
+
+### Đang mở — GĐ2 (CIFAR-100, trước NEU-DET)
+- [ ] `clustering_base.evaluate()` (dòng 76–79) có được `main.py` gọi không? Trả lời **trước khi** cài D13.
+- [ ] Hungarian khi đánh giá (D13, Q10) đổi final_All / S1_New bao nhiêu so với `c100_km`?
+- [ ] D9 (`base400`) ảnh hưởng S1–S5 bao nhiêu?
+- [ ] Khoảng cách S1_New còn lại so với paper (D18) đến từ đâu?
+- [ ] Cố định Σ = I ở phase 2 thì còn bao nhiêu? Mahalanobis có thực sự đóng góp? (D11, D20.4, Bảng 15)
+- [ ] logdet của lớp mới tăng hay giảm theo từng bước? Hình 2b của paper vẽ tăng; D14 gợi ý code đi nhánh det < 1. Cần log logdet theo bước.
+- [ ] `--scaling-factor 1.2` tác động vào đâu trong luật dừng D14?
+- [ ] Code có tái lập Bảng 5 "w/o fine-tuning" (S0 = 88.54) không? Cần wrapper `c100_extract_noft`.
+
+### Đang mở — GĐ3 (NEU-DET)
+- [ ] DINO đóng băng tách các loại lỗi thép mới đến mức nào?
+
+### Đang mở — phân tích, ưu tiên thấp
+- [ ] Một cụm có hút hết mẫu lớp cũ ở S1 không?
+- [ ] Trong khoảng 4000 mẫu được lọc là "mới" mỗi phiên, bao nhiêu dương tính giả / âm tính giả?
+- [ ] New acc có thấp hơn khi `cluster_max_min` cao?
+- [ ] S4_New ổn định, S5_New không: có đánh đổi giữa hai phiên? (r = −0.55, n = 5, không có ý nghĩa)
+- [ ] S0_All tăng theo số bước SVI thế nào?
+- [ ] Giới hạn D19: 30 cặp âm mỗi neo, không projection head; biến thể SimCLR có head chưa thử.
 
 ### Đã trả lời
+- [x] **Số của paper có nằm trong khoảng 5 seed?** Có với chỉ số cuối; không với S1_All, S1_New, S2_Old (`runs/agg_c100_base.txt`, LOG `c100_base_s4`).
+- [x] **Đặc trưng trích lại có giống hệt bản lưu trữ?** Không, nhưng phase 2 cho số giống hệt (LOG `c100_extract`).
+- [x] **PATCH 5 có hoạt động?** Có (LOG `c100_extract`).
+- [x] **Tham số lớp cũ có đứng yên qua các phiên?** Có với các lớp đã dò (D12).
+- [x] **Σ học được gần I hay gần covariance thật?** Gần I (D11); Hình 5 của paper cũng vậy (D20.4). Chưa so với covariance thực nghiệm.
+- [x] **Clustering hay số lần khởi tạo quyết định kết quả?** Số lần khởi tạo quyết định độ chính xác, thuật toán quyết định độ ổn định (D18).
+- [x] **Vì sao bước dừng của pass S giảm dần qua các phiên?** Giải thích khớp dữ liệu ở D14 (suy luận; chưa log det theo bước).
+- [x] **M_f có đúng định nghĩa trên D_l?** Không, là proxy trên tập test S0 (D15).
+- [x] **Eq. 3 có giúp?** Không cải thiện chỉ số liên tục; lợi ích nhỏ ở S0 đến từ augmentation (D19).
+- [x] **Nhiễu phase 1 bao nhiêu?** Đo bằng `FT_SEED` 42–46 (D19, mục "statistical unit").
+- [x] **CON có tụt về ~0? VRAM khi 2 view? Thời gian mỗi run?** D19 và LOG.
+- [x] **Thứ hạng (λ, τ) sau 3 epoch có giữ ở 10 epoch?** Không; lưới F5 không dự đoán được full-scale (D19, limits).
 - [x] **File chỉ số tập có nhãn có đúng không?** Có (2026-09-17). `splits/c100_labeled_hf_idx.npy`,
   int64 (20000,), sha256 `a11f243b58653747142556150c8d2522a5d28bd8e3d81c3d4f34563795b3d08e`.
   Script tự kiểm: P hoán vị, `hf[P]` == nhãn `c100_extract`, 400/lớp. Kiểm tra độc lập: đặc trưng
@@ -105,7 +131,10 @@ Chạy song song với hệ thống cũ: `notes/LOG.md` (mỗi run), `notes/pape
 - [x] **Tập có nhãn có phụ thuộc batch size lúc trích không?** Có (suy luận từ cơ chế P, được dữ liệu ủng hộ):
   số shard và thứ tự sắp đổi theo batch size → ghi D17. (2026-09-17)
 
-## 6. Ghi chú kỹ thuật (từ đọc code)
+### Bỏ (hết liên quan sau D19)
+- `utilization.gpu` khi chạy 2 view; (λ, τ) có chuyển sang NEU không; nhiễu λ = 0 trên F5 (thay bằng `FT_SEED`).
+
+## 6. Ghi chú đọc code (17/9)
 
 - `sl_finetuned_model.py` dòng 67–74 tạo `transform` nhưng **không dùng**. Ảnh đã được transform sẵn
   ở `dino-cifar100.py` dòng 92–108 (`trans_func`: Resize + CenterCrop, không ngẫu nhiên).
@@ -123,19 +152,7 @@ Chạy song song với hệ thống cũ: `notes/LOG.md` (mỗi run), `notes/pape
   Tập có nhãn (chỉ số HF) = `concat(P[where(L == k)[:400]] for k in 0..49)`, với `L = hf[P]`.
   Không cần đặc trưng, chỉ cần nhãn HF và batch size 128.
 
-## 7. Discrepancy mới cần ghi vào `paper-code-discrepancies.md`
-
-| Mã | Nội dung |
-|---|---|
-| D11 | Không có suy luận biến phân: μ, Σ là `numpyro.param`, guide rỗng → MLE, không prior, không KL |
-| D12 | "Re-labeling" = lọc mẫu mới, huấn luyện pass S trên nhãn GMM gốc, bỏ mẫu lớp cũ |
-| D13 | Hungarian dùng nhãn thật của dữ liệu không nhãn |
-| D14 | Luật early stop khác Eq. 11 và Algorithm 1; `--early_stop_ratio` không dùng |
-| D15 | M_f là proxy (tập test S0), paper định nghĩa trên D_l |
-| D16 | Pool mẫu lớp cũ không bị trừ (`dataloader.py:277`) → dùng lại mẫu giữa các phiên (~2440) |
-| D17 | Tập có nhãn = 400 hàng đầu theo thứ tự `.npy` sắp theo chuỗi → phụ thuộc batch size lúc trích |
-
-## 8. Nhật ký phiên
+## 7. Nhật ký
 
 ### 2026-09-17
 - Baseline sạch xong: `c100_base` 5 seed, S0 91.90 ± 0.07, final 79.86 ± 1.68.
@@ -150,7 +167,7 @@ Chạy song song với hệ thống cũ: `notes/LOG.md` (mỗi run), `notes/pape
 - Q5 chốt: không projection head, theo đúng Eq. 2 (h dùng chung với Eq. 4 và Algorithm 1).
 - Lỗi: `splits/*.npy` bị `.gitignore` chặn, commit 2c393c6 KHÔNG chứa file chỉ số → sửa ở commit sau.
 - Q6 OK (NT-Xent), Q7 OK (augmentation mức trung bình). Q8 để sau khi đo (bước 0c).
-- Giải thích chi tiết Q6–Q8: `notes/q6-q8-giai-thich.md`.
+- Giải thích chi tiết Q6–Q8: file `notes/q6-q8-giai-thich.md` chưa từng được tạo; lý do Q6–Q8 xem D19.
 - Đo VRAM (bước 0c): 32 ảnh/forward = 4.64 GB OK; 48 = 6.18 GB sát mép; 64 = 7.68 GB OOM.
   Lưu ý: baseline batch 32 có peak alloc 4.64 GB nhưng nvidia-smi báo 6760 MiB (phần reserved ~2 GB),
   nên mốc "sát mép" coi như không dùng được.
@@ -173,3 +190,15 @@ Chạy song song với hệ thống cũ: `notes/LOG.md` (mỗi run), `notes/pape
   "τ = 0.2 quá dễ"; cắt cấu hình ở 2b vừa rẻ vừa tránh đa kiểm định.
 - Đặc trưng của `c100_consmoke` KHÔNG dùng cho phase 2 (1 epoch, 40 lớp).
 - Tiếp theo: kiểm `utilization.gpu`, viết script đánh giá validation (Q2), rồi chạy 2a.
+
+### 2026-09-19 → 2026-09-27 (tóm tắt; chi tiết trong LOG, D18, D19)
+- 19/9: thiết kế 2×2 clustering (D18); k-means `n_init=10` là cấu hình tốt nhất (`c100_km`); tiêu chí validation chuyển sang k-means.
+- 19–20/9: lưới F5 (bước 2a) xong; không dự đoán được kết quả full-scale.
+- 20–27/9: `FT_SEED` 42–46 đo nhiễu phase 1; lưới full-scale (λ, τ); nhánh `augonly` tách augmentation khỏi L_con.
+  Kết luận ở D19. **GĐ1 đóng.**
+
+### 2026-09-29
+- Rà soát tài liệu và hạ tầng: `exp.py --inputs` (`c4088a1`, `ad7314f`); LOG `(no metrics.json)` (`e66e0bd`, `98bb890`);
+  xoá `scripts/__init__.py` (`98d690f`); viết lại `code-changes.vi.md` (`fab822c`); đổi tên file này (`98ce817`);
+  README (`65eb142`); D9/D13 status + D20 (`fd9969c`); phạm vi Part B (`96b8ec7`).
+- Quyết định: câu hỏi mở chỉ ở file này. Thứ tự: GĐ2 (D13, D9) trên CIFAR-100 trước NEU-DET.
