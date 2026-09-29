@@ -41,7 +41,7 @@ Before the clean rerun: archive/pre-rerun-20260915/ (not in git) and git tag pre
 
 ## 20260917_015448__c100_extract
 why:    clean rerun, phase 1 (FT 32x4 = 128, extract batch 128, PATCH 5)
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   check_phase1 OK (16 PASS). ckpt 888,676 params, 2 pooler keys -> PATCH 5 works.
         fbd_cuda link failed -> butterfly factor 1 (A5, as expected). CE 0.0218 at epoch 9, 1.21 s/it.
         Duration 168.3 min (old run 3: ~195 min). VRAM during FT: 6760 MiB (no hang).
@@ -91,7 +91,7 @@ note:   5-seed summary (runs/agg_c100_base.txt), no agg warnings.
 
 ## 20260918_120719__c100_consmoke
 why:    smoke test for Eq.3 implementation (NT-Xent + 2-view aug, fold F5, 1 epoch)
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   OK, 16 PASS, ckpt 888,676 (no new module, Q5 = no projection head).
         CE 1.2269, CON 0.4779 (log(31) = 3.43 = chance) -> contrastive learns in epoch 0.
         16x8 = effective 128, 800 it/epoch. 26.5 min for 1 epoch + extraction (~21 min fine-tune)
@@ -211,7 +211,7 @@ note:   identical to c100_base_s0 on every metric -> the new flag does not chang
 ## 20260919_103943__c100_con0_probe
 why:    lambda=0 control for the Eq.3 probe (fold F5, 1 epoch), to check whether the validation
         metric can separate configurations at all
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   km novel acc 95.23+-0.010 vs 94.78+-0.008 for lambda=0.5 (c100_consmoke) -> Eq.3 worse by 0.44.
         known_acc 89.22 vs 89.63 (opposite direction, so at least one of the two is noise).
         Ceiling: full baseline features (c100_extract, 10 epochs, 50 classes) on F5 give
@@ -225,29 +225,29 @@ note:   stopped after 0.1 min, no features written. Ignore; kept for the record.
 
 ## 20260919_175218__f5_l0_t02
 why:    grid stage 2a: lambda=0, tau=0.2, fold F5, 3 epochs (baseline point of the grid)
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   CE 0.1796 at epoch 2, no CON (lambda=0 means no contrastive and no augmentation).
 
 ## 20260919_185711__f5_l0_t02_rep
 why:    repeat of the lambda=0 grid point, intended as the noise floor
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   CE 0.1796, identical to f5_l0_t02 to 4 decimals, and km novel acc identical too.
         Phase 1 is seed-deterministic (torch.manual_seed(42) is hardcoded), so this measures
         repeatability, NOT the noise floor. A real noise floor needs a seed sweep in phase 1.
 
 ## 20260919_194732__f5_l025_t02
 why:    grid stage 2a: lambda=0.25, tau=0.2
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   CE 0.2611, CON 0.4081 at epoch 2.
 
 ## 20260919_204744__f5_l05_t02
 why:    grid stage 2a: lambda=0.5, tau=0.2
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   CE 0.2638, CON 0.3718 at epoch 2.
 
 ## 20260919_214648__f5_l075_t02
 why:    grid stage 2a: lambda=0.75, tau=0.2; grid summary here
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   CE 0.2868, CON 0.3423 at epoch 2. CON falls monotonically with lambda (0.408 / 0.372 /
         0.342), so the contrastive term is being optimised as intended.
         Grid at tau=0.2 (scripts/pick_lambda.py, k-means n_init=10, 5 clustering seeds, fold F5):
@@ -261,32 +261,32 @@ note:   CE 0.2868, CON 0.3423 at epoch 2. CON falls monotonically with lambda (0
         All 5 grid runs: commit 3f2320f, dirty only scripts/eval_fold.py (evaluation tool).
 ## 20260919_234953__f5_l025_t007
 why:    grid stage 2a: lambda=0.25, tau=0.07, fold F5, 3 epochs, 400 imgs/class
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260920_005051__f5_l05_t007
 why:    grid stage 2a: lambda=0.5, tau=0.07, fold F5, 3 epochs, 400 imgs/class
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260920_015334__f5_l075_t007
 why:    grid stage 2a: lambda=0.75, tau=0.07, fold F5, 3 epochs, 400 imgs/class
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260920_025511__f5_l025_t05
 why:    grid stage 2a: lambda=0.25, tau=0.5, fold F5, 3 epochs, 400 imgs/class
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260920_035516__f5_l05_t05
 why:    grid stage 2a: lambda=0.5, tau=0.5, fold F5, 3 epochs, 400 imgs/class
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260920_045513__f5_l075_t05
 why:    grid stage 2a: lambda=0.75, tau=0.5, fold F5, 3 epochs, 400 imgs/class
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   validation grid complete, 3 lambda x 3 tau, fold F5, 3 epochs
         (scripts/pick_lambda.py, k-means n_init=10, 5 clustering seeds). Cluster acc on the 4000
         fake-novel images; lambda=0 baseline 95.48:
@@ -302,7 +302,7 @@ note:   validation grid complete, 3 lambda x 3 tau, fold F5, 3 epochs
 
 ## 20260920_074552__c100_extract_con
 why:    phase 1 with Eq. 3: lambda=0.25, tau=0.2, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   337.5 min. First full-scale Eq. 3 run: 500 imgs/class, 50 classes, 10 epochs.
         Batch forced to 16x8 because 32 x 2 views = 7.68 GB > 6.93 GB available (OOM).
         Effective batch still 128. 30 negatives per anchor.
@@ -337,7 +337,7 @@ note:   5-seed summary (agg_c100_con.txt). S0_All 91.92+-0.13, S1_New 81.18+-1.7
 
 ## 20260920_144616__c100_extract_ft16
 why:    phase-1 CONTROL for Eq. 3: lambda=0, batch 16x8 (isolates batch size from contrastive)
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260920_195205__c100_ft16_s0
@@ -369,18 +369,18 @@ note:   5-seed summary (agg_c100_ft16.txt). final_All 81.73+-0.16, M_d 79.98+-0.
 
 ## 20260920_224309__c100_seedcheck
 why:    regression check after adding FT_SEED: default 42 must reproduce upstream
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   FT_SEED default 42 reproduces c100_con0_probe: mean CE 1.1756 identical,
         features max|diff| 1.15e-5 (GPU noise only). The flag does not change the default path.
 
 ## 20260920_235027__c100_extract_ft16_sd43
 why:    phase-1 noise measurement: lambda=0, batch 16x8, FT_SEED 43
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260921_041554__c100_extract_ft16_sd44
 why:    phase-1 noise measurement: lambda=0, batch 16x8, FT_SEED 44
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260921_123050__c100_ft16sd43_s0
@@ -435,7 +435,7 @@ note:   -
 
 ## 20260921_161513__c100_extract_ft16_sd45
 why:    phase-1 noise measurement: lambda=0, batch 16x8, FT_SEED 45
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260921_204122__c100_ft16sd45_s0
@@ -465,7 +465,7 @@ note:   -
 
 ## 20260921_214348__c100_extract_con_sd43
 why:    extra phase-1 seed for cell (lambda 0.25, tau 0.2): FT_SEED 43
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260922_031414__c100_consd43_s0
@@ -495,7 +495,7 @@ note:   -
 
 ## 20260922_041443__c100_extract_ft16_sd46
 why:    phase-1 noise measurement: lambda=0, batch 16x8, FT_SEED 46
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260922_083829__c100_ft16sd46_s0
@@ -534,7 +534,7 @@ note:   PHASE-1 NOISE FLOOR, the number every phase-1 comparison needs.
 
 ## 20260922_093949__c100_extract_con_sd44
 why:    extra phase-1 seed for cell (lambda 0.25, tau 0.2): FT_SEED 44
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260922_150955__c100_consd44_s0
@@ -565,7 +565,7 @@ note:   cell (0.25, 0.2) now has 3 phase-1 seeds: final_All 81.92 / 81.73 / 81.4
 
 ## 20260922_192320__c100_extract_con_l01_t02_sd42
 why:    grid cell at full scale: lambda=0.1, tau=0.2, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260923_011302__c100_con_l01_t02_sd42_s0
@@ -595,7 +595,7 @@ note:   -
 
 ## 20260923_095021__c100_extract_con_l05_t02_sd42
 why:    grid cell at full scale: lambda=0.5, tau=0.2, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260923_151415__c100_con_l05_t02_sd42_s0
@@ -625,7 +625,7 @@ note:   -
 
 ## 20260923_181654__c100_extract_con_l01_t02_sd43
 why:    grid cell at full scale: lambda=0.1, tau=0.2, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 43
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260923_234257__c100_con_l01_t02_sd43_s0
@@ -655,7 +655,7 @@ note:   -
 
 ## 20260924_004303__c100_extract_con_l01_t02_sd44
 why:    grid cell at full scale: lambda=0.1, tau=0.2, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 44
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260924_060930__c100_con_l01_t02_sd44_s0
@@ -695,7 +695,7 @@ note:   LAMBDA AXIS at tau=0.2 (500 imgs/class, 10 epochs, k-means n_init=10).
 
 ## 20260924_084033__c100_extract_con_l05_t007_sd42
 why:    grid cell at full scale: lambda=0.5, tau=0.07, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260924_140731__c100_con_l05_t007_sd42_s0
@@ -725,7 +725,7 @@ note:   -
 
 ## 20260924_150804__c100_extract_con_l05_t05_sd42
 why:    grid cell at full scale: lambda=0.5, tau=0.5, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260924_203440__c100_con_l05_t05_sd42_s0
@@ -762,7 +762,7 @@ note:   TAU AXIS at lambda=0.5, n=1 per cell, vs the lambda=0 baseline 81.84 / 9
 
 ## 20260924_214316__c100_extract_con_l05_t007_sd43
 why:    grid cell at full scale: lambda=0.5, tau=0.07, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 43
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260925_033039__c100_con_l05_t007_sd43_s0
@@ -792,7 +792,7 @@ note:   -
 
 ## 20260925_043020__c100_extract_con_l05_t007_sd44
 why:    grid cell at full scale: lambda=0.5, tau=0.07, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 44
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260925_095506__c100_con_l05_t007_sd44_s0
@@ -835,7 +835,7 @@ note:   CONCLUSION for Eq. 3 (cell lambda=0.5, tau=0.07, now n=3 phase-1 seeds),
 
 ## 20260925_111920__c100_extract_con_l05_t003_sd42
 why:    tau-axis cell: lambda=0.5, tau=0.03, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   mean CON falls to 0.0008 by epoch 9 (chance = log(31) = 3.43), i.e. the contrastive task is
         SOLVED and L_con has almost no gradient left. CE 0.1293, same as tau=0.07 (0.126).
 
@@ -866,7 +866,7 @@ note:   -
 
 ## 20260925_174631__c100_extract_con_l05_t012_sd42
 why:    tau-axis cell: lambda=0.5, tau=0.12, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260925_231551__c100_con_l05_t012_sd42_s0
@@ -904,7 +904,7 @@ note:   TAU CURVE at lambda=0.5, 5 points now (n=1 except tau 0.07 which has n=3
 
 ## 20260926_002800__c100_extract_con_l05_t50_sd42
 why:    tau-axis cell: lambda=0.5, tau=5.0, 500 imgs/class, 10 epochs, batch 16x8, FT_SEED 42
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   CONTROL: tau deliberately huge, so the softmax over 31 candidates is nearly flat.
         mean CON stays at 3.27 for all 10 epochs (chance = 3.43) -> L_con provides essentially no
         gradient, while the augmentation and the 2 forwards are unchanged. CE 0.1262, same as
@@ -941,13 +941,13 @@ note:   tau=5.0 gives S0 92.13 / final 81.92, i.e. the SAME as tau 0.03 (92.13) 
 
 ## 20260926_111754__c100_augcheck
 why:    regression check after adding FT_AUG: default must reproduce upstream (no augmentation)
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   FT_AUG unset reproduces c100_con0_probe exactly: "augmentation OFF", views=1, mean CE 1.1756
         identical, features max|diff| 1.15e-5 (GPU noise). The new flag leaves the default path alone.
 
 ## 20260926_121316__c100_extract_augonly
 why:    AUGMENTATION ONLY: FT_AUG=1 with lambda=0 (2 forwards, no L_con, CE weight 1.0), FT_SEED 42
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   The decisive control for D19: augmentation with NO contrastive term at all and CE weight 1.0
         (lambda=0, FT_AUG=1). Both views are forwarded so the dropout / RNG stream matches the
         tau=5.0 run; CE is computed on view 1 only. NOTE: the log line prints views=1 because that
@@ -983,7 +983,7 @@ note:   5-seed summary, FT_SEED 42: S0_All 92.20+-0.07, final_All 82.09+-0.19, M
 
 ## 20260926_200516__c100_extract_augonly_sd43
 why:    augmentation only (FT_AUG=1, lambda=0), FT_SEED 43
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260927_015724__c100_augonly_sd43_s0
@@ -1013,7 +1013,7 @@ note:   FT_SEED 43: S0_All 92.28+-0.10, final_All 82.17+-0.09. Consistent with s
 
 ## 20260927_030528__c100_extract_augonly_sd44
 why:    augmentation only (FT_AUG=1, lambda=0), FT_SEED 44
-result: (no metrics.json yet; copy from runs/INDEX.txt later)
+result: (no metrics.json)
 note:   -
 
 ## 20260927_082727__c100_augonly_sd44_s0
