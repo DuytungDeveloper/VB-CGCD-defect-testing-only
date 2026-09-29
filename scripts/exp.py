@@ -230,7 +230,7 @@ def exit_text(cfg):
 def append_log(root, run_dir, config):
     rows = load_runs(root / "runs")
     metrics = load_json(run_dir / "metrics.json")
-    cols = read_list(root / "runs" / "columns.txt") or list(metrics)
+    cols = [c for c in read_list(root / "runs" / "columns.txt") if c in metrics] or list(metrics)
     rc = config["exit_code"]
     if rc == "interrupted":
         result = f"INTERRUPTED ({config.get('interrupt_signal')})"
@@ -240,7 +240,7 @@ def append_log(root, run_dir, config):
         result = " | ".join(f"{c} {fmt(metrics[c], decimals([m.get(c) for _, _, m in rows]))}"
                             for c in cols if c in metrics)
     else:
-        result = "(no metrics.json yet; copy from runs/INDEX.txt later)"
+        result = "(no metrics.json)"
     if config.get("warnings"):
         result += "   WARNING: " + "; ".join(config["warnings"])
     log = root / "notes" / "LOG.md"
