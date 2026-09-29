@@ -24,6 +24,8 @@ from classifier.mngmm import MNGMMClassifier
 
 from clustering.gmm import GMMCluster
 from clustering.kmeans import KMeansCluster
+from clustering.clustering_base import hungarian_map
+from types import SimpleNamespace
 
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
@@ -91,6 +93,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--trail_name', type=str, default=f'', help='Name of the trail')
     parser.add_argument('--clustering_alg', type=str, default='gmm', help='Clustering algorithm')
+    parser.add_argument('--hungarian_on', type=str, default='train', choices=['train', 'eval'],
+                        help="D13: 'train' = upstream, true labels name the clusters; 'eval' = cluster order in training, test-set Hungarian for evaluation")
     parser.add_argument('--kmeans_n_init', type=int, default=10,
                         help='k-means restarts (kept in config.json by exp.py; ignored for gmm)')
     parser.add_argument('--gmm_n_init', type=int, default=1,
@@ -135,6 +139,7 @@ if __name__ == '__main__':
 
     for i, (train_data, test_data, test_old_data, test_all_data) in enumerate(zip(train_loader, test_loader, test_old_loader, test_all_loader)): 
         if i == 0:
+            to_cluster = {}   # D13 eval mode: true id -> cluster-space id, filled at each discovery session
             testing_set = {'test_old': test_data, 'test_all': test_data, 'known_test': test_data}
 
             s_classifier.run(train_data._x, train_data._y, test_data._x, test_data._y, current_stage=i, testing_set=testing_set)
@@ -151,7 +156,17 @@ if __name__ == '__main__':
 
             clustering.fit(train_data._x)
 
-            pred = clustering.predict(train_data._x, train_data._y, with_known=True)
+            raw = clustering.predict_raw(train_data._x)
+            pi_test = hungarian_map(clustering.predict_raw(test_data._x),
+                                    np.asarray(test_data._y).astype(int) - label_offset, args.increment)
+            if args.hungarian_on == 'train':     # upstream: TRUE train labels name the clusters (D13)
+                pred = clustering.predict(train_data._x, train_data._y, with_known=True)
+                pi_train = {int(j): int(pred[raw == j][0]) - label_offset for j in np.unique(raw)}
+                print(f"hungarian stage {i}: mode=train pi_train={pi_train} pi_test={pi_test} same={pi_train == pi_test}")
+            else:                                # D13 fix: cluster order in training, test-set Hungarian for evaluation
+                pred = raw + label_offset
+                to_cluster.update({label_offset + t: label_offset + c for c, t in pi_test.items()})
+                print(f"hungarian stage {i}: mode=eval pi_test={pi_test}")
 
             print(np.unique(pred, return_counts=True))
 
@@ -160,6 +175,15 @@ if __name__ == '__main__':
 
             s_classifier.update_dir_infos(log_dir=f"logs/{log_saved_dir}/log/stage{i}", save_dir=f"logs/{log_saved_dir}/saved_models/stage{i}")
 
-            testing_set = {'test_old': test_old_data, 'test_all': test_all_data, 'known_test': known_test_data}
+            if args.hungarian_on == 'eval':      # relabel COPIES of test labels into cluster space
+                lut = np.arange(args.num_classes)
+                for t, c in to_cluster.items():
+                    lut[t] = c
+                relabel = lambda d: SimpleNamespace(_x=d._x, _y=lut[np.asarray(d._y).astype(int)])
+                test_novel, test_old, test_all = relabel(test_data), relabel(test_old_data), relabel(test_all_data)
+            else:
+                test_novel, test_old, test_all = test_data, test_old_data, test_all_data
 
-            s_classifier.run(train_data._x, pred, test_data._x, test_data._y, current_stage=i, testing_set=testing_set)
+            testing_set = {'test_old': test_old, 'test_all': test_all, 'known_test': known_test_data}
+
+            s_classifier.run(train_data._x, pred, test_novel._x, test_novel._y, current_stage=i, testing_set=testing_set)
