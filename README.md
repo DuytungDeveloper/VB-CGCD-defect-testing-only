@@ -27,6 +27,8 @@ Upstream:  https://github.com/daihao42/VB-CGCD (its README declares MIT; the ups
     notes/LOG.md                       one entry per run (automatic) + open questions
     notes/reproducibility-issues.md    environment problems and local patches
     notes/paper-code-discrepancies.md  where the code differs from the paper
+    notes/code-changes.vi.md           what the fork changed vs upstream (Vietnamese)
+    notes/plan.vi.md                   plan, decisions, open questions (Vietnamese)
     archive/                           old runs                                           (not in git)
 
 ## 2. Environment
@@ -50,7 +52,7 @@ CIFAR-100 and the DINO weights are downloaded by Hugging Face on first use (~/.c
 - Tags: <dataset>_<purpose>[_<variant>][_s<N>], only [a-z0-9_], never "__".
   Examples: c100_extract, c100_base_s0, c100_base_lr1e5_s0. exp agg groups <name>_s<N> exactly.
 - Commit code before a run. exp.py records the commit; uncommitted code shows dirty = yes.
-- Phase 1 takes about 3 h 15 min on the RTX 4060. Before it: pause Windows Update,
+- Phase 1 takes about 2 h 50 min on the RTX 4060 (about 5 h 30 min with 2-view augmentation). Before it: pause Windows Update,
   disable sleep, close apps that use the GPU on Windows.
 
 ## 4. Phase 1: features (once per feature set)
@@ -71,7 +73,7 @@ Then tell phase 2 which features to use (one line), and commit it:
 
 Smoke test, 5 steps per stage, about 2 min:
 
-    python scripts/exp.py run c100_smoke -- bash scripts/run_phase2_cl.sh --n_epochs 5
+    python scripts/exp.py run c100_smoke -- bash scripts/run_phase2_cl.sh --clustering_alg kmeans --n_epochs 5
 
 Five seeds:
 
@@ -79,16 +81,17 @@ Five seeds:
     conda activate vbcgcd
     cd ~/projects/VB-CGCD-defect
     for s in 0 1 2 3 4; do
-      python scripts/exp.py run c100_base_s$s -- bash scripts/run_phase2_cl.sh --seed $s
+      python scripts/exp.py run c100_km_s$s -- bash scripts/run_phase2_cl.sh --clustering_alg kmeans --seed $s
     done
 
 Arguments after the script name override its defaults, for example --seed or --n_epochs.
+The wrapper default is upstream (GMM, n_init 1). The best configuration is k-means with
+--kmeans_n_init 10 (the default when --clustering_alg kmeans), see D18.
 
 ## 6. Results
 
     python scripts/exp.py table            # prints and writes runs/INDEX.txt
-    python scripts/exp.py agg c100_base    # mean/std over c100_base_s* -> runs/agg_c100_base.txt
-Tags: <dataset>_<purpose>[_<variant>][_s<N>], only [a-z0-9_], never "__". Example: c100_base_lr1e5_s0.
+    python scripts/exp.py agg c100_km      # mean/std over c100_km_s* -> runs/agg_c100_km.txt
 
 After each run, fill in "why" and "note" in notes/LOG.md, then:
 
