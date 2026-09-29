@@ -1,5 +1,6 @@
 # Paper vs code discrepancies — VB-CGCD
 Line numbers refer to this fork. For files changed by patches, a search string is given instead.
+D1 and D2 are not used; numbers are never reused.
 
 ## D3 (CONFIRMED). Eq. 2 and Eq. 3 are NOT implemented
 Code, feature_extractor/sl_finetuned_model.py:103-105, the entire training step:
@@ -67,6 +68,8 @@ code:   dino-cifar100.py, search 'x["labels"] < 50': all 500 train images of eac
         CL loader: dataloaders/cifar100.py:12 num_labeled=20000 -> utils/dataloader.py:138,157 keep 400/class;
         the other 100/class go to the unlabeled pool of later sessions.
 impact: the backbone has seen labels of samples that phase 2 treats as unlabeled (train split only; test not involved).
+status: NOT FIXED. The fix exists (FT_LABELED_IDX=splits/c100_labeled_hf_idx.npy) but has not been
+        run yet (planned tag c100_extract_base400). As of 2026-09-29.
 
 ## D10. PCA fit data: not stated in paper, code fits once on S0 labeled train features
 paper:  Appendix C.3: PCA reduces output features to 384 dims. Does not say which data PCA is fit on.
@@ -124,6 +127,7 @@ impact: the mapping is one-to-one over the 10 new ids, so it cannot make a clust
         standard GCD protocol computes this alignment at EVALUATION time on the test set, not
         during training. Planned fix: --hungarian_on train|eval, assign ids by cluster order during
         training, compute the mapping once per session at evaluation and freeze it.
+status: NOT FIXED, not implemented. Next step, before NEU-DET. As of 2026-09-29.
 
 ## D14. Early-stopping rule matches neither Eq. 11 nor Algorithm 1; --early_stop_ratio is dead
 paper:  Eq. 11 stops when R < epsilon = 0.01; Algorithm 1 uses det(Sigma_i) >= avg(det(Sigma));
@@ -295,6 +299,21 @@ runs:   c100_extract_con*, c100_con*, c100_ft16*, c100_augonly*, f5_* (validatio
         (regression checks that FT_AUG and FT_SEED defaults reproduce upstream).
 knobs:  FT_LAMBDA (0), FT_TAU (0.2), FT_AUG ("" = follow FT_LAMBDA), FT_SEED (42), all default
         to upstream behaviour.
+## D20. Paper-internal inconsistencies (paper vs itself, not vs code)
+Checked against the PMLR PDF, 2026-09-29.
+1. Tables 11-13 column headers say S0-S4, but the R=0 rows equal Table 2 S1-S5 for C100:
+   All 88.40/86.0/83.61/82.72/81.23, Old 89.46/87.06/84.75/82.85/81.84, New 83.10/79.60/75.60/81.70/75.70.
+   The headers are shifted by one session.
+2. Table 6 column b50-All(S5) disagrees with Table 2 in two cells: C100 VB-CGCD 81.32 vs 81.23
+   (also 81.32 in Table 20), IN100 Happy 75.58 vs 78.58. Tiny and CUB match. The "9.56% vs 22.87%
+   drop" claim in Sec 4.2 depends on these cells.
+3. Sec 3.2.2 calls N(0, I) a "conjugate prior, ensuring closed-form updates". For the mean and
+   covariance of an MVN the conjugate prior is Normal-Inverse-Wishart (e.g. Murphy 2012, Sec 4.6.3).
+   Moot for the code: there is no prior at all (D11).
+4. Not an inconsistency, evidence for D11: Fig. 5 shows VI covariances in [1.0075, 1.0175] vs
+   PE covariances in [3, 6], i.e. the paper's own "VI" estimate barely leaves its I initialisation.
+impact: Tables 11-13 must be read as S1-S5; quote Table 2, not Table 6, for b50 numbers.
+
 ## Additional notes on the fine-tuning implementation
 - BOFT config declared: boft_block_size=4, boft_n_butterfly_factor=2, boft_dropout=0.1,
   bias="boft_only", target_modules=["output.dense","mlp.fc1","mlp.fc2"].
