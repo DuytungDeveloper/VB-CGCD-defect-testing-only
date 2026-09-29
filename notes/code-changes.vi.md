@@ -93,7 +93,7 @@ Không sửa thuật toán, nhưng **hai file ảnh hưởng số liệu hoặc 
 | `scripts/queue_eq3.sh` (21/9) | `finished()` + hàng đợi | Thiết kế 8 so với 8 (đã bỏ, thay bằng lưới 3 seed). **Ngừng dùng**: dòng gọi phase 1 chưa có `--inputs -`, đừng chạy lại |
 | `scripts/queue_grid.sh` (22/9) | `finished()` + vòng lặp `CELLS` × `SEEDS` | Hàng đợi lưới (λ, τ); tự bỏ qua bước đã xong; `trap` khôi phục `runs/inputs.txt`. 29/9: gọi phase 1 với `--inputs -` (`ad7314f`) |
 
-Ghi chú tiếng Việt: `notes/code-changes.vi.md` (file này), `notes/variants-plan.vi.md`.
+Ghi chú tiếng Việt: `notes/code-changes.vi.md` (file này), `notes/plan.vi.md`.
 Không có file `q6-q8-giai-thich.md` (được nhắc nhưng chưa từng tạo); lý do chọn Q6–Q8 nằm ở D19.
 
 ---
