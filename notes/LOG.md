@@ -4,38 +4,7 @@ One entry per run, appended by exp run. Fill in "why" and "note".
 Before the clean rerun: archive/pre-rerun-20260915/ (not in git) and git tag pre-rerun-20260915
 
 ## Open questions
-- Are paper numbers inside the 5-seed spread? -> YES for final metrics (S0, final_All, M_d, M_f).
-  Paper above all 5 seeds at S1_All, S1_New, S2_Old; not resolvable, paper reports 1 run (see agg_c100_base.txt)
-- Are re-extracted features identical to the archived ones? -> NO: max|diff| 2.8e-5; phase 2 numbers
-  still identical for seeds 0-2 (see c100_extract, c100_base_s0-2)
-- Does PATCH 5 work? -> YES: 888,676 params, 2 pooler keys (see c100_extract)
-- Are old-class params identical for ALL old classes, not only class 0? -> YES for probed classes
-  0,1,49 (S0-S5) and 50,59 (S1-S5), 4-decimal stats (probe.py ckpt, c100_base_s4). Not all 100 checked.
-- Is learned Sigma close to I, or close to the real class covariance? -> close to I: trace/d ~0.98,
-  ||S-I||_F ~2 (||I||_F = 19.6), eig [0.87, 1.79]. Not yet compared with empirical class covariance.
-- Does clustering choice or restart count drive the results? -> ANSWERED by the 2x2 (see
-  c100_gmm10_s4 and D18): restarts drive accuracy, algorithm drives stability.
-- Why does S-pass early stop fall across stages (all 5 seeds: 752 -> 597)? No det underflow
-  (logdet ~ -10). Old mean det < 1, so the rule is det_new < det_old / sf, and sf =
-  sqrt(10/(offset+10)) shrinks -> threshold rises -> earlier stop. Consistent; per-step dets not logged.
-- Does one GMM cluster absorb the known samples in S1?
-- Novelty count ~4000: how many false positives / false negatives?
-- How does S0_All grow with SVI steps? (smoke: 84.86 at 5 steps, same in old and new runs)
-- Is New acc lower when cluster_max_min is high?
-- Why is S4_New stable across seeds while other stages are not? With k-means std 0.43; with
-  GMM n_init=10 S4_New 87.02 (4 of 5 seeds 87.7-88.7) but the lowest S5_New: cross-session
-  trade-off? r(S4_New, S5_New) = -0.55, n = 5, not significant.
-- Does the M_f proxy (S0 test set) match the paper definition (D_l)? Hint: S5_S0test mean 84.74 = 91.68 - 6.94
-- Does code reproduce Table 5 "w/o fine-tuning" S0 = 88.54? Needs a phase-1 variant wrapper
-  (no --finetuned, TorchHub CLS token, folder dino-vitb16), tag c100_extract_noft
-- Does adding the contrastive term (paper Eq. 3) change S0 / M_d? Grid at tau=0.2 says no
-  (monotone decrease with lambda, fold F5). Grid at tau=0.07 and tau=0.5 still missing;
-  final answer needs a full 10-epoch 500-img/class run (c100_extract_con) + 5 phase-2 seeds.
-- Phase-1 noise floor is still unmeasured: torch.manual_seed(42) is hardcoded, so two runs of
-  the same config are identical (f5_l0_t02 == f5_l0_t02_rep). Would need a seed sweep in phase 1.
-- Eq. 3 is evaluated with only 30 negatives per anchor (8 GB VRAM, batch 16 x 2 views).
-  A negative result cannot separate "Eq. 3 does not help" from "too few negatives".
-- How well does a frozen DINO backbone separate novel defect classes on NEU-DET / GC10-DET?
+Moved to `notes/plan.vi.md` §5 (single list since 2026-09-29).
 
 ---
 
