@@ -110,6 +110,10 @@ impact: old-class parameters receive no gradient in the S-pass. Measured: for pr
         0, 1, 49 the stored mu and Sigma are byte-identical across S0-S5, and for 50, 59 across
         S1-S5 (4-decimal stats, probe.py ckpt on c100_base_s4). Novelty counts stay near 4000
         of 5250-6250 per session, so roughly a quarter of each session's samples are discarded.
+note:   clustering uses k = C_t = increment clusters, so every old-class sample in a session first
+        gets a NEW id. That is the paper's design (Sec 3.2.2: old samples are "reassigned" to old
+        labels; Alg. 1 lines 29-35; D.1 estimates the number of NEW classes), not a discrepancy.
+        The discrepancy is the next step: the paper re-labels them, the code drops them.
 
 ## D13. Hungarian matching uses the TRUE labels of the unlabeled data
 paper:  never mentions it. In the C-GCD protocol, sessions S1-S5 are unlabeled by definition.
@@ -127,7 +131,16 @@ impact: the mapping is one-to-one over the 10 new ids, so it cannot make a clust
         standard GCD protocol computes this alignment at EVALUATION time on the test set, not
         during training. Planned fix: --hungarian_on train|eval, assign ids by cluster order during
         training, compute the mapping once per session at evaluation and freeze it.
-status: NOT FIXED, not implemented. Next step, before NEU-DET. As of 2026-09-29.
+status: FIXED 2026-09-29 (4aa8ff3, 98d2c55), opt-in --hungarian_on eval; default train = upstream.
+        eval: training labels = cluster order; mapping = Hungarian between the CLUSTERING model's
+        predictions on the session's novel test set and its true labels (10x10), computed once and
+        frozen; COPIES of the test labels are relabelled into cluster space; S0 row untouched.
+        (Q10b in plan.vi.md. Q10 would use the classifier's predictions instead.)
+measured: training is permutation-equivariant (loss, train_acc, stop steps identical; dets ~1e-7).
+        c100_km_evhung vs c100_km, paired by seed: seeds 1-4 identical on all 46 metrics; seed 0
+        differs from S2 on, where the train- and test-derived mappings swap clusters 1/8 (sizes
+        1136/917): S2_New -1.3, final_All -0.14, M_d -0.26. Mean final_All 81.74 +- 0.08 vs 81.76 +- 0.10.
+        The leak mattered in 1 of 25 sessions, the one with merged clusters; rare but not small.
 
 ## D14. Early-stopping rule matches neither Eq. 11 nor Algorithm 1; --early_stop_ratio is dead
 paper:  Eq. 11 stops when R < epsilon = 0.01; Algorithm 1 uses det(Sigma_i) >= avg(det(Sigma));
@@ -142,6 +155,10 @@ impact: Tables 11-13 (the R sweep) cannot be reproduced with this code. Measured
         while the F-pass stays flat near 800. Explanation that fits the data: old mean det < 1
         (logdet ~ -10), so the active branch is det_new < det_old / sf, and sf shrinks with
         label_offset, raising the threshold. No underflow. [INFERENCE, per-step dets not logged]
+note:   the step log prints dets[0] as "last_cov" and dets[1] as "cov". dets[0] is the MEAN det of the
+        OLD classes ([:label_offset] with --use_correct_scaling_factor, the default), dets[1] the MEAN
+        det of the new classes (mngmm.py 244-271). Both are means over sets, so the rule does not
+        depend on class-id order (checked 2026-09-29 for D13).
 
 ## D15. M_f is computed on a proxy set, not on D_l as defined
 paper:  Appendix C.2 defines M_f (forgetting) over the initially labeled dataset D_l.
