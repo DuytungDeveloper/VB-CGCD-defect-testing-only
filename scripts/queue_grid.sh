@@ -34,7 +34,7 @@ for sd in ${SEEDS:-42}; do
     if [ -z "$r" ]; then
       echo "queue: $(date '+%m-%d %H:%M') phase 1 $ext"
       FT_LAMBDA=$lam FT_TAU=$tau FT_EPOCHS=10 FT_BATCH_SIZE=16 FT_ACCUM=8 FT_SEED=$sd \
-        python scripts/exp.py run "$ext" -- bash scripts/run_phase1_extract.sh
+        python scripts/exp.py run "$ext" --inputs - -- bash scripts/run_phase1_extract.sh
       r=$(finished "$ext")
       [ -z "$r" ] && { echo "queue: FAILED phase 1 $ext, moving on"; continue; }
     fi

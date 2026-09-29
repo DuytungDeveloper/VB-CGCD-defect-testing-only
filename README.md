@@ -58,7 +58,7 @@ CIFAR-100 and the DINO weights are downloaded by Hugging Face on first use (~/.c
     tmux new -s extract
     conda activate vbcgcd
     cd ~/projects/VB-CGCD-defect
-    python scripts/exp.py run c100_extract -- bash scripts/run_phase1_extract.sh
+    python scripts/exp.py run c100_extract --inputs - -- bash scripts/run_phase1_extract.sh
 
 Output: features/<run_id>/dino-vitb16-sl/*.npy and features/<run_id>/ft_ckpt.pt.
 The run ends with check_phase1.py, which must print "OK: 0 failed check(s)".

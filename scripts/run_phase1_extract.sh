@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # VB-CGCD phase 1 only: fine-tune the backbone, then extract features. Always call it through exp:
-#   python scripts/exp.py run c100_extract -- bash scripts/run_phase1_extract.sh
+#   python scripts/exp.py run c100_extract --inputs - -- bash scripts/run_phase1_extract.sh
 # 1) output folder = features/<run_id>/ (a new folder for every run, never overwritten)
 # 2) stops if torch does not see the GPU
 # 3) runs dino-cifar100.py with EVERY argument written out, so console.log holds the full config
