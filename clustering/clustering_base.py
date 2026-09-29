@@ -37,6 +37,12 @@ class ClusteringBase(ABC):
         return self._align_clusterId_labelId(pred, labels, with_known)
 
 
+    def predict_raw(self, features):
+        '''
+        Cluster ids in fit order, no alignment and no true labels (used by --hungarian_on eval, D13).
+        '''
+        return self._pre_predict(features)
+
     def _align_clusterId_labelId(self, pred, label, with_known=True):
 
         self.label = label
@@ -78,3 +84,12 @@ class ClusteringBase(ABC):
         report = classification_report(self.label, self.matched_clusters)
         return report
 
+
+def hungarian_map(cluster_ids, true_ids, k):
+    '''
+    Best one-to-one map cluster id -> true id, both in 0..k-1 (Hungarian on the confusion matrix).
+    Called at EVALUATION time with test labels (D13 fix); never on unlabeled training data.
+    '''
+    cm = confusion_matrix(y_true=true_ids, y_pred=cluster_ids, labels=np.arange(k))
+    rows, cols = linear_sum_assignment(-cm)
+    return {int(c): int(r) for r, c in zip(rows, cols)}
