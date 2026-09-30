@@ -168,6 +168,11 @@ note:   the step log prints dets[0] as "last_cov" and dets[1] as "cov". dets[0] 
 measured: NEU-DET (num_dim 128) never triggers the stop within 1000 steps (0/5 seeds): the new-class
         mean det falls ~x0.55 per 100 steps to ~0.012 while the old mean is ~0.002. [INFERENCE]
         extrapolated trigger ~1300 steps. On NEU the paper's anti-forgetting stop is inactive.
+measured: GC10 (num_dim 64), both branches. Frozen DINO CLS: det > 1 (old mean ~4.36, new grows from 1);
+        S-pass threshold 0.707 x 4.356 = 3.08, hit at step 981 in 1/5 seeds, budget-bound in 4/5.
+        Fine-tuned pooler (tanh): det < 1 (old 0.436, new falls to 0.436 / 0.707 = 0.616), stop in 5/5
+        seeds at steps 508-617. [INFERENCE] the branch follows the feature scale: the rule is not
+        scale-invariant, and on fine-tuned features it halts novel learning mid-budget.
 
 ## D15. M_f is computed on a proxy set, not on D_l as defined
 paper:  Appendix C.2 defines M_f (forgetting) over the initially labeled dataset D_l.
@@ -355,6 +360,15 @@ impact: on small datasets num_dim must stay below the per-class sample count, wi
         dataloaders/neudet.py asserts num_dim < 192. [INFERENCE] upstream run.sh runs CUB-200 with
         25 labeled images per class and the default num_dim 384 (n << d); the same collapse is
         expected, so the paper's CUB numbers probably come from another configuration. Not verified.
+
+## D22. Loader builds labels from a fixed count, not from the rows taken
+code:   utils/dataloader.py StrictPerClassIncrementalLoader._train_data_mix: x = rows[:labeled_per_class]
+        but y = np.ones(labeled_per_class) * idx; same for novel rows (num_novel_per_stage_per_class).
+impact: if a class has fewer rows than the fixed count, x is shorter than y and every later label is
+        shifted, silently. Never triggered by CIFAR/NEU/CUB (enough rows per class); certain on
+        imbalanced data (GC10 rolled_pit has 22 train rows).
+fix:    dataloaders/gc10.py SplitCountIncrementalLoader: per-class counts from the split file, labels from
+        the rows actually taken; identical to the parent when counts are equal (checked on NEU features).
 
 ## Additional notes on the fine-tuning implementation
 - BOFT config declared: boft_block_size=4, boft_n_butterfly_factor=2, boft_dropout=0.1,
