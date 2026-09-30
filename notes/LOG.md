@@ -1183,3 +1183,53 @@ note: features saved (file sizes match 1833x768 / 455x768 float32 exactly), then
 why: clean rerun of the GC10 frozen extraction with HF_HUB_OFFLINE=1
 result: (no metrics.json)
 note: exit 0, bit-identical to 20260930_204949. Probe: k-means acc all 10 = 41.3%, base 51.9%, novel 44.6%; silhouette best k = 2 (true 10); linear probe (all labels) 80.2%, per class [81,74,82,72,90,94,56,67,45,83]. GC10 is NOT saturated
+
+## 20260930_233323__gc10_frozen_km_evhung_d64_s0
+why: GC10 baseline: frozen DINO CLS (--resize full 224), labeled S0, k-means n_init 10, eval Hungarian, num_dim 64
+result: S0_All 77.59 | S1_New 52.80 | final_All 60.66 | M_d 52.80 | M_f 9.96
+note: see the _s4 note
+
+## 20260930_233811__gc10_frozen_km_evhung_d64_s1
+why: GC10 baseline: frozen DINO CLS (--resize full 224), labeled S0, k-means n_init 10, eval Hungarian, num_dim 64
+result: S0_All 78.84 | S1_New 56.07 | final_All 62.64 | M_d 56.07 | M_f 10.37
+note: see the _s4 note
+
+## 20260930_234024__gc10_frozen_km_evhung_d64_s2
+why: GC10 baseline: frozen DINO CLS (--resize full 224), labeled S0, k-means n_init 10, eval Hungarian, num_dim 64
+result: S0_All 79.25 | S1_New 56.07 | final_All 62.86 | M_d 56.07 | M_f 10.37
+note: see the _s4 note
+
+## 20260930_234238__gc10_frozen_km_evhung_d64_s3
+why: GC10 baseline: frozen DINO CLS (--resize full 224), labeled S0, k-means n_init 10, eval Hungarian, num_dim 64
+result: S0_All 78.84 | S1_New 56.07 | final_All 62.86 | M_d 56.07 | M_f 9.96
+note: see the _s4 note
+
+## 20260930_234455__gc10_frozen_km_evhung_d64_s4
+why: GC10 baseline: frozen DINO CLS (--resize full 224), labeled S0, k-means n_init 10, eval Hungarian, num_dim 64
+result: S0_All 78.84 | S1_New 56.07 | final_All 62.86 | M_d 56.07 | M_f 9.96
+note: 5 seeds: S0 78.67+-0.63, final 62.37+-0.96, Old 68.55, New 55.42; balanced base/novel 70.0/37.6 (cm_summary); recall rolled 0, crease 11, incl 14; water->silk 104, incl->silk 100, silk split into rolled/crease clusters; early stop only s0 (step 981, threshold 0.707 x 4.356 = 3.08); no NaN
+
+## 20260930_235006__gc10_frozen_gmm10_evhung_d64_s0
+why: clustering ablation on GC10: GMM n_init 10 instead of k-means (same features and settings)
+result: S0_All 77.59 | S1_New 49.53 | final_All 59.78 | M_d 49.53 | M_f 8.71
+note: see the _s4 note
+
+## 20260930_235228__gc10_frozen_gmm10_evhung_d64_s1
+why: clustering ablation on GC10: GMM n_init 10 instead of k-means (same features and settings)
+result: S0_All 78.84 | S1_New 57.01 | final_All 63.30 | M_d 57.01 | M_f 9.96
+note: see the _s4 note
+
+## 20260930_235459__gc10_frozen_gmm10_evhung_d64_s2
+why: clustering ablation on GC10: GMM n_init 10 instead of k-means (same features and settings)
+result: S0_All 79.25 | S1_New 52.34 | final_All 60.66 | M_d 52.34 | M_f 11.20
+note: see the _s4 note
+
+## 20260930_235723__gc10_frozen_gmm10_evhung_d64_s3
+why: clustering ablation on GC10: GMM n_init 10 instead of k-means (same features and settings)
+result: S0_All 78.84 | S1_New 54.67 | final_All 61.32 | M_d 54.67 | M_f 11.62
+note: see the _s4 note
+
+## 20260930_235953__gc10_frozen_gmm10_evhung_d64_s4
+why: clustering ablation on GC10: GMM n_init 10 instead of k-means (same features and settings)
+result: S0_All 78.84 | S1_New 50.93 | final_All 60.00 | M_d 50.93 | M_f 10.79
+note: 5 seeds: final 61.01+-1.41; balanced novel 37.7+-2.3 (= k-means 37.6); clusters even MORE balanced (max_min 1.66 vs 2.71); rare classes still ~0 -> GMM does not fix imbalance; bottleneck is the features (linear probe weak on the same classes)
