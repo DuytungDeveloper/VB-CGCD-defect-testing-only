@@ -68,8 +68,14 @@ code:   dino-cifar100.py, search 'x["labels"] < 50': all 500 train images of eac
         CL loader: dataloaders/cifar100.py:12 num_labeled=20000 -> utils/dataloader.py:138,157 keep 400/class;
         the other 100/class go to the unlabeled pool of later sessions.
 impact: the backbone has seen labels of samples that phase 2 treats as unlabeled (train split only; test not involved).
-status: NOT FIXED. The fix exists (FT_LABELED_IDX=splits/c100_labeled_hf_idx.npy) but has not been
-        run yet (planned tag c100_extract_base400). As of 2026-09-29.
+status: FIXED 2026-09-30, opt-in: FT_LABELED_IDX=splits/c100_labeled_hf_idx.npy (fine-tune on the 20000
+        labeled images only; default = upstream 25000). Verified: num_rows 20000 in the phase-1 log.
+measured: c100_extract_base400 (FT_SEED 42, ONE phase-1 run) + c100_km_evhung_base400 (5 seeds) vs
+        c100_km_evhung: final_All 82.05 +- 0.18 vs 81.74 +- 0.08 (+0.31), M_d +0.41, S0_All -0.16.
+        M_f 6.39 vs 6.61 is an artefact of the lower S0: S5_S0test is 85.36 vs 85.29.
+        Not conclusive: difference of two single phase-1 runs, sigma ~ sqrt(2) x 0.11 = 0.16 (D19), z ~ 2;
+        seed 1 alone has a balanced S1 clustering (max_min 2.75, S1_New 82.80); without it +0.24.
+        Confounded with 20% fewer fine-tuning steps (156 vs 196 per epoch). Not replicated (2026-09-30).
 
 ## D10. PCA fit data: not stated in paper, code fits once on S0 labeled train features
 paper:  Appendix C.3: PCA reduces output features to 384 dims. Does not say which data PCA is fit on.
