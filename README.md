@@ -94,6 +94,20 @@ The wrapper default is upstream (GMM, n_init 1). The best configuration is k-mea
 --kmeans_n_init 10 (the default when --clustering_alg kmeans), see D18.
 Add --hungarian_on eval so that no true label of the unlabeled sessions enters training (D13).
 
+NEU-DET (b3t1: 3 base + 1 session of 3 novel classes; protocol in splits/neu_split.json):
+
+    python scripts/make_neu_split.py      # once; a second run must print "unchanged"
+    python scripts/exp.py run neu_extract --inputs splits/neu_split.json -- bash scripts/run_phase1_neu.sh
+    echo "features/<neu_extract run_id>/dino-vitb16-sl" > runs/inputs.txt
+    for s in 0 1 2 3 4; do
+      python scripts/exp.py run neu_km_evhung_d128_s$s -- bash scripts/run_phase2_cl.sh \
+        --dataset neudet --base 3 --increment 3 --num_classes 6 --load_mode t1 \
+        --clustering_alg kmeans --hungarian_on eval --num_dim 128 --seed $s
+    done
+
+--num_dim must stay below the 192 labeled images per class, else Sigma collapses (D21).
+Data: datasets/NEU-DET (train / validation). Phase 1 ~5 min, each phase-2 run ~2.5 min.
+
 ## 6. Results
 
     python scripts/exp.py table            # prints and writes runs/INDEX.txt
