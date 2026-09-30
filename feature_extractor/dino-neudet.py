@@ -21,8 +21,9 @@ def build(split, part, rows=None):
     sub = "train" if part == "train" else "validation"
     paths, labels = [], []
     for k, c in enumerate(split["classes"]):
-        names = split[part][c] if rows is None else split[part][c][:rows]
-        paths += [f"{split['root']}/{sub}/images/{c}/{n}" for n in names]
+        names = split[part][c] if rows is None else split[part][c][:rows[c]]
+        paths += [f"{split['root']}/{n}" if "/" in n else f"{split['root']}/{sub}/images/{c}/{n}"
+                  for n in names]                  # GC10: "folder/name"; NEU: bare name
         labels += [k] * len(names)
     return paths, labels
 
@@ -55,14 +56,17 @@ def main():
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--no_finetune", action="store_true",
                     help="label-free: frozen DINO, CLS token of last_hidden_state, no fine-tuning")
+    ap.add_argument("--resize", choices=["crop", "full"], default="crop",
+                    help="crop = Resize 256 + CenterCrop 224 (NEU, CIFAR); full = whole image to 224x224 (GC10)")
     a = ap.parse_args()
     torch.manual_seed(a.seed)                      # every seed works, including 0 (cf. D4)
 
     split = json.load(open(a.split))
-    n_lab = int(split["labeled_frac"] * len(next(iter(split["train"].values()))))
-    tfm = torchvision.transforms.Compose([         # same as dino-cifar100.py
-        torchvision.transforms.Resize(int(224 / 0.875), 3),
-        torchvision.transforms.CenterCrop(224),
+    n_base = split.get("n_base", N_BASE)
+    n_use = split.get("n_use") or {c: int(split["labeled_frac"] * len(split["train"][c])) for c in split["classes"]}
+    resize = ([torchvision.transforms.Resize((224, 224), 3)] if a.resize == "full" else          # whole image
+              [torchvision.transforms.Resize(int(224 / 0.875), 3), torchvision.transforms.CenterCrop(224)])  # as CIFAR
+    tfm = torchvision.transforms.Compose(resize + [
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 
@@ -72,10 +76,10 @@ def main():
         name = a.model.replace("_", "-")           # dino-vitb16 (no "-sl")
         print("dino-neudet: NO fine-tuning (label-free); features = CLS token of last_hidden_state")
     else:
-        p, l = build(split, "train", rows=n_lab)
-        keep = [i for i, y in enumerate(l) if y < N_BASE]
+        p, l = build(split, "train", rows=n_use)
+        keep = [i for i, y in enumerate(l) if y < n_base]
         ft = to_dataset([p[i] for i in keep], [l[i] for i in keep], tfm)
-        print(f"dino-neudet: fine-tune on {len(ft)} images = {N_BASE} base classes x {n_lab}")
+        print(f"dino-neudet: fine-tune on {len(ft)} labeled images of {n_base} base classes")
         model = finetune_dino(ft, len(split["classes"]), model_name=a.model)
         name = a.model.replace("_", "-") + "-sl"
     out = f"{a.output_dir}/{name}"
