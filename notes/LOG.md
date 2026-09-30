@@ -1269,3 +1269,33 @@ why: GC10 phase 2 on frozen DINO 224x448 features (proxy k-means had predicted +
 result: S0_All 80.50 | S1_New 41.12 | final_All 54.29 | M_d 41.12 | M_f 14.52
 note: 5 seeds: final 54.95+-2.00 (224: 62.37), New 43.27 (55.42), M_f 15.19 (10.12), S0 80.50 (78.67); balanced novel 38.0 (37.6). silk split (silk->rolled 216 over seeds), incl found 57 (14), water->incl 110. Worse than 224: proxy (own PCA 128 on novel rows) did not predict the pipeline (base-fit PCA 64). inputs.txt back to 224. An accidental 2nd loop (4 runs, interrupted) was deleted before commit
 
+
+## 20261001_013723__gc10_extract
+why: GC10 phase 1 WITH fine-tuning (BOFT, 764 labeled base images, --resize full 224)
+result: (no metrics.json)
+note: CE 1.69 -> 0.155 (not fully fitted); BOFT factor 1 (A5, fbd_cuda build fails as in every run); feat_probe k-means all/base/novel 59.0/89.3/48.4 (frozen 41.3/51.9/44.6), silhouette k=2, linear probe 82.0 (bal 74.2): flat
+
+## 20261001_014446__gc10_ft_km_evhung_d64_s0
+why: GC10 phase 2 on fine-tuned features (full VB-CGCD pipeline: BOFT on labeled base + labeled S0)
+result: S0_All 81.33 | S1_New 41.59 | final_All 61.10 | M_d 41.59 | M_f 2.90
+note: see the _s4 note
+
+## 20261001_014639__gc10_ft_km_evhung_d64_s1
+why: GC10 phase 2 on fine-tuned features (full VB-CGCD pipeline: BOFT on labeled base + labeled S0)
+result: S0_All 81.74 | S1_New 43.46 | final_All 62.42 | M_d 43.46 | M_f 2.49
+note: see the _s4 note
+
+## 20261001_014833__gc10_ft_km_evhung_d64_s2
+why: GC10 phase 2 on fine-tuned features (full VB-CGCD pipeline: BOFT on labeled base + labeled S0)
+result: S0_All 81.33 | S1_New 45.33 | final_All 62.64 | M_d 45.33 | M_f 3.32
+note: see the _s4 note
+
+## 20261001_015027__gc10_ft_km_evhung_d64_s3
+why: GC10 phase 2 on fine-tuned features (full VB-CGCD pipeline: BOFT on labeled base + labeled S0)
+result: S0_All 80.91 | S1_New 48.60 | final_All 64.18 | M_d 48.60 | M_f 2.90
+note: see the _s4 note
+
+## 20261001_015221__gc10_ft_km_evhung_d64_s4
+why: GC10 phase 2 on fine-tuned features (full VB-CGCD pipeline: BOFT on labeled base + labeled S0)
+result: S0_All 82.16 | S1_New 35.51 | final_All 58.02 | M_d 35.51 | M_f 4.15
+note: 5 seeds: S0 81.49, Old 78.34 (+9.8 vs frozen), New 42.90 (-12.5), M_f 3.15 (10.12), final 61.67 (62.37); balanced base/novel 79.5/33.4 (70.0/37.6). Early stop in 5/5 seeds at 508-617 (frozen 1/5). Retention up, discovery down: silk->rolled 224, silk->crease 122, incl->oil 61. ONE phase-1 run (FT_SEED 42); pooler vs CLS confound
