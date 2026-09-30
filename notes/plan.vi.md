@@ -9,10 +9,10 @@ hoặc mã D-xx trong `notes/paper-code-discrepancies.md`. Tên cũ: `notes/vari
 ## 1. Mục tiêu
 
 1. **GĐ1 — Eq. 2/3 (contrastive fine-tuning): đã đóng 27/9.** Kết luận ở D19.
-2. **GĐ2 — loại hai rò rỉ nhãn trên CIFAR-100**, so với `c100_km` (k-means `n_init=10`, D18):
-   D13 (Hungarian chỉ khi đánh giá, thiết kế Q10) và D9 (`base400`). Làm trước NEU-DET để mang
-   sang một pipeline sạch và một Δ đo được.
-3. **GĐ3 — NEU-DET**, sau đó GC10-DET.
+2. **GĐ2 — loại hai rò rỉ nhãn trên CIFAR-100: đã đóng 30/9.** D13 sửa và đo (Q10b); D9 sửa, đo 1 lần,
+   chưa kết luận, không lặp lại (phương án B). **Giao thức sạch cho mọi run từ đây:**
+   `--hungarian_on eval` + fine-tune chỉ trên tập có nhãn.
+3. **GĐ3 — NEU-DET (đang làm)**, sau đó GC10-DET. Trước khi viết code: trả lời các câu hỏi GĐ3 ở §5.
 
 ## 2. Quy tắc
 
@@ -22,7 +22,8 @@ hoặc mã D-xx trong `notes/paper-code-discrepancies.md`. Tên cũ: `notes/vari
 - Chọn (λ, τ) **không được** nhìn tập test hoặc nhãn của lớp 50–99.
 - **Không đổi batch size lúc trích đặc trưng (128)**: nó quyết định tập có nhãn của phase 2 (D17).
 - Commit code trước mỗi run (dirty = no).
-- Tag GĐ2: `c100_km_evhung_s0..s4` (D13); `c100_extract_base400` + `c100_km_base400_s0..s4` (D9). So với `c100_km`.
+- Tag GĐ2 (đã chạy): `c100_km_evhung_s0..s4` (D13); `c100_extract_base400` + `c100_km_evhung_base400_s0..s4` (D9).
+- Từ GĐ3: mọi run phase 2 dùng `--hungarian_on eval`; phase 1 fine-tune chỉ trên tập có nhãn (sửa D9).
 - Phase 1 luôn gọi qua `exp.py run TAG --inputs - -- …` (phase 1 không đọc `runs/inputs.txt`).
 
 ## 3. Kế hoạch
@@ -38,9 +39,9 @@ Cập nhật 29/9. Không ghi số liệu ở đây; xem mã tham chiếu.
 | 2a | Lưới (λ, τ) trên fold F5, 3 epoch | xong (20/9); không dự đoán được kết quả full-scale (D19) |
 | 2b | Giai đoạn 2 trên F1–F4 | bỏ, thay bằng lưới full-scale 3 seed phase 1 mỗi ô (D19). *Suy luận từ LOG: không có run F1–F4* |
 | 2c | Kiểm giới hạn 30 cặp âm | chưa làm; vẫn là giới hạn mở của D19. *Suy luận từ LOG* |
-| 3a | `base400`: fine-tune chỉ trên tập có nhãn (sửa D9) | chưa chạy → GĐ2 |
+| 3a | `base400`: fine-tune chỉ trên tập có nhãn (sửa D9) | xong 30/9; 1 phase 1, chưa kết luận (D9) |
 | 3b, 4 | Phase 1 `con` + 5 seed phase 2 | thay bằng lưới full-scale, xong 27/9 (D19) |
-| B | Hungarian khi đánh giá (sửa D13) | chưa cài → GĐ2, **việc tiếp theo** |
+| B | Hungarian khi đánh giá (sửa D13) | xong 29/9 (Q10b, D13) |
 
 ## 4. Quyết định
 
@@ -65,21 +66,37 @@ Cập nhật 29/9. Không ghi số liệu ở đây; xem mã tham chiếu.
 - Q2: tiêu chí chính chuyển từ GMM sang k-means `n_init=10` ngày 19/9 (D18, `scripts/eval_fold.py`).
 - Q3/Q4: bỏ giai đoạn 2b trên F1–F4; thay bằng lưới full-scale với 3 seed phase 1 mỗi ô (D19).
 - Q7: augmentation không còn gắn với λ > 0; cờ `FT_AUG` tách hai thứ (nhánh `augonly`, D19).
+- Q10 → **Q10b** (29/9): ánh xạ lấy từ dự đoán của cụm trên tập test, không từ classifier; không phải
+  sửa `run()`. Trung bình không đáng kể nhưng mỗi lần lệch tốn khoảng 1% New (D13). Xem lại trên NEU.
 
 ## 5. Câu hỏi
 Danh sách duy nhất của repo. Câu đã trả lời ghi kèm nơi có bằng chứng; không chép số liệu.
 
-### Đang mở — GĐ2 (CIFAR-100, trước NEU-DET)
-- [ ] `clustering_base.evaluate()` (dòng 76–79) có được `main.py` gọi không? Trả lời **trước khi** cài D13.
-- [ ] Hungarian khi đánh giá (D13, Q10) đổi final_All / S1_New bao nhiêu so với `c100_km`?
-- [ ] D9 (`base400`) ảnh hưởng S1–S5 bao nhiêu?
-- [ ] Khoảng cách S1_New còn lại so với paper (D18) đến từ đâu?
-- [ ] Cố định Σ = I ở phase 2 thì còn bao nhiêu? Mahalanobis có thực sự đóng góp? (D11, D20.4, Bảng 15)
-- [ ] logdet của lớp mới tăng hay giảm theo từng bước? Hình 2b của paper vẽ tăng; D14 gợi ý code đi nhánh det < 1. Cần log logdet theo bước.
-- [ ] `--scaling-factor 1.2` tác động vào đâu trong luật dừng D14?
-- [ ] Code có tái lập Bảng 5 "w/o fine-tuning" (S0 = 88.54) không? Cần wrapper `c100_extract_noft`.
+### GĐ2 (CIFAR-100): đã đóng 30/9
+- [x] **`clustering_base.evaluate()` có được gọi?** Không; code chết (grep toàn repo, 29/9).
+- [x] **Hungarian khi đánh giá (D13) đổi bao nhiêu?** Trung bình ≈ 0; lệch ở 1/25 phiên (phiên có cụm gộp). Chi tiết D13.
+- [x] **D9 (`base400`) ảnh hưởng bao nhiêu?** Tăng nhẹ nhưng chưa kết luận (1 phase 1, một phần do seed 1); M_f giảm chỉ vì S0 thấp hơn. Chi tiết D9. Không lặp lại (phương án B).
+- [x] **Khoảng cách S1_New so với paper có do D13?** Không; S1_New không đổi.
 
-### Đang mở — GĐ3 (NEU-DET)
+### Mang sang, không chặn GĐ3
+- [ ] Khoảng cách S1_New so với paper. Manh mối: S1_New gắn với độ cân bằng cụm ở S1 (note LOG `c100_km_evhung_base400_s4`, D9).
+- [ ] D9 với n ≥ 3, kèm đối chứng "400 ảnh ngẫu nhiên" để tách rò rỉ khỏi kích thước dữ liệu. Chỉ khi cần số cho báo cáo.
+- [ ] Cố định Σ = I ở phase 2 thì còn bao nhiêu? Mahalanobis có thực sự đóng góp? (D11, D20.4, Bảng 15)
+- [ ] logdet của lớp mới tăng hay giảm theo từng bước? Cần log logdet theo bước (Hình 2b so với D14).
+- [ ] `--scaling-factor 1.2` tác động vào đâu trong luật dừng D14?
+- [ ] Code có tái lập Bảng 5 "w/o fine-tuning" (S0 = 88.54)? Cần wrapper `c100_extract_noft`.
+
+### Đang mở — GĐ3 (NEU-DET), trả lời trước khi viết code
+- [ ] Dữ liệu: bản nào (NEU-CLS hay NEU-DET), định dạng gì, có ảnh nào chứa nhiều loại lỗi không? Bài toán ở đây là phân loại theo ảnh.
+- [ ] Chia lớp: 6 lớp. Vì k = C_t, phiên chỉ có 1 lớp mới thì k-means có k = 1 (vô nghĩa), mọi việc tách cũ/mới dồn cho bộ lọc D12. Chọn 3 cơ sở + 3 mới trong 1 phiên (k = 3), hay 2 cơ sở + 2 phiên × 2 lớp (k = 2)?
+- [ ] Chia train/test: NEU không có split chuẩn. Chọn tỉ lệ, cố định bằng file chỉ số trong `splits/`.
+- [ ] Số mẫu theo tỉ lệ của paper (Bảng 8): có nhãn 80% train, pool lớp cũ 20%; mỗi phiên lấy bao nhiêu mẫu lớp cũ?
+- [ ] Số chiều: PCA 384 fit trên vài trăm mẫu lớp cơ sở, mỗi lớp ít mẫu hơn số chiều. Có cần giảm `--num_dim`? (D10, D11)
+- [ ] Tiền xử lý: ảnh xám 200×200 → 3 kênh 224×224 cho DINO (resize, lặp kênh, chuẩn hoá ImageNet).
+- [ ] Backbone: DINO ViT-B/16 (như paper, so được với CIFAR) hay DINOv2 ViT-B/14 (luận văn, Bảng 24)?
+- [ ] Fine-tune phase 1 trên vài trăm ảnh (10 epoch, lr 1e-3): có quá khớp không? So với không fine-tune.
+- [ ] Phase 1 trên khoảng 1800 ảnh chỉ mất vài phút: chạy n ≥ 5 FT_SEED ngay từ đầu.
+- [ ] Tần suất ánh xạ lệch (`same=False`) trên NEU: giữ Q10b hay nâng lên Q10.
 - [ ] DINO đóng băng tách các loại lỗi thép mới đến mức nào?
 
 ### Đang mở — phân tích, ưu tiên thấp
@@ -202,3 +219,8 @@ Danh sách duy nhất của repo. Câu đã trả lời ghi kèm nơi có bằng
   xoá `scripts/__init__.py` (`98d690f`); viết lại `code-changes.vi.md` (`fab822c`); đổi tên file này (`98ce817`);
   README (`65eb142`); D9/D13 status + D20 (`fd9969c`); phạm vi Part B (`96b8ec7`).
 - Quyết định: câu hỏi mở chỉ ở file này. Thứ tự: GĐ2 (D13, D9) trên CIFAR-100 trước NEU-DET.
+
+### 2026-09-30
+- D13: so ghép cặp theo seed xong; chốt Q10b (D13).
+- D9: `c100_extract_base400` + 5 seed phase 2; 1 phase 1, chưa kết luận (D9, note LOG `c100_km_evhung_base400_s4`).
+- Quyết định (phương án B): không lặp lại D9; đóng GĐ2; sang GĐ3 (NEU-DET) với giao thức sạch.
