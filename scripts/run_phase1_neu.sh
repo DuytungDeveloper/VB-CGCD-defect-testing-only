@@ -2,6 +2,7 @@
 # NEU-DET phase 1, always through exp:
 #   python scripts/exp.py run neu_extract --inputs splits/neu_split.json -- bash scripts/run_phase1_neu.sh
 set -u
+export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"   # model is cached; no network at run time
 [ -z "${EXP_RUN_DIR:-}" ] && { echo "run_phase1_neu: ERROR run this through scripts/exp.py"; exit 2; }
 OUT="features/$(basename "$EXP_RUN_DIR")"
 [ -e "$OUT" ] && { echo "run_phase1_neu: ERROR $OUT already exists"; exit 2; }
