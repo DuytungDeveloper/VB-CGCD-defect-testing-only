@@ -44,6 +44,7 @@ Cách chia nhóm dựa trên `git diff --name-status upstream-baseline` (xem m�
 | vòng lặp stage, `i > 0` | `predict_raw` + `pi_test` (Hungarian trên tập test lớp mới). `train`: đường cũ + log `pi_train`/`pi_test`/`same=`. `eval`: nhãn = thứ tự cụm; ánh xạ đóng băng; bản sao nhãn test đổi sang không gian cụm qua LUT; dòng S0 giữ nguyên | D13, Q10b |
 | import, `Dataloader`, `load_mode` | `NEUDETLoader`; nhánh `--dataset neudet`; chế độ `--load_mode t1` | NEU-DET, GĐ3 (`ea9e24a`) |
 | argparse + vòng lặp stage | `--print_confusion` (mặc định tắt): in ma trận nhầm lẫn test_all theo id thật sau mỗi phiên online, **sau** bảng kết quả | Chẩn đoán (`5692e3f`); không đổi số (đã kiểm) |
+| import, `Dataloader` | `GC10Loader`; nhánh `--dataset gc10` | GC10-DET (`a542c78`) |
 
 ### `clustering/gmm.py`
 
@@ -62,16 +63,18 @@ Thêm `predict_raw(features)` (id cụm, không dùng nhãn) và hàm `hungarian
 
 ---
 
-## 1b. File mới, ảnh hưởng kết quả (6 file)
+## 1b. File mới, ảnh hưởng kết quả (8 file)
 
 | File | Hàm chính | Lý do |
 |---|---|---|
 | `clustering/kmeans.py` | `KMeansCluster` (`fit`, `_pre_predict`), tham số `n_init` | Paper C.3 nói k-means, code chỉ có GMM (D5). Cùng interface với `GMMCluster` |
 | `feature_extractor/ft_data.py` | `labeled_subset(idx_path, fold)`, `hf_to_npy_row(n, extract_bs)`, hằng `FOLDS` | Tách logic chọn dữ liệu ra khỏi `__main__` để kiểm tra trên CPU. Định nghĩa fold F1–F5 và ánh xạ hàng `.npy` ↔ chỉ số HF (D17) |
 | `splits/c100_labeled_hf_idx.npy` | dữ liệu, int64 (20000,) | 20000 chỉ số HF mà phase 2 coi là có nhãn; đầu vào cho việc sửa D9 |
-| `feature_extractor/dino-neudet.py` | `build`, `to_dataset`, `extract`, `main` | Phase 1 NEU: fine-tune chỉ trên 576 ảnh có nhãn (không rò rỉ D9 theo thiết kế); trích 1440/360 đặc trưng theo thứ tự file split; ghi thẳng 4 `.npy`, không shard (tránh D17) |
+| `feature_extractor/dino-neudet.py` | `build`, `to_dataset`, `extract`, `main` | Phase 1 cho mọi file split (NEU: tên ảnh; GC10: `thư_mục/tên`, `n_base`/`n_use` từ file split). Fine-tune chỉ trên ảnh có nhãn (không rò rỉ D9 theo thiết kế); `--no_finetune` = DINO đóng băng, token CLS; `--resize crop|full`; `--img_size H W` (interpolate_pos_encoding); ghi thẳng 4 `.npy`, không shard (tránh D17) |
 | `dataloaders/neudet.py` | `NEUDETLoader.makeT1Loader` | b3t1: base 3, increment 3, 576 có nhãn, 192 mới/lớp, 12 cũ/lớp/phiên; `assert` khớp `--base/--increment/--num_classes` và `num_dim < 192` (D21) |
 | `splits/neu_split.json` | dữ liệu, sha256 `49c23576…` | Giao thức NEU cố định: lớp theo chữ cái, xáo seed 0, 80/20 mỗi lớp; `validation` làm test |
+| `dataloaders/gc10.py` | `SplitCountIncrementalLoader`, `GC10Loader.makeT1Loader` | Số ảnh theo từng lớp từ file split; nhãn dựng theo số hàng thực lấy (sửa D22); `assert` base/increment, `num_dim` < 130 (D21), số hàng khớp file split |
+| `splits/gc10_split.json` | dữ liệu, sha256 `a8a454f8…` | Giao thức GC10: thư mục 1–10 → id 0–9, cơ sở 0–4; test ≈20% mỗi lớp **chia theo cuộn thép**; bỏ 24 file trùng; kèm danh sách chẩn đoán |
 
 ---
 
@@ -110,7 +113,15 @@ Không sửa thuật toán, nhưng **hai file ảnh hưởng số liệu hoặc 
 | File | Hàm chính | Lý do |
 |---|---|---|
 | `scripts/make_neu_split.py` | `num()`, `main()` | Sinh `splits/neu_split.json`, tất định (chạy lại in `unchanged`, cùng sha256) |
-| `scripts/run_phase1_neu.sh` | wrapper | Phase 1 NEU qua `exp.py`: kiểm GPU, đặt `FT_*` (32×4, seed 42), gọi `dino-neudet.py` |
+| `scripts/run_phase1_neu.sh` | wrapper | Phase 1 qua `exp.py` (NEU; GC10 truyền `--split`): kiểm GPU, đặt `FT_*` (32×4, seed 42), `HF_HUB_OFFLINE=1` mặc định, gọi `dino-neudet.py` |
+
+**Tạo 30/09–01/10 (GC10-DET):**
+
+| File | Hàm chính | Lý do |
+|---|---|---|
+| `scripts/make_gc10_split.py` | `main()` | Sinh `splits/gc10_split.json`, tất định; gán cuộn thép cho train/test ở mức toàn cục |
+| `scripts/cm_summary.py` | `main()` | Tóm tắt dòng `confusion stage N` của một nhóm run: balanced accuracy, recall từng lớp, nhầm lẫn lớn nhất |
+| `scripts/feat_probe.py` | `cacc`, `main()` | Chẩn đoán một bộ đặc trưng: k-means (biết k), silhouette, probe tuyến tính (cận trên) |
 
 Ghi chú tiếng Việt: `notes/code-changes.vi.md` (file này), `notes/plan.vi.md`.
 Không có file `q6-q8-giai-thich.md` (được nhắc nhưng chưa từng tạo); lý do chọn Q6–Q8 nằm ở D19.
@@ -145,6 +156,7 @@ Không có file `q6-q8-giai-thich.md` (được nhắc nhưng chưa từng tạo
 | `--hungarian_on` | train | — | D13: `train` = upstream (nhãn thật đặt tên cụm); `eval` = thứ tự cụm khi huấn luyện, Hungarian trên tập test khi đánh giá |
 | `--print_confusion` | tắt | — | chẩn đoán: in ma trận nhầm lẫn test_all (id thật) sau mỗi phiên online |
 | `--dataset neudet --load_mode t1` | — | — | NEU-DET b3t1; phải kèm `--base 3 --increment 3 --num_classes 6 --num_dim 128` |
+| `--dataset gc10 --load_mode t1` | — | — | GC10 b5t1; phải kèm `--base 5 --increment 5 --num_classes 10 --num_dim 64`; đặc trưng đóng băng thêm `--pretrained_model_name dino-vitb16` |
 
 Các run Eq. 3 dùng `FT_BATCH_SIZE=16 FT_ACCUM=8`, vì 32 × 2 view = 7.68 GB > 6.93 GB khả dụng.
 
@@ -170,6 +182,10 @@ Các run Eq. 3 dùng `FT_BATCH_SIZE=16 FT_ACCUM=8`, vì 32 × 2 view = 7.68 GB >
 | `--hungarian_on train` (29/9) | `c100_km_hungtrain_s0` so với `c100_km_s0` | trùng khít 46 chỉ số |
 | `--print_confusion` (30/9) | `neu_km_evhung_d128_cm_s0` so với `neu_km_evhung_d128_s0` | trùng khít mọi chỉ số |
 | `make_neu_split.py` (30/9) | chạy 2 lần | `unchanged`, cùng sha256 |
+| `SplitCountIncrementalLoader` (30/9) | so với lớp cha trên đặc trưng NEU, cùng seed | mọi mảng trùng khít |
+| `dino-neudet.py` tổng quát (30/9) | NEU đóng băng chạy lại | max abs diff = 0 |
+| `make_gc10_split.py` (30/9) | chạy 2 lần | `unchanged`, cùng sha256 |
+| `feat_probe.py` (1/10) | đặc trưng GC10 đóng băng 224 | trùng số với phép thử viết tay trước đó |
 
 ---
 
@@ -179,7 +195,7 @@ Không chép danh sách vào đây (chép tay sẽ lệch, xem lỗi "12 file" c
 
     git diff --name-status upstream-baseline -- . ':(exclude)runs' ':(exclude)notes'
 
-Kiểm 2026-09-30, sau `5692e3f`: **29 dòng = 7 `M` + 22 `A`** (`scripts/` có 14 file; NEU thêm 5 file `A`).
+Kiểm 2026-10-01, sau `ab201e2`: **34 dòng = 7 `M` + 27 `A`** (`scripts/` có 17 file; GC10 thêm 5 file `A`).
 Nếu lệnh cho số khác, tài liệu này đã lệch.
 
 ---
