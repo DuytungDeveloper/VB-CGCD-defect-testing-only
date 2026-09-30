@@ -1160,11 +1160,11 @@ result: S0_All 100.00 | S1_New 100.00 | final_All 94.44 | M_d 100.00 | M_f 11.11
 note: metrics identical to d128_s0; S1 confusion: all 20 forgotten = inclusion (14 -> scratches, 6 -> pitted_surface); crazing, patches 60/60. dirty = README.md only (uncommitted GD2 docs), code as in config.json
 
 ## 20260930_150747__neu_extract_frozen
-why:
+why: label-free end of the label axis: frozen DINO ViT-B/16, CLS token, no fine-tuning
 result: (no metrics.json)
-note:
+note: k-means (PCA 128, k known) cluster acc 100% on all 6 / base / novel; silhouette best k = 6 (thin margin 0.253 vs 0.249); fine-tuned features: 99.0% all, silhouette k = 5. The two frozen runs are bit-identical (15:07 = duplicate). NEU saturates at every label level
 
 ## 20260930_172146__neu_extract_frozen
-why:
+why: label-free end of the label axis: frozen DINO ViT-B/16, CLS token, no fine-tuning
 result: (no metrics.json)
-note:
+note: k-means (PCA 128, k known) cluster acc 100% on all 6 / base / novel; silhouette best k = 6 (thin margin 0.253 vs 0.249); fine-tuned features: 99.0% all, silhouette k = 5. The two frozen runs are bit-identical (15:07 = duplicate). NEU saturates at every label level
