@@ -165,6 +165,9 @@ note:   the step log prints dets[0] as "last_cov" and dets[1] as "cov". dets[0] 
         OLD classes ([:label_offset] with --use_correct_scaling_factor, the default), dets[1] the MEAN
         det of the new classes (mngmm.py 244-271). Both are means over sets, so the rule does not
         depend on class-id order (checked 2026-09-29 for D13).
+measured: NEU-DET (num_dim 128) never triggers the stop within 1000 steps (0/5 seeds): the new-class
+        mean det falls ~x0.55 per 100 steps to ~0.012 while the old mean is ~0.002. [INFERENCE]
+        extrapolated trigger ~1300 steps. On NEU the paper's anti-forgetting stop is inactive.
 
 ## D15. M_f is computed on a proxy set, not on D_l as defined
 paper:  Appendix C.2 defines M_f (forgetting) over the initially labeled dataset D_l.
@@ -336,6 +339,22 @@ Checked against the PMLR PDF, 2026-09-29.
 4. Not an inconsistency, evidence for D11: Fig. 5 shows VI covariances in [1.0075, 1.0175] vs
    PE covariances in [3, 6], i.e. the paper's own "VI" estimate barely leaves its I initialisation.
 impact: Tables 11-13 must be read as S1-S5; quote Table 2, not Table 6, for b50 numbers.
+
+## D21. Full-covariance MLE needs more samples per class than dimensions (n > d)
+code:   classifier/mngmm.py fits a full covariance per class by plain gradient MLE (no prior, D11);
+        at S0 there is no early stop (global_params is None, D14). PCA dimension = --num_dim,
+        default 384 for every dataset.
+fact:   with n <= d samples the sample covariance is singular and the Gaussian likelihood is
+        unbounded above (shrink the variance along a direction the data do not span), so plain
+        MLE has no finite solution (standard; the motivation of shrinkage, Ledoit & Wolf 2004).
+measured: NEU-DET, 192 labeled images per base class, num_dim 384: all 5 seeds reach NaN at S0
+        step 482-490 (test 100% at step 400, then 33.3% = one class for every image); S1 keeps
+        0/612 novel samples and crashes (neu_km_evhung_s0..4). num_dim 128 (n/d = 1.5): no NaN in
+        5 seeds. CIFAR-100 has n/d = 400/384 = 1.04 and never hit NaN (grep over all runs, 2026-09-30).
+impact: on small datasets num_dim must stay below the per-class sample count, with margin;
+        dataloaders/neudet.py asserts num_dim < 192. [INFERENCE] upstream run.sh runs CUB-200 with
+        25 labeled images per class and the default num_dim 384 (n << d); the same collapse is
+        expected, so the paper's CUB numbers probably come from another configuration. Not verified.
 
 ## Additional notes on the fine-tuning implementation
 - BOFT config declared: boft_block_size=4, boft_n_butterfly_factor=2, boft_dropout=0.1,
