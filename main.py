@@ -20,6 +20,7 @@ from dataloaders.tinyimagenet import TinyImageNetLoader
 from dataloaders.imagenet100 import ImageNet100Loader
 from dataloaders.cub200 import CUB200Loader
 from dataloaders.neudet import NEUDETLoader
+from dataloaders.gc10 import GC10Loader
 
 from classifier.mngmm import MNGMMClassifier
 
@@ -81,6 +82,10 @@ def Dataloader(args):
     elif args.dataset == 'neudet':
         neudetLoader = NEUDETLoader(args = args)
         train_loader, test_loader, test_old_loader, test_all_loader = load_mode(args, neudetLoader)
+
+    elif args.dataset == 'gc10':
+        gc10Loader = GC10Loader(args = args)
+        train_loader, test_loader, test_old_loader, test_all_loader = load_mode(args, gc10Loader)
 
     else:
         raise ValueError('Dataset not supported')
