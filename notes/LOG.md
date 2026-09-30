@@ -1243,3 +1243,29 @@ note: feat_probe: k-means all/base/novel 47.2/54.3/48.5 (224: 41.3/51.9/44.6); s
 why: resolution probe: frozen DINO at 448x896
 result: (no metrics.json)
 note: feat_probe: k-means 44.4/55.1/47.3; silhouette k=16 (range edge); probe 79.3 (bal 72.8): not better than 224x448
+
+## 20261001_011448__gc10_fr224x448_km_evhung_d64_s0
+why: GC10 phase 2 on frozen DINO 224x448 features (proxy k-means had predicted +5.3 balanced novel)
+result: S0_All 80.08 | S1_New 51.40 | final_All 58.46 | M_d 51.40 | M_f 15.35
+note: see the _s4 note
+
+## 20261001_011705__gc10_fr224x448_km_evhung_d64_s1
+why: GC10 phase 2 on frozen DINO 224x448 features (proxy k-means had predicted +5.3 balanced novel)
+result: S0_All 80.91 | S1_New 42.52 | final_All 54.29 | M_d 42.52 | M_f 16.18
+note: see the _s4 note
+
+## 20261001_011913__gc10_fr224x448_km_evhung_d64_s2
+why: GC10 phase 2 on frozen DINO 224x448 features (proxy k-means had predicted +5.3 balanced novel)
+result: S0_All 80.91 | S1_New 41.12 | final_All 54.29 | M_d 41.12 | M_f 14.94
+note: see the _s4 note
+
+## 20261001_012122__gc10_fr224x448_km_evhung_d64_s3
+why: GC10 phase 2 on frozen DINO 224x448 features (proxy k-means had predicted +5.3 balanced novel)
+result: S0_All 80.08 | S1_New 40.19 | final_All 53.41 | M_d 40.19 | M_f 14.94
+note: see the _s4 note
+
+## 20261001_012335__gc10_fr224x448_km_evhung_d64_s4
+why: GC10 phase 2 on frozen DINO 224x448 features (proxy k-means had predicted +5.3 balanced novel)
+result: S0_All 80.50 | S1_New 41.12 | final_All 54.29 | M_d 41.12 | M_f 14.52
+note: 5 seeds: final 54.95+-2.00 (224: 62.37), New 43.27 (55.42), M_f 15.19 (10.12), S0 80.50 (78.67); balanced novel 38.0 (37.6). silk split (silk->rolled 216 over seeds), incl found 57 (14), water->incl 110. Worse than 224: proxy (own PCA 128 on novel rows) did not predict the pipeline (base-fit PCA 64). inputs.txt back to 224. An accidental 2nd loop (4 runs, interrupted) was deleted before commit
+
