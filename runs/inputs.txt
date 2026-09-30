@@ -1,1 +1,1 @@
-features/20261001_013723__gc10_extract/dino-vitb16-sl
+features/20260930_232359__gc10_extract_frozen/dino-vitb16
