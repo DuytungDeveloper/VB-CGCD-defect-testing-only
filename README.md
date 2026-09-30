@@ -108,6 +108,24 @@ NEU-DET (b3t1: 3 base + 1 session of 3 novel classes; protocol in splits/neu_spl
 --num_dim must stay below the 192 labeled images per class, else Sigma collapses (D21).
 Data: datasets/NEU-DET (train / validation). Phase 1 ~5 min, each phase-2 run ~2.5 min.
 
+GC10-DET (b5t1: 5 base + 1 session of 5 novel classes, imbalanced; protocol in splits/gc10_split.json):
+
+    python scripts/make_gc10_split.py      # once; coil-grouped test split, 24 duplicate files removed
+    python scripts/exp.py run gc10_extract_frozen --inputs splits/gc10_split.json -- \
+      bash scripts/run_phase1_neu.sh --split splits/gc10_split.json --resize full --no_finetune
+    python scripts/exp.py run gc10_extract --inputs splits/gc10_split.json -- \
+      bash scripts/run_phase1_neu.sh --split splits/gc10_split.json --resize full    # with fine-tuning
+    echo "features/<run_id>/<model>" > runs/inputs.txt   # model: dino-vitb16 (frozen) or dino-vitb16-sl
+    for s in 0 1 2 3 4; do
+      python scripts/exp.py run <tag>_s$s -- bash scripts/run_phase2_cl.sh \
+        --dataset gc10 --base 5 --increment 5 --num_classes 10 --load_mode t1 \
+        --clustering_alg kmeans --hungarian_on eval --num_dim 64 --seed $s --print_confusion
+    done                                   # frozen features: add --pretrained_model_name dino-vitb16
+    python scripts/cm_summary.py <tag>     # balanced accuracy, per-class recall, largest confusions
+    python scripts/feat_probe.py features/<run_id>/<model>   # diagnostic probes of a feature set
+
+--num_dim must stay below the smallest labeled base class (130 images), else Sigma collapses (D21).
+
 ## 6. Results
 
     python scripts/exp.py table            # prints and writes runs/INDEX.txt
