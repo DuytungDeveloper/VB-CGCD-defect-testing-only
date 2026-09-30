@@ -1,6 +1,6 @@
 # Thay đổi code so với upstream — VB-CGCD fork
 
-Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-09-29.
+Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-09-30.
 
 Nguyên tắc: **mặc định trong code Python = hành vi upstream**. Wrapper phase 1 đặt
 `FT_BATCH_SIZE=32 FT_ACCUM=4` vì giới hạn 8 GB; cấu hình này đổi số ở mức nhỏ (PATCH 2).
@@ -9,7 +9,7 @@ Cách chia nhóm dựa trên `git diff --name-status upstream-baseline` (xem m�
 
 ---
 
-## 1a. Sửa file có sẵn của upstream (6 file)
+## 1a. Sửa file có sẵn của upstream (7 file)
 
 ### `feature_extractor/sl_finetuned_model.py`
 
@@ -40,15 +40,22 @@ Cách chia nhóm dựa trên `git diff --name-status upstream-baseline` (xem m�
 | `Clustering_alg`, dòng 33–36 | thêm nhánh `elif alg == 'kmeans'` | Cho phép `--clustering_alg kmeans` (D5, D18) |
 | argparse | `--kmeans_n_init` (10), `--gmm_n_init` (1 = upstream) | Tách "số lần khởi tạo" khỏi "thuật toán" trong thiết kế 2×2 (D18) |
 | sau `Clustering = Clustering_alg(...)` | `functools.partial(Clustering, n_init=...)` | `Clustering_alg` trả về lớp; dòng gọi ở vòng lặp stage không đổi |
+| import, argparse | `hungarian_map`, `SimpleNamespace`; cờ `--hungarian_on` (`train`/`eval`, mặc định `train` = upstream) | Sửa D13 (`98d2c55`) |
+| vòng lặp stage, `i > 0` | `predict_raw` + `pi_test` (Hungarian trên tập test lớp mới). `train`: đường cũ + log `pi_train`/`pi_test`/`same=`. `eval`: nhãn = thứ tự cụm; ánh xạ đóng băng; bản sao nhãn test đổi sang không gian cụm qua LUT; dòng S0 giữ nguyên | D13, Q10b |
 
 ### `clustering/gmm.py`
 
 `GMMCluster.__init__` thêm tham số `n_init=1` và truyền vào `GaussianMixture`. Mặc định 1 giữ nguyên
 hành vi upstream (đã kiểm tra hồi quy). Cần cho ô còn thiếu của bảng 2×2 (D18).
 
+### `clustering/clustering_base.py`
+
+Thêm `predict_raw(features)` (id cụm, không dùng nhãn) và hàm `hungarian_map(cluster_ids, true_ids, k)`
+(Hungarian k×k, chỉ gọi lúc đánh giá). Không đổi hàm cũ. 29/9, `4aa8ff3`.
+
 ### `README.md`, `.gitignore`
 
-- README: tag dạng `c100_*`, quy ước `<dataset>_<purpose>[_<variant>][_s<N>]`; 29/9: lệnh phase 1 thêm `--inputs -` (`ad7314f`).
+- README: tag dạng `c100_*`, quy ước `<dataset>_<purpose>[_<variant>][_s<N>]`; 29/9: lệnh phase 1 thêm `--inputs -` (`ad7314f`); 30/9: lệnh khuyến nghị thêm `--hungarian_on eval` và biến thể `FT_LABELED_IDX`.
 - `.gitignore`: thêm `!splits/*.npy` để file chỉ số không bị quy tắc `*.npy` chặn.
 
 ---
@@ -123,6 +130,7 @@ Không có file `q6-q8-giai-thich.md` (được nhắc nhưng chưa từng tạo
 | `--clustering_alg` | gmm | — | `gmm` hoặc `kmeans` |
 | `--kmeans_n_init` | 10 | — | số lần khởi tạo k-means |
 | `--gmm_n_init` | 1 | — | số lần khởi tạo GMM (1 = upstream) |
+| `--hungarian_on` | train | — | D13: `train` = upstream (nhãn thật đặt tên cụm); `eval` = thứ tự cụm khi huấn luyện, Hungarian trên tập test khi đánh giá |
 
 Các run Eq. 3 dùng `FT_BATCH_SIZE=16 FT_ACCUM=8`, vì 32 × 2 view = 7.68 GB > 6.93 GB khả dụng.
 
@@ -144,6 +152,8 @@ Các run Eq. 3 dùng `FT_BATCH_SIZE=16 FT_ACCUM=8`, vì 32 × 2 view = 7.68 GB >
 | `KMeansCluster` *(sanity check, không phải hồi quy: upstream không có k-means)* | `c100_km1` so với `c100_base` (5 seed mỗi bên) | trùng 43 chỉ số. *Việc S0_All trùng nhau ở smoke test không phải bằng chứng: S0 vốn không dùng clustering* |
 | `exp.py --inputs` (29/9) | `t_regress_old/new/none/cli1/cli2/bad` | không cờ = hành vi cũ (`ac9fb477…`); `-` = `{}`; hash lặp lại được; sai cú pháp in usage, không tạo run |
 | `exp.py append_log` (29/9) | 3 run thử: không metrics / metrics trùng cột / metrics lạ | `(no metrics.json)`, `S0_All 91.50`, `acc 0.5000` |
+| `predict_raw` + `hungarian_map` (29/9) | 3 cụm tổng hợp, offset 50 | acc 1.0, trùng đường cũ `predict(..., with_known=True)` |
+| `--hungarian_on train` (29/9) | `c100_km_hungtrain_s0` so với `c100_km_s0` | trùng khít 46 chỉ số |
 
 ---
 
@@ -153,7 +163,7 @@ Không chép danh sách vào đây (chép tay sẽ lệch, xem lỗi "12 file" c
 
     git diff --name-status upstream-baseline -- . ':(exclude)runs' ':(exclude)notes'
 
-Kiểm 2026-09-29, sau `98d690f`: **23 dòng = 6 `M` + 17 `A`** (`scripts/` có 12 file).
+Kiểm 2026-09-30, sau `4aa8ff3`: **24 dòng = 7 `M` + 17 `A`** (`scripts/` có 12 file; mới: `M clustering/clustering_base.py`).
 Nếu lệnh cho số khác, tài liệu này đã lệch.
 
 ---
