@@ -1025,136 +1025,136 @@ note:   FINAL PICTURE for Eq. 3 / augmentation, Welch t-test vs the lambda=0 arm
         would be needed for 80% power on final_All (>100 h). Full write-up in D19.
 
 ## 20260929_203718__c100_smoke_hungtrain
-why:
+why: D13 plumbing smoke (5 SVI steps), --hungarian_on train/eval
 result: S0_All 84.86 | S1_New 39.90 | final_All 63.68 | M_d 44.64 | M_f 0.88
-note:
+note: plumbing OK; training permutation-equivariant (loss, train_acc, stop identical); at S2 train/test mappings swap clusters 1/8 (sizes 1136/917): eval -5 Novel samples
 
 ## 20260929_203851__c100_smoke_hungeval
-why:
+why: D13 plumbing smoke (5 SVI steps), --hungarian_on train/eval
 result: S0_All 84.86 | S1_New 39.90 | final_All 63.62 | M_d 44.54 | M_f 0.88
-note:
+note: plumbing OK; training permutation-equivariant (loss, train_acc, stop identical); at S2 train/test mappings swap clusters 1/8 (sizes 1136/917): eval -5 Novel samples
 
 ## 20260929_204306__c100_km_hungtrain_s0
-why:
+why: regression: --hungarian_on train must reproduce c100_km_s0
 result: S0_All 91.84 | S1_New 80.20 | final_All 81.86 | M_d 80.14 | M_f 6.64
-note:
+note: IDENTICAL on 46 metrics; pi equals the smoke run's (clustering independent of SVI steps)
 
 ## 20260929_205507__c100_km_evhung_s0
-why:
+why: D13 fix (Q10b)
 result: S0_All 91.84 | S1_New 80.20 | final_All 81.72 | M_d 79.88 | M_f 6.64
-note:
+note: vs c100_km_s0: differs from S2 on (clusters 1/8 swapped): S2_New -1.3, final_All -0.14
 
 ## 20260929_210716__c100_km_evhung_s1
-why:
+why: D13 fix (Q10b)
 result: S0_All 92.00 | S1_New 80.60 | final_All 81.60 | M_d 79.66 | M_f 6.74
-note:
+note: identical to c100_km on all 46 metrics (mappings agree in every session)
 
 ## 20260929_211926__c100_km_evhung_s2
-why:
+why: D13 fix (Q10b)
 result: S0_All 91.96 | S1_New 79.70 | final_All 81.80 | M_d 79.72 | M_f 6.46
-note:
+note: identical to c100_km on all 46 metrics (mappings agree in every session)
 
 ## 20260929_213136__c100_km_evhung_s3
-why:
+why: D13 fix (Q10b)
 result: S0_All 91.84 | S1_New 80.40 | final_All 81.78 | M_d 80.12 | M_f 6.74
-note:
+note: identical to c100_km on all 46 metrics (mappings agree in every session)
 
 ## 20260929_214418__c100_km_evhung_s4
-why:
+why: D13 fix (Q10b)
 result: S0_All 91.86 | S1_New 80.50 | final_All 81.78 | M_d 79.76 | M_f 6.46
-note:
+note: identical to c100_km on all 46 metrics (mappings agree in every session)
 
 ## 20260929_223749__c100_extract_base400
-why:
+why: D9 fix: fine-tune on the 20000 labeled images only (FT_LABELED_IDX)
 result: (no metrics.json)
-note:
+note: num_rows 20000, 153 min, check_phase1 OK
 
 ## 20260930_011502__c100_km_evhung_base400_s0
-why:
+why: D9 effect, base400 features, eval mode
 result: S0_All 91.68 | S1_New 79.10 | final_All 81.88 | M_d 80.10 | M_f 6.42
-note:
+note: see the _s4 note
 
 ## 20260930_012836__c100_km_evhung_base400_s1
-why:
+why: D9 effect, base400 features, eval mode
 result: S0_All 91.66 | S1_New 82.80 | final_All 82.35 | M_d 80.80 | M_f 6.38
-note:
+note: outlier seed: balanced S1 clustering (max_min 2.75) -> S1_New 82.80, final 82.35
 
 ## 20260930_014215__c100_km_evhung_base400_s2
-why:
+why: D9 effect, base400 features, eval mode
 result: S0_All 91.78 | S1_New 78.40 | final_All 82.08 | M_d 80.00 | M_f 6.16
-note:
+note: see the _s4 note
 
 ## 20260930_015553__c100_km_evhung_base400_s3
-why:
+why: D9 effect, base400 features, eval mode
 result: S0_All 91.84 | S1_New 79.30 | final_All 82.02 | M_d 80.24 | M_f 6.50
-note:
+note: see the _s4 note
 
 ## 20260930_020945__c100_km_evhung_base400_s4
-why:
+why: D9 effect, base400 features, eval mode
 result: S0_All 91.76 | S1_New 79.10 | final_All 81.93 | M_d 80.06 | M_f 6.48
-note:
+note: 5 seeds: final 82.05+-0.18 vs 81.74 (evhung); S0 -0.16; M_f lower only because S0 is lower; ONE phase-1 run, z~2; commit warning harmless (notes-only commit mid-loop). See D9
 
 ## 20260930_031430__neu_extract
-why:
+why: NEU phase 1: fine-tune on 576 labeled base images (3 x 192), extract 1440 / 360
 result: (no metrics.json)
-note:
+note: CE 1.18 -> 0.0036; shapes OK; pooler saturation 0.026%; diagnostic 5-NN / linear probe 100% on all 6 classes. dirty = README.md only (uncommitted GD2 docs), code as in config.json
 
 ## 20260930_095912__neu_smoke
-why:
+why: NEU plumbing smoke (5 SVI steps)
 result: S0_All 93.89 | S1_New 100.00 | final_All 94.17 | M_d 100.00 | M_f 5.56
-note:
+note: plumbing OK, but 5 steps cannot reveal the S0 collapse (NaN at ~486). dirty = README.md only (uncommitted GD2 docs), code as in config.json
 
 ## 20260930_100355__neu_km_evhung_s0
-why:
+why: NEU baseline, num_dim 384
 result: FAILED exit=1
-note:
+note: FAILED: NaN at S0 step ~486 (n=192 < d=384: MLE of Sigma unbounded; no prior D11; no S0 early stop) -> S0 33.3%, S1 keeps 0/612 -> crash. See D21. dirty = README.md only (uncommitted GD2 docs), code as in config.json
 
 ## 20260930_100522__neu_km_evhung_s1
-why:
+why: NEU baseline, num_dim 384
 result: FAILED exit=1
-note:
+note: FAILED: NaN at S0 step ~486 (n=192 < d=384: MLE of Sigma unbounded; no prior D11; no S0 early stop) -> S0 33.3%, S1 keeps 0/612 -> crash. See D21. dirty = README.md only (uncommitted GD2 docs), code as in config.json
 
 ## 20260930_100657__neu_km_evhung_s2
-why:
+why: NEU baseline, num_dim 384
 result: FAILED exit=1
-note:
+note: FAILED: NaN at S0 step ~486 (n=192 < d=384: MLE of Sigma unbounded; no prior D11; no S0 early stop) -> S0 33.3%, S1 keeps 0/612 -> crash. See D21. dirty = README.md only (uncommitted GD2 docs), code as in config.json
 
 ## 20260930_100837__neu_km_evhung_s3
-why:
+why: NEU baseline, num_dim 384
 result: FAILED exit=1
-note:
+note: FAILED: NaN at S0 step ~486 (n=192 < d=384: MLE of Sigma unbounded; no prior D11; no S0 early stop) -> S0 33.3%, S1 keeps 0/612 -> crash. See D21. dirty = README.md only (uncommitted GD2 docs), code as in config.json
 
 ## 20260930_101004__neu_km_evhung_s4
-why:
+why: NEU baseline, num_dim 384
 result: FAILED exit=1
-note:
+note: FAILED: NaN at S0 step ~486 (n=192 < d=384: MLE of Sigma unbounded; no prior D11; no S0 early stop) -> S0 33.3%, S1 keeps 0/612 -> crash. See D21. dirty = README.md only (uncommitted GD2 docs), code as in config.json
 
 ## 20260930_114536__neu_km_evhung_d128_s0
-why:
+why: NEU baseline, num_dim 128 (n/d = 1.5)
 result: S0_All 100.00 | S1_New 100.00 | final_All 94.44 | M_d 100.00 | M_f 11.11
-note:
+note: no NaN, no early stop; see the _s4 note. dirty = README.md only (uncommitted GD2 docs), code as in config.json
 
 ## 20260930_125623__neu_km_evhung_d128_s1
-why:
+why: NEU baseline, num_dim 128 (n/d = 1.5)
 result: S0_All 100.00 | S1_New 100.00 | final_All 94.72 | M_d 100.00 | M_f 10.56
-note:
+note: no NaN, no early stop; see the _s4 note. dirty = README.md only (uncommitted GD2 docs), code as in config.json
 
 ## 20260930_125846__neu_km_evhung_d128_s2
-why:
+why: NEU baseline, num_dim 128 (n/d = 1.5)
 result: S0_All 100.00 | S1_New 100.00 | final_All 95.28 | M_d 100.00 | M_f 9.44
-note:
+note: no NaN, no early stop; see the _s4 note. dirty = README.md only (uncommitted GD2 docs), code as in config.json
 
 ## 20260930_130109__neu_km_evhung_d128_s3
-why:
+why: NEU baseline, num_dim 128 (n/d = 1.5)
 result: S0_All 100.00 | S1_New 100.00 | final_All 94.44 | M_d 100.00 | M_f 11.11
-note:
+note: no NaN, no early stop; see the _s4 note. dirty = README.md only (uncommitted GD2 docs), code as in config.json
 
 ## 20260930_130326__neu_km_evhung_d128_s4
-why:
+why: NEU baseline, num_dim 128 (n/d = 1.5)
 result: S0_All 100.00 | S1_New 100.00 | final_All 94.44 | M_d 100.00 | M_f 11.11
-note:
+note: 5 seeds: S0 100, S1_New 100, S1_Old 89.33+-0.72; no NaN; early stop never fired (new det ~0.012 vs old ~0.002 after 1000 steps). dirty = README.md only (uncommitted GD2 docs), code as in config.json
 
 ## 20260930_141133__neu_km_evhung_d128_cm_s0
-why:
+why: diagnostic: --print_confusion
 result: S0_All 100.00 | S1_New 100.00 | final_All 94.44 | M_d 100.00 | M_f 11.11
-note:
+note: metrics identical to d128_s0; S1 confusion: all 20 forgotten = inclusion (14 -> scratches, 6 -> pitted_surface); crazing, patches 60/60. dirty = README.md only (uncommitted GD2 docs), code as in config.json
