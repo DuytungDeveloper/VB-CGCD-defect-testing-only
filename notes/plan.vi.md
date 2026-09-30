@@ -12,7 +12,8 @@ hoặc mã D-xx trong `notes/paper-code-discrepancies.md`. Tên cũ: `notes/vari
 2. **GĐ2 — loại hai rò rỉ nhãn trên CIFAR-100: đã đóng 30/9.** D13 sửa và đo (Q10b); D9 sửa, đo 1 lần,
    chưa kết luận, không lặp lại (phương án B). **Giao thức sạch cho mọi run từ đây:**
    `--hungarian_on eval` + fine-tune chỉ trên tập có nhãn.
-3. **GĐ3 — NEU-DET (đang làm)**, sau đó GC10-DET. Trước khi viết code: trả lời các câu hỏi GĐ3 ở §5.
+3. **GĐ3 — NEU-DET (đang làm)**, sau đó GC10-DET. Baseline b3t1 xong 30/9 (D21, note LOG `neu_km_evhung_d128_s4`).
+   Việc tiếp: ablation đồng xuất hiện; chọn benchmark chính.
 
 ## 2. Quy tắc
 
@@ -42,6 +43,8 @@ Cập nhật 29/9. Không ghi số liệu ở đây; xem mã tham chiếu.
 | 3a | `base400`: fine-tune chỉ trên tập có nhãn (sửa D9) | xong 30/9; 1 phase 1, chưa kết luận (D9) |
 | 3b, 4 | Phase 1 `con` + 5 seed phase 2 | thay bằng lưới full-scale, xong 27/9 (D19) |
 | B | Hungarian khi đánh giá (sửa D13) | xong 29/9 (Q10b, D13) |
+| N1 | NEU-DET: split, phase 1, loader, baseline b3t1 5 seed | xong 30/9 (`num_dim` 128, D21) |
+| N2 | NEU: ablation đồng xuất hiện | chưa |
 
 ## 4. Quyết định
 
@@ -85,19 +88,26 @@ Danh sách duy nhất của repo. Câu đã trả lời ghi kèm nơi có bằng
 - [ ] logdet của lớp mới tăng hay giảm theo từng bước? Cần log logdet theo bước (Hình 2b so với D14).
 - [ ] `--scaling-factor 1.2` tác động vào đâu trong luật dừng D14?
 - [ ] Code có tái lập Bảng 5 "w/o fine-tuning" (S0 = 88.54)? Cần wrapper `c100_extract_noft`.
+- [ ] D21: công thức CUB của upstream có n = 25 < d = 384; số CUB của paper đến từ cấu hình nào?
+- [ ] `exp.py agg`: cột `paper` cần tra theo bộ dữ liệu (hiện luôn là số CIFAR).
 
-### Đang mở — GĐ3 (NEU-DET), trả lời trước khi viết code
-- [ ] Dữ liệu: bản nào (NEU-CLS hay NEU-DET), định dạng gì, có ảnh nào chứa nhiều loại lỗi không? Bài toán ở đây là phân loại theo ảnh.
-- [ ] Chia lớp: 6 lớp. Vì k = C_t, phiên chỉ có 1 lớp mới thì k-means có k = 1 (vô nghĩa), mọi việc tách cũ/mới dồn cho bộ lọc D12. Chọn 3 cơ sở + 3 mới trong 1 phiên (k = 3), hay 2 cơ sở + 2 phiên × 2 lớp (k = 2)?
-- [ ] Chia train/test: NEU không có split chuẩn. Chọn tỉ lệ, cố định bằng file chỉ số trong `splits/`.
-- [ ] Số mẫu theo tỉ lệ của paper (Bảng 8): có nhãn 80% train, pool lớp cũ 20%; mỗi phiên lấy bao nhiêu mẫu lớp cũ?
-- [ ] Số chiều: PCA 384 fit trên vài trăm mẫu lớp cơ sở, mỗi lớp ít mẫu hơn số chiều. Có cần giảm `--num_dim`? (D10, D11)
-- [ ] Tiền xử lý: ảnh xám 200×200 → 3 kênh 224×224 cho DINO (resize, lặp kênh, chuẩn hoá ImageNet).
-- [ ] Backbone: DINO ViT-B/16 (như paper, so được với CIFAR) hay DINOv2 ViT-B/14 (luận văn, Bảng 24)?
-- [ ] Fine-tune phase 1 trên vài trăm ảnh (10 epoch, lr 1e-3): có quá khớp không? So với không fine-tune.
-- [ ] Phase 1 trên khoảng 1800 ảnh chỉ mất vài phút: chạy n ≥ 5 FT_SEED ngay từ đầu.
-- [ ] Tần suất ánh xạ lệch (`same=False`) trên NEU: giữ Q10b hay nâng lên Q10.
-- [ ] DINO đóng băng tách các loại lỗi thép mới đến mức nào?
+### GĐ3 (NEU-DET): đã trả lời 30/9
+- [x] **Dữ liệu?** NEU-DET có split sẵn, nhãn theo thư mục, ảnh xám lưu RGB (3 kênh giống nhau). Khoảng 7% ảnh chứa nhiều loại lỗi: giữ nhãn thư mục (giao thức chuẩn).
+- [x] **Chia lớp?** b3t1 theo chữ cái, k = 3 (tránh k = 1).
+- [x] **Chia train/test, số mẫu?** `splits/neu_split.json` (80/20 mỗi lớp, seed 0); `validation` làm test.
+- [x] **Tiền xử lý, backbone?** Như CIFAR: DINO ViT-B/16 + BOFT, fine-tune chỉ trên ảnh có nhãn.
+- [x] **`num_dim` 384 có ổn?** Không: Σ sụp, NaN ở S0 (D21). Dùng 128.
+- [x] **Fine-tune trên 576 ảnh có quá khớp?** CE train về gần 0 nhưng S0 test vẫn tuyệt đối: không thấy hại.
+- [x] **DINO tách lỗi thép tốt đến đâu?** Probe hoàn hảo trên 6 lớp; khám phá lớp mới chạm trần, giữ lớp cũ thì không (note LOG `neu_km_evhung_d128_s4`).
+- [x] **Ánh xạ Hungarian có mơ hồ trên NEU?** Không đo trực tiếp (chỉ chạy eval), nhưng S1_New tuyệt đối nên không mơ hồ; Q10b hay Q10 không quan trọng trên NEU.
+- [x] **Quên do covariance rộng (b) hay đồng xuất hiện (c)?** Chủ yếu (c): mọi ảnh bị quên là inclusion, phần lớn sang scratches (note LOG `neu_km_evhung_d128_cm_s0`); (b) có thể góp phần nhỏ.
+
+### Đang mở — GĐ3
+- [ ] Ablation: bỏ ảnh scratches chứa inclusion khỏi S1 thì lượng quên ở inclusion có biến mất không? (nhân quả cho (c))
+- [ ] Vì sao cặp patches → pitted_surface (đồng xuất hiện ít hơn) không gây quên?
+- [ ] Dừng sớm không kích hoạt trên NEU (D14): cho đủ bước thì S1_Old có hồi phục không? (lưu ý S0 cũng dài thêm)
+- [ ] Giao thức khó hơn: không biết trước k (ước lượng C_t như Phụ lục D.1, hoặc cho k sai lệch).
+- [ ] Chọn benchmark chính cho luận văn: GC10-DET, hay NEU với giao thức khó hơn?
 
 ### Đang mở — phân tích, ưu tiên thấp
 - [ ] Một cụm có hút hết mẫu lớp cũ ở S1 không?
@@ -224,3 +234,9 @@ Danh sách duy nhất của repo. Câu đã trả lời ghi kèm nơi có bằng
 - D13: so ghép cặp theo seed xong; chốt Q10b (D13).
 - D9: `c100_extract_base400` + 5 seed phase 2; 1 phase 1, chưa kết luận (D9, note LOG `c100_km_evhung_base400_s4`).
 - Quyết định (phương án B): không lặp lại D9; đóng GĐ2; sang GĐ3 (NEU-DET) với giao thức sạch.
+
+### 2026-09-30 (GĐ3)
+- NEU-DET: split cố định, phase 1 (chỉ ảnh có nhãn), loader b3t1, baseline 5 seed.
+- `num_dim` 384 → NaN ở S0 (D21); dùng 128. Dừng sớm không kích hoạt trên NEU (D14).
+- Quên tập trung ở inclusion (ma trận nhầm lẫn): giả thuyết đồng xuất hiện (c) được ủng hộ.
+- Đợt tài liệu GĐ2 chưa commit làm mọi run NEU bị `dirty` (chỉ README); đã commit và push. `console.log` không vào git (.gitignore:212): bằng chứng chép vào note LOG và D21; log sao lưu ở `E:/AI_Storage/backups`.
