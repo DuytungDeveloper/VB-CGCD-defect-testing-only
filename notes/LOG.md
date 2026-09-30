@@ -1023,3 +1023,138 @@ note:   FINAL PICTURE for Eq. 3 / augmentation, Welch t-test vs the lambda=0 arm
         produced a wrong conclusion (see also lambda 0.1 and cell 0.25/0.2).
         No configuration improves the continual metrics significantly; ~14 phase-1 runs per arm
         would be needed for 80% power on final_All (>100 h). Full write-up in D19.
+
+## 20260929_203718__c100_smoke_hungtrain
+why:
+result: S0_All 84.86 | S1_New 39.90 | final_All 63.68 | M_d 44.64 | M_f 0.88
+note:
+
+## 20260929_203851__c100_smoke_hungeval
+why:
+result: S0_All 84.86 | S1_New 39.90 | final_All 63.62 | M_d 44.54 | M_f 0.88
+note:
+
+## 20260929_204306__c100_km_hungtrain_s0
+why:
+result: S0_All 91.84 | S1_New 80.20 | final_All 81.86 | M_d 80.14 | M_f 6.64
+note:
+
+## 20260929_205507__c100_km_evhung_s0
+why:
+result: S0_All 91.84 | S1_New 80.20 | final_All 81.72 | M_d 79.88 | M_f 6.64
+note:
+
+## 20260929_210716__c100_km_evhung_s1
+why:
+result: S0_All 92.00 | S1_New 80.60 | final_All 81.60 | M_d 79.66 | M_f 6.74
+note:
+
+## 20260929_211926__c100_km_evhung_s2
+why:
+result: S0_All 91.96 | S1_New 79.70 | final_All 81.80 | M_d 79.72 | M_f 6.46
+note:
+
+## 20260929_213136__c100_km_evhung_s3
+why:
+result: S0_All 91.84 | S1_New 80.40 | final_All 81.78 | M_d 80.12 | M_f 6.74
+note:
+
+## 20260929_214418__c100_km_evhung_s4
+why:
+result: S0_All 91.86 | S1_New 80.50 | final_All 81.78 | M_d 79.76 | M_f 6.46
+note:
+
+## 20260929_223749__c100_extract_base400
+why:
+result: (no metrics.json)
+note:
+
+## 20260930_011502__c100_km_evhung_base400_s0
+why:
+result: S0_All 91.68 | S1_New 79.10 | final_All 81.88 | M_d 80.10 | M_f 6.42
+note:
+
+## 20260930_012836__c100_km_evhung_base400_s1
+why:
+result: S0_All 91.66 | S1_New 82.80 | final_All 82.35 | M_d 80.80 | M_f 6.38
+note:
+
+## 20260930_014215__c100_km_evhung_base400_s2
+why:
+result: S0_All 91.78 | S1_New 78.40 | final_All 82.08 | M_d 80.00 | M_f 6.16
+note:
+
+## 20260930_015553__c100_km_evhung_base400_s3
+why:
+result: S0_All 91.84 | S1_New 79.30 | final_All 82.02 | M_d 80.24 | M_f 6.50
+note:
+
+## 20260930_020945__c100_km_evhung_base400_s4
+why:
+result: S0_All 91.76 | S1_New 79.10 | final_All 81.93 | M_d 80.06 | M_f 6.48
+note:
+
+## 20260930_031430__neu_extract
+why:
+result: (no metrics.json)
+note:
+
+## 20260930_095912__neu_smoke
+why:
+result: S0_All 93.89 | S1_New 100.00 | final_All 94.17 | M_d 100.00 | M_f 5.56
+note:
+
+## 20260930_100355__neu_km_evhung_s0
+why:
+result: FAILED exit=1
+note:
+
+## 20260930_100522__neu_km_evhung_s1
+why:
+result: FAILED exit=1
+note:
+
+## 20260930_100657__neu_km_evhung_s2
+why:
+result: FAILED exit=1
+note:
+
+## 20260930_100837__neu_km_evhung_s3
+why:
+result: FAILED exit=1
+note:
+
+## 20260930_101004__neu_km_evhung_s4
+why:
+result: FAILED exit=1
+note:
+
+## 20260930_114536__neu_km_evhung_d128_s0
+why:
+result: S0_All 100.00 | S1_New 100.00 | final_All 94.44 | M_d 100.00 | M_f 11.11
+note:
+
+## 20260930_125623__neu_km_evhung_d128_s1
+why:
+result: S0_All 100.00 | S1_New 100.00 | final_All 94.72 | M_d 100.00 | M_f 10.56
+note:
+
+## 20260930_125846__neu_km_evhung_d128_s2
+why:
+result: S0_All 100.00 | S1_New 100.00 | final_All 95.28 | M_d 100.00 | M_f 9.44
+note:
+
+## 20260930_130109__neu_km_evhung_d128_s3
+why:
+result: S0_All 100.00 | S1_New 100.00 | final_All 94.44 | M_d 100.00 | M_f 11.11
+note:
+
+## 20260930_130326__neu_km_evhung_d128_s4
+why:
+result: S0_All 100.00 | S1_New 100.00 | final_All 94.44 | M_d 100.00 | M_f 11.11
+note:
+
+## 20260930_141133__neu_km_evhung_d128_cm_s0
+why:
+result: S0_All 100.00 | S1_New 100.00 | final_All 94.44 | M_d 100.00 | M_f 11.11
+note:

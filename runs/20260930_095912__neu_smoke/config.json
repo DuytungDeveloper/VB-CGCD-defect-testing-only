@@ -1,0 +1,49 @@
+{
+  "run_id": "20260930_095912__neu_smoke",
+  "tag": "neu_smoke",
+  "command": [
+    "bash",
+    "scripts/run_phase2_cl.sh",
+    "--dataset",
+    "neudet",
+    "--base",
+    "3",
+    "--increment",
+    "3",
+    "--num_classes",
+    "6",
+    "--load_mode",
+    "t1",
+    "--clustering_alg",
+    "kmeans",
+    "--hungarian_on",
+    "eval",
+    "--n_epochs",
+    "5"
+  ],
+  "cwd": "/home/rito/projects/VB-CGCD-defect",
+  "started": "2026-09-30T09:59:12+07:00",
+  "git": {
+    "commit": "ea9e24ad0a21fd6c63f4a246049f740e7ce15a66",
+    "dirty": true,
+    "dirty_files": [
+      "M README.md"
+    ]
+  },
+  "env": {
+    "id": "f70b1aeb7805",
+    "pip_freeze": "runs/envs/f70b1aeb7805.txt",
+    "conda_env": "vbcgcd",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU, 616.92"
+  },
+  "python": "3.12.14",
+  "host": "Rito",
+  "inputs_source": "inputs.txt",
+  "inputs": {
+    "features/20260930_031430__neu_extract/dino-vitb16-sl": "3b2bd59ac737effa"
+  },
+  "warnings": [],
+  "finished": "2026-09-30T09:59:32+07:00",
+  "duration_min": 0.3,
+  "exit_code": 0
+}

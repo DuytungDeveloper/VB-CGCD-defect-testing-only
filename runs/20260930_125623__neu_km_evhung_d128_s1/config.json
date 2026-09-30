@@ -1,0 +1,51 @@
+{
+  "run_id": "20260930_125623__neu_km_evhung_d128_s1",
+  "tag": "neu_km_evhung_d128_s1",
+  "command": [
+    "bash",
+    "scripts/run_phase2_cl.sh",
+    "--dataset",
+    "neudet",
+    "--base",
+    "3",
+    "--increment",
+    "3",
+    "--num_classes",
+    "6",
+    "--load_mode",
+    "t1",
+    "--clustering_alg",
+    "kmeans",
+    "--hungarian_on",
+    "eval",
+    "--num_dim",
+    "128",
+    "--seed",
+    "1"
+  ],
+  "cwd": "/home/rito/projects/VB-CGCD-defect",
+  "started": "2026-09-30T12:56:23+07:00",
+  "git": {
+    "commit": "a0e61528ff7af6e7d948062dbfe158f13cb03675",
+    "dirty": true,
+    "dirty_files": [
+      "M README.md"
+    ]
+  },
+  "env": {
+    "id": "f70b1aeb7805",
+    "pip_freeze": "runs/envs/f70b1aeb7805.txt",
+    "conda_env": "vbcgcd",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU, 616.92"
+  },
+  "python": "3.12.14",
+  "host": "Rito",
+  "inputs_source": "inputs.txt",
+  "inputs": {
+    "features/20260930_031430__neu_extract/dino-vitb16-sl": "3b2bd59ac737effa"
+  },
+  "warnings": [],
+  "finished": "2026-09-30T12:58:46+07:00",
+  "duration_min": 2.4,
+  "exit_code": 0
+}
