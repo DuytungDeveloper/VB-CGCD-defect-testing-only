@@ -102,6 +102,8 @@ if __name__ == '__main__':
     parser.add_argument('--clustering_alg', type=str, default='gmm', help='Clustering algorithm')
     parser.add_argument('--hungarian_on', type=str, default='train', choices=['train', 'eval'],
                         help="D13: 'train' = upstream, true labels name the clusters; 'eval' = cluster order in training, test-set Hungarian for evaluation")
+    parser.add_argument('--print_confusion', action='store_true',
+                        help='diagnostic: print the test_all confusion matrix (true ids) after each online stage')
     parser.add_argument('--kmeans_n_init', type=int, default=10,
                         help='k-means restarts (kept in config.json by exp.py; ignored for gmm)')
     parser.add_argument('--gmm_n_init', type=int, default=1,
@@ -194,3 +196,11 @@ if __name__ == '__main__':
             testing_set = {'test_old': test_old, 'test_all': test_all, 'known_test': known_test_data}
 
             s_classifier.run(train_data._x, pred, test_novel._x, test_novel._y, current_stage=i, testing_set=testing_set)
+            if args.print_confusion:             # diagnostic only, after the metrics table
+                from sklearn.metrics import confusion_matrix
+                inv = np.argsort(lut) if args.hungarian_on == 'eval' else np.arange(args.num_classes)
+                tf, _ = s_classifier.pre_processing(test_all._x, test_all._y)
+                pr, _ = s_classifier._predict(jax.numpy.array(tf), s_classifier.params)
+                cm = confusion_matrix(np.asarray(test_all_data._y).astype(int), inv[np.asarray(pr)],
+                                      labels=np.arange(label_offset + args.increment))
+                print(f"confusion stage {i}: rows=true cols=pred {cm.tolist()}")
