@@ -36,11 +36,11 @@ def to_dataset(paths, labels, tfm):
 
 
 @torch.no_grad()
-def extract(model, ds, device, bs, cls=False):
+def extract(model, ds, device, bs, cls=False, interp=False):
     model.to(device).eval()
     feats, labs = [], []
     for b in torch.utils.data.DataLoader(ds, batch_size=bs, shuffle=False, num_workers=2):
-        out = model(b["images"].to(device))
+        out = model(b["images"].to(device), interpolate_pos_encoding=True) if interp else model(b["images"].to(device))
         feats.append((out.last_hidden_state[:, 0] if cls else out.pooler_output).cpu().numpy())
         labs.append(b["labels"].numpy())
     return np.concatenate(feats), np.concatenate(labs)
@@ -58,13 +58,15 @@ def main():
                     help="label-free: frozen DINO, CLS token of last_hidden_state, no fine-tuning")
     ap.add_argument("--resize", choices=["crop", "full"], default="crop",
                     help="crop = Resize 256 + CenterCrop 224 (NEU, CIFAR); full = whole image to 224x224 (GC10)")
+    ap.add_argument("--img_size", type=int, nargs=2, default=[224, 224], metavar=("H", "W"),
+                    help="--resize full only: target H W; other than 224 224 uses interpolate_pos_encoding")
     a = ap.parse_args()
     torch.manual_seed(a.seed)                      # every seed works, including 0 (cf. D4)
 
     split = json.load(open(a.split))
     n_base = split.get("n_base", N_BASE)
     n_use = split.get("n_use") or {c: int(split["labeled_frac"] * len(split["train"][c])) for c in split["classes"]}
-    resize = ([torchvision.transforms.Resize((224, 224), 3)] if a.resize == "full" else          # whole image
+    resize = ([torchvision.transforms.Resize(tuple(a.img_size), 3)] if a.resize == "full" else          # whole image
               [torchvision.transforms.Resize(int(224 / 0.875), 3), torchvision.transforms.CenterCrop(224)])  # as CIFAR
     tfm = torchvision.transforms.Compose(resize + [
         torchvision.transforms.ToTensor(),
@@ -85,7 +87,8 @@ def main():
     out = f"{a.output_dir}/{name}"
     os.makedirs(out, exist_ok=True)
     for part, pre in (("train", ""), ("test", "test_")):
-        x, y = extract(model, to_dataset(*build(split, part), tfm), a.device, a.batch_size, cls=a.no_finetune)
+        x, y = extract(model, to_dataset(*build(split, part), tfm), a.device, a.batch_size, cls=a.no_finetune,
+                       interp=(a.resize == "full" and a.img_size != [224, 224]))
         np.save(f"{out}/{pre}features-{name}.npy", x)
         np.save(f"{out}/{pre}labels-{name}.npy", y)
         print(f"dino-neudet: {part} features {x.shape}, per class {np.bincount(y).tolist()}, "
