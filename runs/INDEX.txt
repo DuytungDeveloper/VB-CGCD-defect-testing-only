@@ -215,3 +215,5 @@ started           tag                              exit    min  dirty     env   
 2026-09-30 23:54  gc10_frozen_gmm10_evhung_d64_s2     0    2.4     no  f70b1a  703bbd   79.25   52.34      60.66   52.34  11.20  20260930_235459__gc10_frozen_gmm10_evhung_d64_s2
 2026-09-30 23:57  gc10_frozen_gmm10_evhung_d64_s3     0    2.5     no  f70b1a  703bbd   78.84   54.67      61.32   54.67  11.62  20260930_235723__gc10_frozen_gmm10_evhung_d64_s3
 2026-09-30 23:59  gc10_frozen_gmm10_evhung_d64_s4     0    2.4     no  f70b1a  703bbd   78.84   50.93      60.00   50.93  10.79  20260930_235953__gc10_frozen_gmm10_evhung_d64_s4
+2026-10-01 00:29  gc10_extract_frozen_224x448         0    0.7     no  f70b1a  720382       -       -          -       -      -  20261001_002948__gc10_extract_frozen_224x448
+2026-10-01 00:30  gc10_extract_frozen_448x896         0    2.7     no  f70b1a  720382       -       -          -       -      -  20261001_003044__gc10_extract_frozen_448x896

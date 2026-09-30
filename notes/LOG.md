@@ -1233,3 +1233,13 @@ note: see the _s4 note
 why: clustering ablation on GC10: GMM n_init 10 instead of k-means (same features and settings)
 result: S0_All 78.84 | S1_New 50.93 | final_All 60.00 | M_d 50.93 | M_f 10.79
 note: 5 seeds: final 61.01+-1.41; balanced novel 37.7+-2.3 (= k-means 37.6); clusters even MORE balanced (max_min 1.66 vs 2.71); rare classes still ~0 -> GMM does not fix imbalance; bottleneck is the features (linear probe weak on the same classes)
+
+## 20261001_002948__gc10_extract_frozen_224x448
+why: resolution probe: frozen DINO at 224x448 (aspect kept), interpolate_pos_encoding
+result: (no metrics.json)
+note: feat_probe: k-means all/base/novel 47.2/54.3/48.5 (224: 41.3/51.9/44.6); silhouette k=3; linear probe 81.1 (bal 74.7) = flat. Gain comes from the aspect ratio, not from more pixels
+
+## 20261001_003044__gc10_extract_frozen_448x896
+why: resolution probe: frozen DINO at 448x896
+result: (no metrics.json)
+note: feat_probe: k-means 44.4/55.1/47.3; silhouette k=16 (range edge); probe 79.3 (bal 72.8): not better than 224x448
