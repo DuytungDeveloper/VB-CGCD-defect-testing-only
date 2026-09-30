@@ -19,6 +19,7 @@ from dataloaders.cifar100 import CIFAR100Loader
 from dataloaders.tinyimagenet import TinyImageNetLoader
 from dataloaders.imagenet100 import ImageNet100Loader
 from dataloaders.cub200 import CUB200Loader
+from dataloaders.neudet import NEUDETLoader
 
 from classifier.mngmm import MNGMMClassifier
 
@@ -54,6 +55,8 @@ def load_mode(args, loader):
         return loader.makeVinLoader()
     elif args.load_mode == 't10':
         return loader.makeT10Loader()
+    elif args.load_mode == 't1':
+        return loader.makeT1Loader()
     else:
         raise ValueError('Load mode not supported')
 
@@ -75,6 +78,10 @@ def Dataloader(args):
         cub200Loader = CUB200Loader(args = args)
         train_loader, test_loader, test_old_loader, test_all_loader = load_mode(args, cub200Loader)
 
+    elif args.dataset == 'neudet':
+        neudetLoader = NEUDETLoader(args = args)
+        train_loader, test_loader, test_old_loader, test_all_loader = load_mode(args, neudetLoader)
+
     else:
         raise ValueError('Dataset not supported')
 
@@ -86,7 +93,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generalized Class Incremental Learning')
     parser.add_argument('--dataset', type=str, default='cifar100', help='Dataset to learn')
     parser.add_argument('--data_dir', type=str, default='datasets/cifar100', help='Directory to the data')
-    parser.add_argument('--load_mode', type=str, default='t5', help='Dataset Loader Mode (t5 / t10 / vin)')
+    parser.add_argument('--load_mode', type=str, default='t5', help='Dataset Loader Mode (t5 / t10 / vin / t1)')
     parser.add_argument('--pretrained_model_name', type=str, default='dino-vitb16', help='Name of the model')
     parser.add_argument('--base', type=int, default=50, help='Number of base classes')
     parser.add_argument('--increment', type=int, default=10, help='Number of incremental classes')
