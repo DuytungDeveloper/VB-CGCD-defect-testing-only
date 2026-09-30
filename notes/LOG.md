@@ -1158,3 +1158,13 @@ note: 5 seeds: S0 100, S1_New 100, S1_Old 89.33+-0.72; no NaN; early stop never 
 why: diagnostic: --print_confusion
 result: S0_All 100.00 | S1_New 100.00 | final_All 94.44 | M_d 100.00 | M_f 11.11
 note: metrics identical to d128_s0; S1 confusion: all 20 forgotten = inclusion (14 -> scratches, 6 -> pitted_surface); crazing, patches 60/60. dirty = README.md only (uncommitted GD2 docs), code as in config.json
+
+## 20260930_150747__neu_extract_frozen
+why:
+result: (no metrics.json)
+note:
+
+## 20260930_172146__neu_extract_frozen
+why:
+result: (no metrics.json)
+note:

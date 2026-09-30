@@ -1,0 +1,32 @@
+{
+  "run_id": "20260930_172146__neu_extract_frozen",
+  "tag": "neu_extract_frozen",
+  "command": [
+    "bash",
+    "scripts/run_phase1_neu.sh",
+    "--no_finetune"
+  ],
+  "cwd": "/home/rito/projects/VB-CGCD-defect",
+  "started": "2026-09-30T17:21:46+07:00",
+  "git": {
+    "commit": "dc2e589545baeda5e946ae89a0e1d974b948b497",
+    "dirty": false,
+    "dirty_files": []
+  },
+  "env": {
+    "id": "f70b1aeb7805",
+    "pip_freeze": "runs/envs/f70b1aeb7805.txt",
+    "conda_env": "vbcgcd",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU, 616.92"
+  },
+  "python": "3.12.14",
+  "host": "Rito",
+  "inputs_source": "cli",
+  "inputs": {
+    "splits/neu_split.json": "f98070636f531cce"
+  },
+  "warnings": [],
+  "finished": "2026-09-30T17:22:09+07:00",
+  "duration_min": 0.4,
+  "exit_code": 0
+}
