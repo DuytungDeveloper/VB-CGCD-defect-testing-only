@@ -35,11 +35,12 @@ def to_dataset(paths, labels, tfm):
 
 
 @torch.no_grad()
-def extract(model, ds, device, bs):
+def extract(model, ds, device, bs, cls=False):
     model.to(device).eval()
     feats, labs = [], []
     for b in torch.utils.data.DataLoader(ds, batch_size=bs, shuffle=False, num_workers=2):
-        feats.append(model(b["images"].to(device)).pooler_output.cpu().numpy())
+        out = model(b["images"].to(device))
+        feats.append((out.last_hidden_state[:, 0] if cls else out.pooler_output).cpu().numpy())
         labs.append(b["labels"].numpy())
     return np.concatenate(feats), np.concatenate(labs)
 
@@ -52,6 +53,8 @@ def main():
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--batch-size", type=int, default=128)
     ap.add_argument("--device", default="cuda")
+    ap.add_argument("--no_finetune", action="store_true",
+                    help="label-free: frozen DINO, CLS token of last_hidden_state, no fine-tuning")
     a = ap.parse_args()
     torch.manual_seed(a.seed)                      # every seed works, including 0 (cf. D4)
 
@@ -63,17 +66,22 @@ def main():
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 
-    p, l = build(split, "train", rows=n_lab)
-    keep = [i for i, y in enumerate(l) if y < N_BASE]
-    ft = to_dataset([p[i] for i in keep], [l[i] for i in keep], tfm)
-    print(f"dino-neudet: fine-tune on {len(ft)} images = {N_BASE} base classes x {n_lab}")
-    model = finetune_dino(ft, len(split["classes"]), model_name=a.model)
-
-    name = a.model.replace("_", "-") + "-sl"
+    if a.no_finetune:                              # label-free: no label is used anywhere here
+        from transformers import ViTModel
+        model = ViTModel.from_pretrained("facebook/dino-vitb16")
+        name = a.model.replace("_", "-")           # dino-vitb16 (no "-sl")
+        print("dino-neudet: NO fine-tuning (label-free); features = CLS token of last_hidden_state")
+    else:
+        p, l = build(split, "train", rows=n_lab)
+        keep = [i for i, y in enumerate(l) if y < N_BASE]
+        ft = to_dataset([p[i] for i in keep], [l[i] for i in keep], tfm)
+        print(f"dino-neudet: fine-tune on {len(ft)} images = {N_BASE} base classes x {n_lab}")
+        model = finetune_dino(ft, len(split["classes"]), model_name=a.model)
+        name = a.model.replace("_", "-") + "-sl"
     out = f"{a.output_dir}/{name}"
     os.makedirs(out, exist_ok=True)
     for part, pre in (("train", ""), ("test", "test_")):
-        x, y = extract(model, to_dataset(*build(split, part), tfm), a.device, a.batch_size)
+        x, y = extract(model, to_dataset(*build(split, part), tfm), a.device, a.batch_size, cls=a.no_finetune)
         np.save(f"{out}/{pre}features-{name}.npy", x)
         np.save(f"{out}/{pre}labels-{name}.npy", y)
         print(f"dino-neudet: {part} features {x.shape}, per class {np.bincount(y).tolist()}, "
