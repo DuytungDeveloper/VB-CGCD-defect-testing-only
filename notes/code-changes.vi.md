@@ -42,6 +42,8 @@ Cách chia nhóm dựa trên `git diff --name-status upstream-baseline` (xem m�
 | sau `Clustering = Clustering_alg(...)` | `functools.partial(Clustering, n_init=...)` | `Clustering_alg` trả về lớp; dòng gọi ở vòng lặp stage không đổi |
 | import, argparse | `hungarian_map`, `SimpleNamespace`; cờ `--hungarian_on` (`train`/`eval`, mặc định `train` = upstream) | Sửa D13 (`98d2c55`) |
 | vòng lặp stage, `i > 0` | `predict_raw` + `pi_test` (Hungarian trên tập test lớp mới). `train`: đường cũ + log `pi_train`/`pi_test`/`same=`. `eval`: nhãn = thứ tự cụm; ánh xạ đóng băng; bản sao nhãn test đổi sang không gian cụm qua LUT; dòng S0 giữ nguyên | D13, Q10b |
+| import, `Dataloader`, `load_mode` | `NEUDETLoader`; nhánh `--dataset neudet`; chế độ `--load_mode t1` | NEU-DET, GĐ3 (`ea9e24a`) |
+| argparse + vòng lặp stage | `--print_confusion` (mặc định tắt): in ma trận nhầm lẫn test_all theo id thật sau mỗi phiên online, **sau** bảng kết quả | Chẩn đoán (`5692e3f`); không đổi số (đã kiểm) |
 
 ### `clustering/gmm.py`
 
@@ -60,13 +62,16 @@ Thêm `predict_raw(features)` (id cụm, không dùng nhãn) và hàm `hungarian
 
 ---
 
-## 1b. File mới, ảnh hưởng kết quả (3 file)
+## 1b. File mới, ảnh hưởng kết quả (6 file)
 
 | File | Hàm chính | Lý do |
 |---|---|---|
 | `clustering/kmeans.py` | `KMeansCluster` (`fit`, `_pre_predict`), tham số `n_init` | Paper C.3 nói k-means, code chỉ có GMM (D5). Cùng interface với `GMMCluster` |
 | `feature_extractor/ft_data.py` | `labeled_subset(idx_path, fold)`, `hf_to_npy_row(n, extract_bs)`, hằng `FOLDS` | Tách logic chọn dữ liệu ra khỏi `__main__` để kiểm tra trên CPU. Định nghĩa fold F1–F5 và ánh xạ hàng `.npy` ↔ chỉ số HF (D17) |
 | `splits/c100_labeled_hf_idx.npy` | dữ liệu, int64 (20000,) | 20000 chỉ số HF mà phase 2 coi là có nhãn; đầu vào cho việc sửa D9 |
+| `feature_extractor/dino-neudet.py` | `build`, `to_dataset`, `extract`, `main` | Phase 1 NEU: fine-tune chỉ trên 576 ảnh có nhãn (không rò rỉ D9 theo thiết kế); trích 1440/360 đặc trưng theo thứ tự file split; ghi thẳng 4 `.npy`, không shard (tránh D17) |
+| `dataloaders/neudet.py` | `NEUDETLoader.makeT1Loader` | b3t1: base 3, increment 3, 576 có nhãn, 192 mới/lớp, 12 cũ/lớp/phiên; `assert` khớp `--base/--increment/--num_classes` và `num_dim < 192` (D21) |
+| `splits/neu_split.json` | dữ liệu, sha256 `49c23576…` | Giao thức NEU cố định: lớp theo chữ cái, xáo seed 0, 80/20 mỗi lớp; `validation` làm test |
 
 ---
 
@@ -100,6 +105,13 @@ Không sửa thuật toán, nhưng **hai file ảnh hưởng số liệu hoặc 
 | `scripts/queue_eq3.sh` (21/9) | `finished()` + hàng đợi | Thiết kế 8 so với 8 (đã bỏ, thay bằng lưới 3 seed). **Ngừng dùng**: dòng gọi phase 1 chưa có `--inputs -`, đừng chạy lại |
 | `scripts/queue_grid.sh` (22/9) | `finished()` + vòng lặp `CELLS` × `SEEDS` | Hàng đợi lưới (λ, τ); tự bỏ qua bước đã xong; `trap` khôi phục `runs/inputs.txt`. 29/9: gọi phase 1 với `--inputs -` (`ad7314f`) |
 
+**Tạo 30/09 (NEU-DET):**
+
+| File | Hàm chính | Lý do |
+|---|---|---|
+| `scripts/make_neu_split.py` | `num()`, `main()` | Sinh `splits/neu_split.json`, tất định (chạy lại in `unchanged`, cùng sha256) |
+| `scripts/run_phase1_neu.sh` | wrapper | Phase 1 NEU qua `exp.py`: kiểm GPU, đặt `FT_*` (32×4, seed 42), gọi `dino-neudet.py` |
+
 Ghi chú tiếng Việt: `notes/code-changes.vi.md` (file này), `notes/plan.vi.md`.
 Không có file `q6-q8-giai-thich.md` (được nhắc nhưng chưa từng tạo); lý do chọn Q6–Q8 nằm ở D19.
 
@@ -131,6 +143,8 @@ Không có file `q6-q8-giai-thich.md` (được nhắc nhưng chưa từng tạo
 | `--kmeans_n_init` | 10 | — | số lần khởi tạo k-means |
 | `--gmm_n_init` | 1 | — | số lần khởi tạo GMM (1 = upstream) |
 | `--hungarian_on` | train | — | D13: `train` = upstream (nhãn thật đặt tên cụm); `eval` = thứ tự cụm khi huấn luyện, Hungarian trên tập test khi đánh giá |
+| `--print_confusion` | tắt | — | chẩn đoán: in ma trận nhầm lẫn test_all (id thật) sau mỗi phiên online |
+| `--dataset neudet --load_mode t1` | — | — | NEU-DET b3t1; phải kèm `--base 3 --increment 3 --num_classes 6 --num_dim 128` |
 
 Các run Eq. 3 dùng `FT_BATCH_SIZE=16 FT_ACCUM=8`, vì 32 × 2 view = 7.68 GB > 6.93 GB khả dụng.
 
@@ -154,6 +168,8 @@ Các run Eq. 3 dùng `FT_BATCH_SIZE=16 FT_ACCUM=8`, vì 32 × 2 view = 7.68 GB >
 | `exp.py append_log` (29/9) | 3 run thử: không metrics / metrics trùng cột / metrics lạ | `(no metrics.json)`, `S0_All 91.50`, `acc 0.5000` |
 | `predict_raw` + `hungarian_map` (29/9) | 3 cụm tổng hợp, offset 50 | acc 1.0, trùng đường cũ `predict(..., with_known=True)` |
 | `--hungarian_on train` (29/9) | `c100_km_hungtrain_s0` so với `c100_km_s0` | trùng khít 46 chỉ số |
+| `--print_confusion` (30/9) | `neu_km_evhung_d128_cm_s0` so với `neu_km_evhung_d128_s0` | trùng khít mọi chỉ số |
+| `make_neu_split.py` (30/9) | chạy 2 lần | `unchanged`, cùng sha256 |
 
 ---
 
@@ -163,7 +179,7 @@ Không chép danh sách vào đây (chép tay sẽ lệch, xem lỗi "12 file" c
 
     git diff --name-status upstream-baseline -- . ':(exclude)runs' ':(exclude)notes'
 
-Kiểm 2026-09-30, sau `4aa8ff3`: **24 dòng = 7 `M` + 17 `A`** (`scripts/` có 12 file; mới: `M clustering/clustering_base.py`).
+Kiểm 2026-09-30, sau `5692e3f`: **29 dòng = 7 `M` + 22 `A`** (`scripts/` có 14 file; NEU thêm 5 file `A`).
 Nếu lệnh cho số khác, tài liệu này đã lệch.
 
 ---
