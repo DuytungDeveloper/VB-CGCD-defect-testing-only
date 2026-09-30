@@ -109,6 +109,9 @@ if __name__ == '__main__':
                         help="D13: 'train' = upstream, true labels name the clusters; 'eval' = cluster order in training, test-set Hungarian for evaluation")
     parser.add_argument('--print_confusion', action='store_true',
                         help='diagnostic: print the test_all confusion matrix (true ids) after each online stage')
+    parser.add_argument('--s0_labels', type=str, default='true', choices=['true', 'none'],
+                        help="'none' = label-free S0: cluster the base data (k = --base), Gaussians learn cluster ids; "
+                             "test-set Hungarian for evaluation only (needs --hungarian_on eval)")
     parser.add_argument('--kmeans_n_init', type=int, default=10,
                         help='k-means restarts (kept in config.json by exp.py; ignored for gmm)')
     parser.add_argument('--gmm_n_init', type=int, default=1,
@@ -124,6 +127,7 @@ if __name__ == '__main__':
     parser.add_argument("--batch-size", type=int, default=128, help="Batch size")
     parser.add_argument("--early_stop_ratio", type=float, default=0, help="R in early stop")
     args = parser.parse_args()
+    assert not (args.s0_labels == 'none' and args.hungarian_on != 'eval'), '--s0_labels none needs --hungarian_on eval'
 
     # Set the random seed
     torch.manual_seed(args.seed)
@@ -154,9 +158,22 @@ if __name__ == '__main__':
     for i, (train_data, test_data, test_old_data, test_all_data) in enumerate(zip(train_loader, test_loader, test_old_loader, test_all_loader)): 
         if i == 0:
             to_cluster = {}   # D13 eval mode: true id -> cluster-space id, filled at each discovery session
+            y0 = train_data._y
+            if args.s0_labels == 'none':         # label-free S0: base data clustered, no label used in training
+                clustering0 = Clustering(num_classes=args.base, label_offset=0)
+                clustering0.fit(train_data._x)
+                y0 = clustering0.predict_raw(train_data._x)
+                pi0 = hungarian_map(clustering0.predict_raw(test_data._x),
+                                    np.asarray(test_data._y).astype(int), args.base)    # evaluation only
+                to_cluster.update({t: c for c, t in pi0.items()})
+                lut0 = np.arange(args.num_classes)
+                for t, c in to_cluster.items():
+                    lut0[t] = c
+                test_data = SimpleNamespace(_x=test_data._x, _y=lut0[np.asarray(test_data._y).astype(int)])
+                print(f"s0_labels none: pi_test={pi0} cluster sizes={np.bincount(y0, minlength=args.base).tolist()}")
             testing_set = {'test_old': test_data, 'test_all': test_data, 'known_test': test_data}
 
-            s_classifier.run(train_data._x, train_data._y, test_data._x, test_data._y, current_stage=i, testing_set=testing_set)
+            s_classifier.run(train_data._x, y0, test_data._x, test_data._y, current_stage=i, testing_set=testing_set)
 
             known_test_data = test_data
 
