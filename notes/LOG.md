@@ -1168,3 +1168,18 @@ note: k-means (PCA 128, k known) cluster acc 100% on all 6 / base / novel; silho
 why: label-free end of the label axis: frozen DINO ViT-B/16, CLS token, no fine-tuning
 result: (no metrics.json)
 note: k-means (PCA 128, k known) cluster acc 100% on all 6 / base / novel; silhouette best k = 6 (thin margin 0.253 vs 0.249); fine-tuned features: 99.0% all, silhouette k = 5. The two frozen runs are bit-identical (15:07 = duplicate). NEU saturates at every label level
+
+## 20260930_201115__neu_extract_frozen_regress
+why: regression: generic extractor (0529ea8) must reproduce NEU frozen features
+result: (no metrics.json)
+note: max |diff| = 0.0 vs 20260930_172146__neu_extract_frozen
+
+## 20260930_204949__gc10_extract_frozen
+why: GC10 label-free probe: frozen DINO, CLS, --resize full (2048x1000 -> 224x224)
+result: INTERRUPTED (SIGINT)
+note: features saved (file sizes match 1833x768 / 455x768 float32 exactly), then hung at exit after an HF ReadTimeout; Ctrl+C -> exit=interrupted. Superseded by 20260930_232359 (bit-identical)
+
+## 20260930_232359__gc10_extract_frozen
+why: clean rerun of the GC10 frozen extraction with HF_HUB_OFFLINE=1
+result: (no metrics.json)
+note: exit 0, bit-identical to 20260930_204949. Probe: k-means acc all 10 = 41.3%, base 51.9%, novel 44.6%; silhouette best k = 2 (true 10); linear probe (all labels) 80.2%, per class [81,74,82,72,90,94,56,67,45,83]. GC10 is NOT saturated

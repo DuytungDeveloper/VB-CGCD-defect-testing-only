@@ -202,3 +202,6 @@ started           tag                             exit    min  dirty     env   i
 2026-09-30 14:11  neu_km_evhung_d128_cm_s0           0    2.4    yes  f70b1a  3b2bd5  100.00  100.00      94.44  100.00  11.11  20260930_141133__neu_km_evhung_d128_cm_s0
 2026-09-30 15:07  neu_extract_frozen                 0    0.4     no  f70b1a  f98070       -       -          -       -      -  20260930_150747__neu_extract_frozen
 2026-09-30 17:21  neu_extract_frozen                 0    0.4     no  f70b1a  f98070       -       -          -       -      -  20260930_172146__neu_extract_frozen
+2026-09-30 20:11  neu_extract_frozen_regress         0    0.4     no  f70b1a  f98070       -       -          -       -      -  20260930_201115__neu_extract_frozen_regress
+2026-09-30 20:49  gc10_extract_frozen              int  151.3     no  f70b1a  720382       -       -          -       -      -  20260930_204949__gc10_extract_frozen
+2026-09-30 23:23  gc10_extract_frozen                0    0.5     no  f70b1a  720382       -       -          -       -      -  20260930_232359__gc10_extract_frozen
