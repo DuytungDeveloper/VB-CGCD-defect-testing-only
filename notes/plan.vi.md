@@ -12,8 +12,10 @@ hoặc mã D-xx trong `notes/paper-code-discrepancies.md`. Tên cũ: `notes/vari
 2. **GĐ2 — loại hai rò rỉ nhãn trên CIFAR-100: đã đóng 30/9.** D13 sửa và đo (Q10b); D9 sửa, đo 1 lần,
    chưa kết luận, không lặp lại (phương án B). **Giao thức sạch cho mọi run từ đây:**
    `--hungarian_on eval` + fine-tune chỉ trên tập có nhãn.
-3. **GĐ3 — NEU-DET (đang làm)**, sau đó GC10-DET. Baseline b3t1 xong 30/9 (D21, note LOG `neu_km_evhung_d128_s4`).
-   Việc tiếp: ablation đồng xuất hiện; chọn benchmark chính.
+3. **GĐ3 — dữ liệu công nghiệp (đang làm).** NEU-DET chạm trần ở mọi mức nhãn: chỉ dùng kiểm tra tính đúng đắn
+   và ca quên inclusion. **GC10-DET là benchmark chính** (D21, D22).
+4. **Hướng chung (chốt 30/9):** đồ án và paper là một mạch — VB-CGCD cải tiến cho khám phá lỗi liên tục,
+   có **trục lượng nhãn** (đầy đủ → giữa → không nhãn). Việc tiếp: S0 không nhãn, lặp FT seed, ablation dừng sớm.
 
 ## 2. Quy tắc
 
@@ -45,6 +47,10 @@ Cập nhật 29/9. Không ghi số liệu ở đây; xem mã tham chiếu.
 | B | Hungarian khi đánh giá (sửa D13) | xong 29/9 (Q10b, D13) |
 | N1 | NEU-DET: split, phase 1, loader, baseline b3t1 5 seed | xong 30/9 (`num_dim` 128, D21) |
 | N2 | NEU: ablation đồng xuất hiện | chưa |
+| G1 | GC10: kiểm tra dữ liệu, split theo cuộn, loader theo số ảnh từng lớp (D22) | xong 30/9 |
+| G2 | GC10: baseline đóng băng; GMM, 224×448, chuẩn hoá camera | xong 1/10 (cả ba bị loại) |
+| G3 | GC10: pipeline fine-tune đầy đủ | xong 1/10 (một lần phase 1) |
+| G4 | GC10: S0 không nhãn | chưa |
 
 ## 4. Quyết định
 
@@ -102,12 +108,24 @@ Danh sách duy nhất của repo. Câu đã trả lời ghi kèm nơi có bằng
 - [x] **Ánh xạ Hungarian có mơ hồ trên NEU?** Không đo trực tiếp (chỉ chạy eval), nhưng S1_New tuyệt đối nên không mơ hồ; Q10b hay Q10 không quan trọng trên NEU.
 - [x] **Quên do covariance rộng (b) hay đồng xuất hiện (c)?** Chủ yếu (c): mọi ảnh bị quên là inclusion, phần lớn sang scratches (note LOG `neu_km_evhung_d128_cm_s0`); (b) có thể góp phần nhỏ.
 
+### GĐ3 GC10: đã trả lời 30/9–1/10
+- [x] **Benchmark chính?** GC10-DET: khám phá không nhãn thấp xa cận trên có giám sát, còn NEU chạm trần ở mọi mức nhãn (note LOG `gc10_extract_frozen`, `neu_extract_frozen`).
+- [x] **Chia dữ liệu?** Theo cuộn thép, để khung hình gần trùng không rơi vào cả train lẫn test; bỏ ảnh trùng điểm ảnh ở hai thư mục (`splits/gc10_split.json`).
+- [x] **Loader cho dữ liệu mất cân bằng?** Số ảnh theo từng lớp lấy từ file split (D22).
+- [x] **k-means hay GMM?** Như nhau về balanced novel; nút thắt là đặc trưng (note LOG `gc10_frozen_gmm10_evhung_d64_s4`).
+- [x] **Độ phân giải cao hơn?** Giúp proxy nhưng làm hỏng pipeline; giữ 224 (note LOG `gc10_fr224x448_km_evhung_d64_s4`).
+- [x] **Chuẩn hoá theo camera?** Camera có mặt trong đặc trưng, nhưng trừ trung bình không vượt nhiễu k-means (chẩn đoán 10 seed, không lưu run).
+- [x] **Fine-tune bằng nhãn lớp cơ sở?** Đánh đổi: giữ lớp cũ tốt hơn, khám phá lớp mới kém hơn (note LOG `gc10_ft_km_evhung_d64_s4`).
+
 ### Đang mở — GĐ3
-- [ ] Ablation: bỏ ảnh scratches chứa inclusion khỏi S1 thì lượng quên ở inclusion có biến mất không? (nhân quả cho (c))
-- [ ] Vì sao cặp patches → pitted_surface (đồng xuất hiện ít hơn) không gây quên?
-- [ ] Dừng sớm không kích hoạt trên NEU (D14): cho đủ bước thì S1_Old có hồi phục không? (lưu ý S0 cũng dài thêm)
-- [ ] Giao thức khó hơn: không biết trước k (ước lượng C_t như Phụ lục D.1, hoặc cho k sai lệch).
-- [ ] Chọn benchmark chính cho luận văn: GC10-DET, hay NEU với giao thức khó hơn?
+- [ ] S0 không nhãn: điểm thứ ba của trục lượng nhãn.
+- [ ] Đánh đổi ổn định–thích nghi có vững qua các FT seed không (ít nhất 2 seed nữa)?
+- [ ] Dừng sớm: không kích hoạt trên NEU, kích hoạt giữa chừng trên GC10 fine-tune (D14). Tắt dừng sớm thì khám phá lớp mới có khá hơn không?
+- [ ] Tách yếu tố trộn pooler/CLS: trích CLS từ mô hình đã fine-tune.
+- [ ] Ước lượng k trên GC10 (silhouette thất bại): giao thức không biết trước k.
+- [ ] Proxy giống pipeline hơn: PCA fit trên lớp cơ sở, 64 chiều.
+- [ ] NEU: ablation đồng xuất hiện (oracle), và vì sao patches → pitted_surface không gây quên.
+- [ ] Đưa balanced accuracy vào chỉ số chính (hiện chỉ có qua `cm_summary`).
 
 ### Đang mở — phân tích, ưu tiên thấp
 - [ ] Một cụm có hút hết mẫu lớp cũ ở S1 không?
@@ -240,3 +258,10 @@ Danh sách duy nhất của repo. Câu đã trả lời ghi kèm nơi có bằng
 - `num_dim` 384 → NaN ở S0 (D21); dùng 128. Dừng sớm không kích hoạt trên NEU (D14).
 - Quên tập trung ở inclusion (ma trận nhầm lẫn): giả thuyết đồng xuất hiện (c) được ủng hộ.
 - Đợt tài liệu GĐ2 chưa commit làm mọi run NEU bị `dirty` (chỉ README); đã commit và push. `console.log` không vào git (.gitignore:212): bằng chứng chép vào note LOG và D21; log sao lưu ở `E:/AI_Storage/backups`.
+
+### 2026-10-01 (GĐ3 GC10)
+- GC10-DET làm benchmark chính: kiểm tra dữ liệu (lệch lớp, ảnh đa lỗi, nhãn lỗi, ảnh trùng, cuộn thép), split theo cuộn, loader theo số ảnh từng lớp (D22).
+- Chẩn đoán đặc trưng: GMM, 224×448 và chuẩn hoá camera đều bị loại; nút thắt là hình học của không gian đặc trưng.
+- Luật dừng sớm chạy ở hai nhánh det tuỳ thang đo đặc trưng (D14).
+- Trục lượng nhãn: điểm đầy đủ (fine-tune) và điểm giữa (đóng băng) đã xong; fine-tune đổi khả năng khám phá lấy độ bền. Còn điểm không nhãn.
+- Bài học: proxy k-means dự đoán sai pipeline (224×448); một lần chạy k-means đơn lẻ gây ảo tưởng (chuẩn hoá camera).
