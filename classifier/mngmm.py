@@ -78,6 +78,17 @@ class MNGMMClassifier():
             class_means = numpyro.param("class_means", global_params["class_means"])
             class_covs = numpyro.param("class_covs", global_params["class_covs"])
         
+        kappa = getattr(self, "cov_prior_kappa", 0.0)
+        if kappa > 0 and getattr(self, "prior_T", None) is not None:
+            # improvement 1: inverse-Wishart shrinkage on the covariances of THIS stage's classes only;
+            # log p = -(kappa/2) (log|S| + tr(T S^-1)); MAP = (S_n + kappa T) / (n + kappa) (RDA, Friedman 1989)
+            lo = 0 if global_params is None else self.label_offset
+            hi = lo + (self.num_base if global_params is None else self.increment)
+            S = class_covs[lo:hi]
+            logdet = jnp.linalg.slogdet(S)[1]
+            tr = jnp.trace(jnp.linalg.solve(S, jnp.broadcast_to(self.prior_T, S.shape)), axis1=-2, axis2=-1)
+            numpyro.factor("cov_prior", -0.5 * kappa * jnp.sum(logdet + tr))
+
         with numpyro.plate("batch", X.shape[0], subsample_size=self.batch_size) as ind:
             X_batch = X[ind]
             y_batch = y[ind] if y is not None else None
@@ -104,6 +115,17 @@ class MNGMMClassifier():
         print("Initializing model")
 
         optimizer = numpyro.optim.optax_to_numpyro(optax.adam(scheduler))
+
+        if getattr(self, "cov_prior_kappa", 0.0) > 0:
+            # T = pooled within-class covariance of this pass, with the labels the model is trained on
+            Xn, yn = np.asarray(X), np.asarray(y).astype(int)
+            T = np.zeros((Xn.shape[1], Xn.shape[1]))
+            for k in np.unique(yn):
+                D = Xn[yn == k] - Xn[yn == k].mean(0)
+                T += D.T @ D
+            T /= len(yn)
+            self.prior_T = jnp.array(T)
+            print(f"cov prior: kappa={self.cov_prior_kappa} trace(T)/d={np.trace(T) / T.shape[0]:.4f}")
 
         self.svi = SVI(self.model, guide=self.guide, optim=optimizer, loss=Trace_ELBO())
 

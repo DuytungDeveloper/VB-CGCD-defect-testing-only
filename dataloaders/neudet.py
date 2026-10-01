@@ -17,7 +17,7 @@ class NEUDETLoader():
         # main.py derives label_offset from args.base / args.increment: they must match
         assert (self.args.base, self.args.increment, self.args.num_classes) == (base, increment, 6), \
             "NEU t1: run with --base 3 --increment 3 --num_classes 6"
-        assert self.args.num_dim < 192, \
+        assert self.args.num_dim < 192 or getattr(self.args, 'cov_prior_kappa', 0) > 0, \
             "NEU t1: --num_dim must be < 192 labeled samples per class, else the MLE of Sigma collapses (D21)"
 
         loader = dataloader.StrictPerClassIncrementalLoader(data_dir=self.args.data_dir, pretrained_model_name=self.args.pretrained_model_name, base=base, increment=increment, num_labeled=num_labeled, num_novel_inc=num_novel_inc, num_known_inc=num_known_inc)
