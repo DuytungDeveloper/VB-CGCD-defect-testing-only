@@ -1299,3 +1299,33 @@ note: see the _s4 note
 why: GC10 phase 2 on fine-tuned features (full VB-CGCD pipeline: BOFT on labeled base + labeled S0)
 result: S0_All 82.16 | S1_New 35.51 | final_All 58.02 | M_d 35.51 | M_f 4.15
 note: 5 seeds: S0 81.49, Old 78.34 (+9.8 vs frozen), New 42.90 (-12.5), M_f 3.15 (10.12), final 61.67 (62.37); balanced base/novel 79.5/33.4 (70.0/37.6). Early stop in 5/5 seeds at 508-617 (frozen 1/5). Retention up, discovery down: silk->rolled 224, silk->crease 122, incl->oil 61. ONE phase-1 run (FT_SEED 42); pooler vs CLS confound
+
+## 20261001_020959__gc10_frozen_km_evhung_d64_regress_s0
+why: regression: --s0_labels default must reproduce gc10_frozen_km_evhung_d64_s0
+result: S0_All 77.59 | S1_New 52.80 | final_All 60.66 | M_d 52.80 | M_f 9.96
+note: metrics.json identical (all keys); confusion line identical
+
+## 20261001_090854__gc10_fr_nolab_km_evhung_d64_s0
+why: GC10 label-free point: frozen DINO + --s0_labels none (S0 = k-means k=5; test Hungarian for evaluation only)
+result: S0_All 59.34 | S1_New 51.87 | final_All 53.63 | M_d 51.87 | M_f 4.15
+note: see the _s4 note
+
+## 20261001_091109__gc10_fr_nolab_km_evhung_d64_s1
+why: GC10 label-free point: frozen DINO + --s0_labels none (S0 = k-means k=5; test Hungarian for evaluation only)
+result: S0_All 62.66 | S1_New 32.71 | final_All 46.37 | M_d 32.71 | M_f 4.15
+note: see the _s4 note
+
+## 20261001_091319__gc10_fr_nolab_km_evhung_d64_s2
+why: GC10 label-free point: frozen DINO + --s0_labels none (S0 = k-means k=5; test Hungarian for evaluation only)
+result: S0_All 58.92 | S1_New 56.07 | final_All 55.38 | M_d 56.07 | M_f 4.15
+note: see the _s4 note
+
+## 20261001_091533__gc10_fr_nolab_km_evhung_d64_s3
+why: GC10 label-free point: frozen DINO + --s0_labels none (S0 = k-means k=5; test Hungarian for evaluation only)
+result: S0_All 54.77 | S1_New 56.07 | final_All 52.53 | M_d 56.07 | M_f 5.39
+note: see the _s4 note
+
+## 20261001_091748__gc10_fr_nolab_km_evhung_d64_s4
+why: GC10 label-free point: frozen DINO + --s0_labels none (S0 = k-means k=5; test Hungarian for evaluation only)
+result: S0_All 59.34 | S1_New 56.07 | final_All 55.82 | M_d 56.07 | M_f 3.73
+note: 5 seeds: S0 59.00+-2.81, Old 54.69, New 50.56+-10.14, M_f 4.31 (low only because S0 is low), final 52.75; balanced base/novel 58.0/36.3 (labeled-S0 frozen 70.0/37.6, fine-tuned 79.5/33.4): novel discovery does not need S0 labels. welding_line recall 6 (->punch 150, ->cresc 84: co-occurring trio). Smallest S0 cluster 53-67 < num_dim 64 in 3/5 seeds (D21 risk), no NaN
