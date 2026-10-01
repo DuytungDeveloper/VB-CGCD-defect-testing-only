@@ -119,6 +119,10 @@ if __name__ == '__main__':
                         help="shrinkage target: 'pooled' within-class covariance (v1) or 'sphere' = (trace/d) I (v2)")
     parser.add_argument('--estimator', type=str, default='svi', choices=['svi', 'closed'],
                         help="per-class Gaussians: 'svi' = upstream SVI; 'closed' = mean + Ledoit-Wolf covariance (B)")
+    parser.add_argument('--mask_unseen', action='store_true',
+                        help='diagnostic: argmax over the classes seen so far only (default: all num_classes slots, as upstream)')
+    parser.add_argument('--oracle_filter', action='store_true',
+                        help='DIAGNOSTIC ONLY, uses true labels: ground-truth old/new filter before the S-pass')
     parser.add_argument('--kmeans_n_init', type=int, default=10,
                         help='k-means restarts (kept in config.json by exp.py; ignored for gmm)')
     parser.add_argument('--gmm_n_init', type=int, default=1,
@@ -164,6 +168,8 @@ if __name__ == '__main__':
     s_classifier.cov_prior_kappa = args.cov_prior_kappa   # improvement 1 (0 = MLE, upstream)
     s_classifier.cov_prior_target = args.cov_prior_target
     s_classifier.estimator = args.estimator   # B (default 'svi' = upstream)
+    s_classifier.mask_unseen = args.mask_unseen
+    s_classifier.oracle_filter = args.oracle_filter
     s_classifier.init_parameters(n_epochs=args.n_epochs, lr=args.lr, log_dir=f"logs/{log_saved_dir}/log/stage0", save_dir=f"logs/{log_saved_dir}/saved_models/stage0", batch_size=args.batch_size, increment=args.increment, base=args.base, scaling_factor=args.scaling_factor, use_correct_scaling_factor=args.use_correct_scaling_factor, early_stop_ratio=args.early_stop_ratio)
 
     for i, (train_data, test_data, test_old_data, test_all_data) in enumerate(zip(train_loader, test_loader, test_old_loader, test_all_loader)): 
@@ -228,6 +234,7 @@ if __name__ == '__main__':
 
             testing_set = {'test_old': test_old, 'test_all': test_all, 'known_test': known_test_data}
 
+            s_classifier.oracle_novel = np.asarray(train_data._y).astype(int) >= label_offset   # used only with --oracle_filter
             s_classifier.run(train_data._x, pred, test_novel._x, test_novel._y, current_stage=i, testing_set=testing_set)
             if args.print_confusion:             # diagnostic only, after the metrics table
                 from sklearn.metrics import confusion_matrix

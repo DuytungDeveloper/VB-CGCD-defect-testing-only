@@ -212,6 +212,8 @@ class MNGMMClassifier():
         test_features, test_labels = self.pre_processing(test_features, test_labels)
 
         labels = labels.astype(int)
+        first = self.global_params is None      # classes seen so far, this stage included (--mask_unseen)
+        self.n_seen = self.num_base if first else self.label_offset + self.increment
 
         if getattr(self, "estimator", "svi") == "closed":   # B: closed form, no SVI
             self.params = self._fit_closed(features, labels, prev=self.global_params, tag="F")
@@ -223,6 +225,8 @@ class MNGMMClassifier():
         if self.global_params is not None:
 
             novel_idx = pred_labels >= self.label_offset
+            if getattr(self, "oracle_filter", False):   # DIAGNOSTIC ONLY (true labels): never part of the method
+                novel_idx = jnp.asarray(self.oracle_novel)
 
             print(f"Number of Novel Samples: {novel_idx.sum()} / {len(features)}")
 
@@ -281,6 +285,9 @@ class MNGMMClassifier():
             log_probs.append(mvn.log_prob(X))
         
         log_probs = jnp.stack(log_probs, axis=-1)
+        n_seen = getattr(self, "n_seen", None)
+        if getattr(self, "mask_unseen", False) and n_seen is not None:   # diagnostic H1: argmax over seen classes only
+            log_probs = log_probs.at[..., n_seen:].set(-jnp.inf)
         return jnp.argmax(log_probs, axis=-1), log_probs
 
 
