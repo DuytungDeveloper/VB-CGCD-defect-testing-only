@@ -370,6 +370,21 @@ impact: if a class has fewer rows than the fixed count, x is shorter than y and 
 fix:    dataloaders/gc10.py SplitCountIncrementalLoader: per-class counts from the split file, labels from
         the rows actually taken; identical to the parent when counts are equal (checked on NEU features).
 
+## D23. The Gaussian classifier barely leaves its initialisation (optimisation budget)
+code:   classifier/mngmm.py run_inference: Adam on mu (init 0) and Sigma (init I); lr warm-up 4e-6 -> 4e-5 over
+        100 steps, then x0.85 per 500 steps; 1000 steps (early stop can end sooner).
+fact:   Adam's step per parameter is roughly bounded by the step size (Kingma & Ba, ICLR 2015, Sec 2.1; worst case
+        ~3.16x for beta1 0.9, beta2 0.999). The schedule sums to 0.0334 over 1000 steps.
+measured (stage-0 checkpoints, 2026-10-01): GC10 frozen, d 64: max |mu| 0.0329, max ||mu_k|| 0.125 vs data
+        class-mean norms 15.5-25.9 (||x|| ~39); max |Sigma - I| element 0.0323; learned Sigma eigenvalues 0.88-1.33
+        vs data sample-covariance eigenvalue means 14-20. CIFAR-100 c100_km_evhung_s0, d 384: max |mu| 0.0283,
+        max ||mu_k|| 0.147, max |Sigma - I| element 0.0300. Parameters moved at about the maximum rate.
+impact: [INFERENCE] the classifier is its initialisation plus a sign-gradient-sized perturbation; decisions come
+        from these perturbations amplified by the feature norm, not from fitted Gaussians. Explains D11 (Sigma ~ I);
+        D14 (det(I + E) ~ exp(tr E): det > 1 when feature variance > 1, < 1 when < 1, so the stop rule is in effect a
+        step-count rule set by the feature scale); D21 (spectral drift up to ~d x 0.033: 2.1 at d 64, 12.8 at d 384).
+        A covariance prior on this objective is inert: improvement 1 v1 left the learned Sigma unchanged on GC10.
+
 ## Additional notes on the fine-tuning implementation
 - BOFT config declared: boft_block_size=4, boft_n_butterfly_factor=2, boft_dropout=0.1,
   bias="boft_only", target_modules=["output.dense","mlp.fc1","mlp.fc2"].

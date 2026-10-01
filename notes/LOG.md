@@ -1389,3 +1389,43 @@ note: see the _s4 note
 why: GC10 phase 2 on FT-seed-1 features
 result: S0_All 85.48 | S1_New 36.92 | final_All 61.76 | M_d 36.92 | M_f 1.66
 note: 5 seeds: S0 84.98, Old 82.74, New 39.44, M_f 2.24, final 62.37; balanced base/novel 83.4/29.2. FT seeds 42/0/1: retention gain robust (Old 78.3/81.3/82.7 vs frozen 68.6, M_f 3.2/3.9/2.2 vs 10.1); discovery NOT robust (bal novel 33.4/39.4/29.2 vs frozen 37.6): phase-1 seed variance dominates
+
+## 20261001_132428__gc10_frozen_km_evhung_d64_regress2_s0
+why:
+result: S0_All 77.59 | S1_New 52.80 | final_All 60.66 | M_d 52.80 | M_f 9.96
+note:
+
+## 20261001_132728__neu_km_evhung_d384_k64_s0
+why: improvement 1 v1 mechanism test: NEU d 384 (5/5 NaN under MLE) + inverse-Wishart prior, kappa 64, pooled target
+result: FAILED exit=1
+note: FAILED the pre-registered test: S0 NaN in s2 (step 531) and s3 (515); S0 test decays after step 400 while train stays 100%; S1 F-pass train_acc 0, novel kept 0, crash in every seed. Cause: the optimisation budget (D23), not only the target
+
+## 20261001_132931__neu_km_evhung_d384_k64_s1
+why: improvement 1 v1 mechanism test: NEU d 384 (5/5 NaN under MLE) + inverse-Wishart prior, kappa 64, pooled target
+result: FAILED exit=1
+note: FAILED the pre-registered test: S0 NaN in s2 (step 531) and s3 (515); S0 test decays after step 400 while train stays 100%; S1 F-pass train_acc 0, novel kept 0, crash in every seed. Cause: the optimisation budget (D23), not only the target
+
+## 20261001_133148__neu_km_evhung_d384_k64_s2
+why: improvement 1 v1 mechanism test: NEU d 384 (5/5 NaN under MLE) + inverse-Wishart prior, kappa 64, pooled target
+result: FAILED exit=1
+note: FAILED the pre-registered test: S0 NaN in s2 (step 531) and s3 (515); S0 test decays after step 400 while train stays 100%; S1 F-pass train_acc 0, novel kept 0, crash in every seed. Cause: the optimisation budget (D23), not only the target
+
+## 20261001_133336__neu_km_evhung_d384_k64_s3
+why: improvement 1 v1 mechanism test: NEU d 384 (5/5 NaN under MLE) + inverse-Wishart prior, kappa 64, pooled target
+result: FAILED exit=1
+note: FAILED the pre-registered test: S0 NaN in s2 (step 531) and s3 (515); S0 test decays after step 400 while train stays 100%; S1 F-pass train_acc 0, novel kept 0, crash in every seed. Cause: the optimisation budget (D23), not only the target
+
+## 20261001_133514__neu_km_evhung_d384_k64_s4
+why: improvement 1 v1 mechanism test: NEU d 384 (5/5 NaN under MLE) + inverse-Wishart prior, kappa 64, pooled target
+result: FAILED exit=1
+note: FAILED the pre-registered test: S0 NaN in s2 (step 531) and s3 (515); S0 test decays after step 400 while train stays 100%; S1 F-pass train_acc 0, novel kept 0, crash in every seed. Cause: the optimisation budget (D23), not only the target
+
+## 20261001_135215__gc10_frozen_km_evhung_d64_k64_regress_s0
+why: meant as the v2 regression (pooled), but no v1 GC10 run existed: GC10 kappa 64 pooled, seed 0
+result: S0_All 78.42 | S1_New 42.06 | final_All 59.34 | M_d 42.06 | M_f 3.73
+note: S0 78.42, Old 74.69, New 42.06, M_f 3.73 (kappa 0: 77.59 / 67.63 / 52.80 / 9.96). Learned Sigma eigenvalue mean 1.031 (kappa 0: 1.029) and F-pass new-class dets identical to kappa 0: the prior is inert (D23); differences are side effects
+
+## 20261001_135839__neu_km_evhung_d384_k64_regress_s0
+why: v2 code, pooled target: regression against neu_km_evhung_d384_k64_s0 (v1 code)
+result: FAILED exit=1
+note: NOT identical: loss equal up to step 400, diverges from step 500 (S0 74.44 vs 81.67). Likely GPU numerical non-determinism amplified in the near-singular regime; not re-checked because the SVI prior was dropped (D23)
