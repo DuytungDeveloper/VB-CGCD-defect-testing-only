@@ -73,7 +73,7 @@ class GC10Loader():
         n_use = [split["n_use"][c] for c in split["classes"]]
         assert (self.args.base, self.args.increment, self.args.num_classes) == (base, increment, 10), \
             "GC10 t1: run with --base 5 --increment 5 --num_classes 10"
-        assert self.args.num_dim < min(n_use[:base]) or getattr(self.args, 'cov_prior_kappa', 0) > 0, \
+        assert self.args.num_dim < min(n_use[:base]) or getattr(self.args, 'cov_prior_kappa', 0) > 0 or getattr(self.args, 'estimator', 'svi') == 'closed', \
             f"GC10: --num_dim must be < {min(n_use[:base])} (smallest labeled base class), else Sigma collapses (D21)"
         m = self.args.pretrained_model_name
         y = np.load(f"{self.args.data_dir}/{m}/labels-{m}.npy").astype(int)

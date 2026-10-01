@@ -213,7 +213,10 @@ class MNGMMClassifier():
 
         labels = labels.astype(int)
 
-        self.params = self.run_inference(jnp.array(features), jnp.array(labels), jnp.array(test_features), jnp.array(test_labels), log_prefix=f"stage_{current_stage}_Flearning", use_correct_scaling_factor=False)
+        if getattr(self, "estimator", "svi") == "closed":   # B: closed form, no SVI
+            self.params = self._fit_closed(features, labels, prev=self.global_params, tag="F")
+        else:
+            self.params = self.run_inference(jnp.array(features), jnp.array(labels), jnp.array(test_features), jnp.array(test_labels), log_prefix=f"stage_{current_stage}_Flearning", use_correct_scaling_factor=False)
 
         pred_labels, _ =self._predict(jnp.array(features), self.params)
 
@@ -229,10 +232,25 @@ class MNGMMClassifier():
             features = features[novel_idx]
             labels = labels[novel_idx]
 
-            self.params = self.run_inference(jnp.array(features), jnp.array(labels), jnp.array(test_features), jnp.array(test_labels), log_prefix=f"stage_{current_stage}_Slearning", use_correct_scaling_factor=self.use_correct_scaling_factor)
+            if getattr(self, "estimator", "svi") == "closed":
+                self.params = self._fit_closed(features, labels, prev=self.params, tag="S")   # prev = pass F
+            else:
+                self.params = self.run_inference(jnp.array(features), jnp.array(labels), jnp.array(test_features), jnp.array(test_labels), log_prefix=f"stage_{current_stage}_Slearning", use_correct_scaling_factor=self.use_correct_scaling_factor)
         
         self.global_params = copy.deepcopy(self.params)
 
+
+    def _fit_closed(self, features, labels, prev, tag):
+        # B: per-class Gaussians in closed form (classifier/closed_form.py): sample mean + Ledoit-Wolf
+        # covariance; no learning rate, no early stop. Only this stage's classes; old ones copied from prev.
+        from classifier.closed_form import closed_form_params
+        first = self.global_params is None
+        lo = 0 if first else self.label_offset
+        classes = list(range(lo, lo + (self.num_base if first else self.increment)))
+        p, info = closed_form_params(np.asarray(features), np.asarray(labels), classes, prev=prev, num_classes=self.num_classes)
+        print(f"closed-form {tag}: " + ", ".join(f"{k}: n={n} a={'-' if a is None else format(a, '.3f')}" for k, (n, a, _) in info.items()))
+        return {"class_means": jnp.asarray(p["class_means"], dtype=jnp.float32),
+                "class_covs": jnp.asarray(p["class_covs"], dtype=jnp.float32)}
 
     def calculate_acc(self, params, test_features, test_labels):
 
