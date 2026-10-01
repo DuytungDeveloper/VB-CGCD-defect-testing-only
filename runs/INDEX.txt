@@ -234,3 +234,15 @@ started           tag                                   exit    min  dirty     e
 2026-10-01 09:13  gc10_fr_nolab_km_evhung_d64_s2           0    2.2     no  f70b1a  703bbd   58.92   56.07      55.38   56.07   4.15  20261001_091319__gc10_fr_nolab_km_evhung_d64_s2
 2026-10-01 09:15  gc10_fr_nolab_km_evhung_d64_s3           0    2.2     no  f70b1a  703bbd   54.77   56.07      52.53   56.07   5.39  20261001_091533__gc10_fr_nolab_km_evhung_d64_s3
 2026-10-01 09:17  gc10_fr_nolab_km_evhung_d64_s4           0    2.2     no  f70b1a  703bbd   59.34   56.07      55.82   56.07   3.73  20261001_091748__gc10_fr_nolab_km_evhung_d64_s4
+2026-10-01 09:38  gc10_extract_ftseed0                     0    5.7     no  f70b1a  720382       -       -          -       -      -  20261001_093838__gc10_extract_ftseed0
+2026-10-01 09:44  gc10_ftseed0_km_evhung_d64_s0            0    2.0     no  f70b1a  fd7468   85.48   57.48      69.89   57.48   4.56  20261001_094417__gc10_ftseed0_km_evhung_d64_s0
+2026-10-01 09:46  gc10_ftseed0_km_evhung_d64_s1            0    2.0     no  f70b1a  fd7468   85.48   57.48      69.89   57.48   4.56  20261001_094619__gc10_ftseed0_km_evhung_d64_s1
+2026-10-01 09:48  gc10_ftseed0_km_evhung_d64_s2            0    1.9     no  f70b1a  fd7468   84.65   49.07      66.37   49.07   2.90  20261001_094819__gc10_ftseed0_km_evhung_d64_s2
+2026-10-01 09:50  gc10_ftseed0_km_evhung_d64_s3            0    1.9     no  f70b1a  fd7468   85.06   56.54      69.67   56.54   3.73  20261001_095014__gc10_ftseed0_km_evhung_d64_s3
+2026-10-01 09:52  gc10_ftseed0_km_evhung_d64_s4            0    1.9     no  f70b1a  fd7468   85.48   57.01      70.11   57.01   3.73  20261001_095207__gc10_ftseed0_km_evhung_d64_s4
+2026-10-01 09:54  gc10_extract_ftseed1                     0    5.5     no  f70b1a  720382       -       -          -       -      -  20261001_095401__gc10_extract_ftseed1
+2026-10-01 09:59  gc10_ftseed1_km_evhung_d64_s0            0    2.0     no  f70b1a  286ac4   85.06   39.25      62.20   39.25   2.49  20261001_095933__gc10_ftseed1_km_evhung_d64_s0
+2026-10-01 10:01  gc10_ftseed1_km_evhung_d64_s1            0    2.0     no  f70b1a  286ac4   85.06   39.72      62.20   39.72   2.90  20261001_100132__gc10_ftseed1_km_evhung_d64_s1
+2026-10-01 10:03  gc10_ftseed1_km_evhung_d64_s2            0    1.9     no  f70b1a  286ac4   85.06   40.19      62.64   40.19   2.49  20261001_100330__gc10_ftseed1_km_evhung_d64_s2
+2026-10-01 10:05  gc10_ftseed1_km_evhung_d64_s3            0    1.8     no  f70b1a  286ac4   84.23   41.12      63.08   41.12   1.66  20261001_100525__gc10_ftseed1_km_evhung_d64_s3
+2026-10-01 10:07  gc10_ftseed1_km_evhung_d64_s4            0    1.9     no  f70b1a  286ac4   85.48   36.92      61.76   36.92   1.66  20261001_100716__gc10_ftseed1_km_evhung_d64_s4

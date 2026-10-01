@@ -1,0 +1,17 @@
+group gc10_ftseed0_km_evhung_d64   seeds 0 1 2 3 4   std uses n-1   made 2026-10-01T10:26:17+07:00
+runs  20261001_094417__gc10_ftseed0_km_evhung_d64_s0 20261001_094619__gc10_ftseed0_km_evhung_d64_s1 20261001_094819__gc10_ftseed0_km_evhung_d64_s2 20261001_095014__gc10_ftseed0_km_evhung_d64_s3 20261001_095207__gc10_ftseed0_km_evhung_d64_s4
+
+metric              n    mean    std     min     max  paper
+S0_All              5   85.23   0.37   84.65   85.48  91.68
+S0_S0test           5   85.23   0.37   84.65   85.48      -
+S1_cluster_max_min  5    2.97   0.11    2.86    3.08      -
+S1_novel_kept       5  694.80   4.38  689.00  701.00      -
+S1_estop_S          5  577.80  46.32  526.00  620.00      -
+S1_All              5   69.19   1.58   66.37   70.11  88.40
+S1_Old              5   81.33   0.41   80.91   81.74  89.46
+S1_New              5   55.51   3.63   49.07   57.48  83.10
+S1_S0test           5   81.33   0.41   80.91   81.74      -
+M_d                 5   55.52   3.62   49.07   57.48  79.14
+M_f                 5    3.90   0.69    2.90    4.56   6.94
+final_All           5   69.19   1.58   66.37   70.11  81.23
+n_stages            5    2.00   0.00    2.00    2.00   6.00

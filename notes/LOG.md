@@ -1329,3 +1329,63 @@ note: see the _s4 note
 why: GC10 label-free point: frozen DINO + --s0_labels none (S0 = k-means k=5; test Hungarian for evaluation only)
 result: S0_All 59.34 | S1_New 56.07 | final_All 55.82 | M_d 56.07 | M_f 3.73
 note: 5 seeds: S0 59.00+-2.81, Old 54.69, New 50.56+-10.14, M_f 4.31 (low only because S0 is low), final 52.75; balanced base/novel 58.0/36.3 (labeled-S0 frozen 70.0/37.6, fine-tuned 79.5/33.4): novel discovery does not need S0 labels. welding_line recall 6 (->punch 150, ->cresc 84: co-occurring trio). Smallest S0 cluster 53-67 < num_dim 64 in 3/5 seeds (D21 risk), no NaN
+
+## 20261001_093838__gc10_extract_ftseed0
+why: GC10 phase 1 fine-tune replicate (FT_SEED in the tag), same settings as gc10_extract (FT 42)
+result: (no metrics.json)
+note: see the gc10_ftseedN_km_evhung_d64_s4 note
+
+## 20261001_094417__gc10_ftseed0_km_evhung_d64_s0
+why: GC10 phase 2 on FT-seed replicate features
+result: S0_All 85.48 | S1_New 57.48 | final_All 69.89 | M_d 57.48 | M_f 4.56
+note: see the _s4 note
+
+## 20261001_094619__gc10_ftseed0_km_evhung_d64_s1
+why: GC10 phase 2 on FT-seed replicate features
+result: S0_All 85.48 | S1_New 57.48 | final_All 69.89 | M_d 57.48 | M_f 4.56
+note: see the _s4 note
+
+## 20261001_094819__gc10_ftseed0_km_evhung_d64_s2
+why: GC10 phase 2 on FT-seed replicate features
+result: S0_All 84.65 | S1_New 49.07 | final_All 66.37 | M_d 49.07 | M_f 2.90
+note: see the _s4 note
+
+## 20261001_095014__gc10_ftseed0_km_evhung_d64_s3
+why: GC10 phase 2 on FT-seed replicate features
+result: S0_All 85.06 | S1_New 56.54 | final_All 69.67 | M_d 56.54 | M_f 3.73
+note: see the _s4 note
+
+## 20261001_095207__gc10_ftseed0_km_evhung_d64_s4
+why: GC10 phase 2 on FT-seed-0 features
+result: S0_All 85.48 | S1_New 57.01 | final_All 70.11 | M_d 57.01 | M_f 3.73
+note: 5 seeds: S0 85.23, Old 81.33, New 55.51, M_f 3.90, final 69.19; balanced base/novel 82.4/39.4. FT seeds 42/0/1: retention gain robust (Old 78.3/81.3/82.7 vs frozen 68.6, M_f 3.2/3.9/2.2 vs 10.1); discovery NOT robust (bal novel 33.4/39.4/29.2 vs frozen 37.6): phase-1 seed variance dominates
+
+## 20261001_095401__gc10_extract_ftseed1
+why: GC10 phase 1 fine-tune replicate (FT_SEED in the tag), same settings as gc10_extract (FT 42)
+result: (no metrics.json)
+note: see the gc10_ftseedN_km_evhung_d64_s4 note
+
+## 20261001_095933__gc10_ftseed1_km_evhung_d64_s0
+why: GC10 phase 2 on FT-seed replicate features
+result: S0_All 85.06 | S1_New 39.25 | final_All 62.20 | M_d 39.25 | M_f 2.49
+note: see the _s4 note
+
+## 20261001_100132__gc10_ftseed1_km_evhung_d64_s1
+why: GC10 phase 2 on FT-seed replicate features
+result: S0_All 85.06 | S1_New 39.72 | final_All 62.20 | M_d 39.72 | M_f 2.90
+note: see the _s4 note
+
+## 20261001_100330__gc10_ftseed1_km_evhung_d64_s2
+why: GC10 phase 2 on FT-seed replicate features
+result: S0_All 85.06 | S1_New 40.19 | final_All 62.64 | M_d 40.19 | M_f 2.49
+note: see the _s4 note
+
+## 20261001_100525__gc10_ftseed1_km_evhung_d64_s3
+why: GC10 phase 2 on FT-seed replicate features
+result: S0_All 84.23 | S1_New 41.12 | final_All 63.08 | M_d 41.12 | M_f 1.66
+note: see the _s4 note
+
+## 20261001_100716__gc10_ftseed1_km_evhung_d64_s4
+why: GC10 phase 2 on FT-seed-1 features
+result: S0_All 85.48 | S1_New 36.92 | final_All 61.76 | M_d 36.92 | M_f 1.66
+note: 5 seeds: S0 84.98, Old 82.74, New 39.44, M_f 2.24, final 62.37; balanced base/novel 83.4/29.2. FT seeds 42/0/1: retention gain robust (Old 78.3/81.3/82.7 vs frozen 68.6, M_f 3.2/3.9/2.2 vs 10.1); discovery NOT robust (bal novel 33.4/39.4/29.2 vs frozen 37.6): phase-1 seed variance dominates
