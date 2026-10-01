@@ -82,8 +82,11 @@ class MNGMMClassifier():
         if kappa > 0 and getattr(self, "prior_T", None) is not None:
             # improvement 1: inverse-Wishart shrinkage on the covariances of THIS stage's classes only;
             # log p = -(kappa/2) (log|S| + tr(T S^-1)); MAP = (S_n + kappa T) / (n + kappa) (RDA, Friedman 1989)
-            lo = 0 if global_params is None else self.label_offset
-            hi = lo + (self.num_base if global_params is None else self.increment)
+            # stage from the object, not the argument: svi.update() never passes global_params, so the
+            # argument is None at every training step and S1+ hit the OLD classes (bug, LOG 2026-10-01)
+            first = self.global_params is None
+            lo = 0 if first else self.label_offset
+            hi = lo + (self.num_base if first else self.increment)
             S = class_covs[lo:hi]
             logdet = jnp.linalg.slogdet(S)[1]
             tr = jnp.trace(jnp.linalg.solve(S, jnp.broadcast_to(self.prior_T, S.shape)), axis1=-2, axis2=-1)
