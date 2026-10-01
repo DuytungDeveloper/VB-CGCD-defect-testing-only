@@ -116,16 +116,22 @@ class MNGMMClassifier():
 
         optimizer = numpyro.optim.optax_to_numpyro(optax.adam(scheduler))
 
-        if getattr(self, "cov_prior_kappa", 0.0) > 0:
-            # T = pooled within-class covariance of this pass, with the labels the model is trained on
+        self.prior_T = None
+        if getattr(self, "cov_prior_kappa", 0.0) > 0 and len(y) > 0:
+            # T = pooled within-class covariance of this pass, with the labels the model is trained on ('pooled', v1).
+            # 'sphere' (v2) = (trace(T)/d) I: well-conditioned target, Ledoit & Wolf (2004) / RDA gamma = 1 (Friedman 1989)
             Xn, yn = np.asarray(X), np.asarray(y).astype(int)
             T = np.zeros((Xn.shape[1], Xn.shape[1]))
             for k in np.unique(yn):
                 D = Xn[yn == k] - Xn[yn == k].mean(0)
                 T += D.T @ D
             T /= len(yn)
+            ev = np.linalg.eigvalsh(T)
+            if getattr(self, "cov_prior_target", "pooled") == "sphere":
+                T = ev.mean() * np.eye(T.shape[0])
             self.prior_T = jnp.array(T)
-            print(f"cov prior: kappa={self.cov_prior_kappa} trace(T)/d={np.trace(T) / T.shape[0]:.4f}")
+            print(f"cov prior: kappa={self.cov_prior_kappa} target={getattr(self, 'cov_prior_target', 'pooled')} "
+                  f"trace(T)/d={ev.mean():.4f} pooled min_eig/mean={ev.min() / ev.mean():.2e}")
 
         self.svi = SVI(self.model, guide=self.guide, optim=optimizer, loss=Trace_ELBO())
 

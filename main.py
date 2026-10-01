@@ -115,6 +115,8 @@ if __name__ == '__main__':
     parser.add_argument('--cov_prior_kappa', type=float, default=0.0,
                         help='improvement 1: inverse-Wishart shrinkage of class covariances toward the pooled '
                              'within-class covariance, kappa pseudo-samples (0 = MLE as upstream)')
+    parser.add_argument('--cov_prior_target', type=str, default='pooled', choices=['pooled', 'sphere'],
+                        help="shrinkage target: 'pooled' within-class covariance (v1) or 'sphere' = (trace/d) I (v2)")
     parser.add_argument('--kmeans_n_init', type=int, default=10,
                         help='k-means restarts (kept in config.json by exp.py; ignored for gmm)')
     parser.add_argument('--gmm_n_init', type=int, default=1,
@@ -157,6 +159,7 @@ if __name__ == '__main__':
 
     print(f"scaling factor: {args.scaling_factor}")
     s_classifier.cov_prior_kappa = args.cov_prior_kappa   # improvement 1 (0 = MLE, upstream)
+    s_classifier.cov_prior_target = args.cov_prior_target
     s_classifier.init_parameters(n_epochs=args.n_epochs, lr=args.lr, log_dir=f"logs/{log_saved_dir}/log/stage0", save_dir=f"logs/{log_saved_dir}/saved_models/stage0", batch_size=args.batch_size, increment=args.increment, base=args.base, scaling_factor=args.scaling_factor, use_correct_scaling_factor=args.use_correct_scaling_factor, early_stop_ratio=args.early_stop_ratio)
 
     for i, (train_data, test_data, test_old_data, test_all_data) in enumerate(zip(train_loader, test_loader, test_old_loader, test_all_loader)): 
