@@ -1233,6 +1233,13 @@ note: see the _s4 note
 why: clustering ablation on GC10: GMM n_init 10 instead of k-means (same features and settings)
 result: S0_All 78.84 | S1_New 50.93 | final_All 60.00 | M_d 50.93 | M_f 10.79
 note: 5 seeds: final 61.01+-1.41; balanced novel 37.7+-2.3 (= k-means 37.6); clusters even MORE balanced (max_min 1.66 vs 2.71); rare classes still ~0 -> GMM does not fix imbalance; bottleneck is the features (linear probe weak on the same classes)
+        CORRECTION (2026-10-02): "bottleneck is the features" withdrawn. (1) GMM(full, reg_covar 1e-6)
+        with n_k < d = 768: log-lik contains 6.91*[(d+1)N - sum n_k^2], so it favours equal-size clusters,
+        and EM stays at its k-means init -> gmm10 = the most balanced of 10 single-run k-means partitions
+        (post-hoc explanation of max_min 1.66 < 2.71; mechanism not yet checked). The ablation cannot test
+        the cluster-capacity hypothesis. (2) Linear probe (gc10_extract_frozen, unweighted LR): balanced
+        novel 69.0 vs pipeline 37.6 -> at least 31.4 points are lost in discovery, not in the features.
+        Reopened: notes/improvement-2.vi.md, plan.vi.md.
 
 ## 20261001_002948__gc10_extract_frozen_224x448
 why: resolution probe: frozen DINO at 224x448 (aspect kept), interpolate_pos_encoding

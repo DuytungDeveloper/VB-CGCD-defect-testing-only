@@ -112,12 +112,12 @@ Danh sách duy nhất của repo. Câu đã trả lời ghi kèm nơi có bằng
 - [x] **Benchmark chính?** GC10-DET: khám phá không nhãn thấp xa cận trên có giám sát, còn NEU chạm trần ở mọi mức nhãn (note LOG `gc10_extract_frozen`, `neu_extract_frozen`).
 - [x] **Chia dữ liệu?** Theo cuộn thép, để khung hình gần trùng không rơi vào cả train lẫn test; bỏ ảnh trùng điểm ảnh ở hai thư mục (`splits/gc10_split.json`).
 - [x] **Loader cho dữ liệu mất cân bằng?** Số ảnh theo từng lớp lấy từ file split (D22).
-- [x] **k-means hay GMM?** Như nhau về balanced novel; nút thắt là đặc trưng (note LOG `gc10_frozen_gmm10_evhung_d64_s4`).
 - [x] **Độ phân giải cao hơn?** Giúp proxy nhưng làm hỏng pipeline; giữ 224 (note LOG `gc10_fr224x448_km_evhung_d64_s4`).
 - [x] **Chuẩn hoá theo camera?** Camera có mặt trong đặc trưng, nhưng trừ trung bình không vượt nhiễu k-means (chẩn đoán 10 seed, không lưu run).
 - [x] **Fine-tune bằng nhãn lớp cơ sở?** Đánh đổi: giữ lớp cũ tốt hơn, khám phá lớp mới kém hơn (note LOG `gc10_ft_km_evhung_d64_s4`).
 
 ### Đang mở — GĐ3
+- [ ] **k-means hay GMM? (mở lại 2/10)** Phép so cũ không kiểm được giả thuyết sức chứa: GMM full ở n_k < d tự ưu tiên cụm đều; probe có nhãn cho thấy phần lớn mất mát nằm ở khâu khám phá. Bước kế: Q1 (`notes/improvement-2.vi.md`); CORRECTION ở note LOG `gc10_frozen_gmm10_evhung_d64_s4`.
 - [ ] S0 không nhãn: điểm thứ ba của trục lượng nhãn.
 - [ ] Đánh đổi ổn định–thích nghi có vững qua các FT seed không (ít nhất 2 seed nữa)?
 - [ ] Dừng sớm: không kích hoạt trên NEU, kích hoạt giữa chừng trên GC10 fine-tune (D14). Tắt dừng sớm thì khám phá lớp mới có khá hơn không?
