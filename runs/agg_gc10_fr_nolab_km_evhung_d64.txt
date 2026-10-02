@@ -1,4 +1,4 @@
-group gc10_fr_nolab_km_evhung_d64   seeds 0 1 2 3 4   std uses n-1   made 2026-10-01T09:35:12+07:00
+group gc10_fr_nolab_km_evhung_d64   seeds 0 1 2 3 4   std uses n-1   made 2026-10-02T02:18:23+07:00
 runs  20261001_090854__gc10_fr_nolab_km_evhung_d64_s0 20261001_091109__gc10_fr_nolab_km_evhung_d64_s1 20261001_091319__gc10_fr_nolab_km_evhung_d64_s2 20261001_091533__gc10_fr_nolab_km_evhung_d64_s3 20261001_091748__gc10_fr_nolab_km_evhung_d64_s4
 
 metric              n    mean    std     min     max  paper

@@ -1,4 +1,4 @@
-group gc10_frozen_km_evhung_d64   seeds 0 1 2 3 4   std uses n-1   made 2026-09-30T23:47:44+07:00
+group gc10_frozen_km_evhung_d64   seeds 0 1 2 3 4   std uses n-1   made 2026-10-02T02:18:23+07:00
 runs  20260930_233323__gc10_frozen_km_evhung_d64_s0 20260930_233811__gc10_frozen_km_evhung_d64_s1 20260930_234024__gc10_frozen_km_evhung_d64_s2 20260930_234238__gc10_frozen_km_evhung_d64_s3 20260930_234455__gc10_frozen_km_evhung_d64_s4
 
 metric              n    mean   std     min     max  paper

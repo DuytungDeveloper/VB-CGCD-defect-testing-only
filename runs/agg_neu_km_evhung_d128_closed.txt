@@ -1,0 +1,16 @@
+group neu_km_evhung_d128_closed   seeds 0 1 2 3 4   std uses n-1   made 2026-10-02T02:18:33+07:00
+runs  20261002_012617__neu_km_evhung_d128_closed_s0 20261002_012628__neu_km_evhung_d128_closed_s1 20261002_012639__neu_km_evhung_d128_closed_s2 20261002_012649__neu_km_evhung_d128_closed_s3 20261002_012701__neu_km_evhung_d128_closed_s4
+
+metric              n    mean   std     min     max  paper
+S0_All              5   98.56  0.63   97.78   99.44  91.68
+S0_S0test           5   98.56  0.63   97.78   99.44      -
+S1_cluster_max_min  5    1.11  0.01    1.09    1.12      -
+S1_novel_kept       5  583.40  2.07  582.00  587.00      -
+S1_All              5   99.83  0.25   99.44  100.00  88.40
+S1_Old              5   99.67  0.50   98.89  100.00  89.46
+S1_New              5  100.00  0.00  100.00  100.00  83.10
+S1_S0test           5   99.67  0.50   98.89  100.00      -
+M_d                 5  100.00  0.00  100.00  100.00  79.14
+M_f                 5   -1.11  0.56   -1.67   -0.56   6.94
+final_All           5   99.83  0.25   99.44  100.00  81.23
+n_stages            5    2.00  0.00    2.00    2.00   6.00

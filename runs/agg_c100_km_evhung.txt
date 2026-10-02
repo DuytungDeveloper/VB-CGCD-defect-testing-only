@@ -1,4 +1,4 @@
-group c100_km_evhung   seeds 0 1 2 3 4   std uses n-1   made 2026-09-29T22:34:40+07:00
+group c100_km_evhung   seeds 0 1 2 3 4   std uses n-1   made 2026-10-02T02:36:01+07:00
 runs  20260929_205507__c100_km_evhung_s0 20260929_210716__c100_km_evhung_s1 20260929_211926__c100_km_evhung_s2 20260929_213136__c100_km_evhung_s3 20260929_214418__c100_km_evhung_s4
 
 metric              n     mean    std      min      max  paper

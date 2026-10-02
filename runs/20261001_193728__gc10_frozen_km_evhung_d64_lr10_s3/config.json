@@ -1,0 +1,56 @@
+{
+  "run_id": "20261001_193728__gc10_frozen_km_evhung_d64_lr10_s3",
+  "tag": "gc10_frozen_km_evhung_d64_lr10_s3",
+  "command": [
+    "bash",
+    "scripts/run_phase2_cl.sh",
+    "--dataset",
+    "gc10",
+    "--base",
+    "5",
+    "--increment",
+    "5",
+    "--num_classes",
+    "10",
+    "--load_mode",
+    "t1",
+    "--pretrained_model_name",
+    "dino-vitb16",
+    "--clustering_alg",
+    "kmeans",
+    "--hungarian_on",
+    "eval",
+    "--num_dim",
+    "64",
+    "--print_confusion",
+    "--seed",
+    "3",
+    "--lr",
+    "4e-5"
+  ],
+  "cwd": "/home/rito/projects/VB-CGCD-defect",
+  "started": "2026-10-01T19:37:28+07:00",
+  "git": {
+    "commit": "20afc471281aae1e69314643c452421c46f17d56",
+    "dirty": true,
+    "dirty_files": [
+      "M classifier/mngmm.py"
+    ]
+  },
+  "env": {
+    "id": "f70b1aeb7805",
+    "pip_freeze": "runs/envs/f70b1aeb7805.txt",
+    "conda_env": "vbcgcd",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU, 616.92"
+  },
+  "python": "3.12.14",
+  "host": "Rito",
+  "inputs_source": "inputs.txt",
+  "inputs": {
+    "features/20260930_232359__gc10_extract_frozen/dino-vitb16": "703bbd7767fa2e84"
+  },
+  "warnings": [],
+  "finished": "2026-10-01T19:39:44+07:00",
+  "duration_min": 2.3,
+  "exit_code": 0
+}

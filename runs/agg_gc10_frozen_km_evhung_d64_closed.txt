@@ -1,0 +1,18 @@
+group gc10_frozen_km_evhung_d64_closed   seeds 0 1 2 3 4   std uses n-1   made 2026-10-02T02:18:23+07:00
+runs  20261002_010354__gc10_frozen_km_evhung_d64_closed_s0 20261002_012306__gc10_frozen_km_evhung_d64_closed_s1 20261002_012322__gc10_frozen_km_evhung_d64_closed_s2 20261002_012332__gc10_frozen_km_evhung_d64_closed_s3 20261002_012342__gc10_frozen_km_evhung_d64_closed_s4
+WARNING commit differs across runs
+WARNING some runs are dirty or unknown
+
+metric              n    mean   std     min     max  paper
+S0_All              5   81.99  0.63   81.33   82.99  91.68
+S0_S0test           5   81.99  0.63   81.33   82.99      -
+S1_cluster_max_min  5    2.71  0.56    1.72    3.13      -
+S1_novel_kept       5  714.40  4.28  708.00  720.00      -
+S1_All              5   67.03  0.75   65.93   67.91  88.40
+S1_Old              5   76.18  0.75   75.52   77.18  89.46
+S1_New              5   56.73  1.08   55.14   57.94  83.10
+S1_S0test           5   76.18  0.75   75.52   77.18      -
+M_d                 5   56.73  1.08   55.14   57.94  79.14
+M_f                 5    5.81  1.06    4.98    7.47   6.94
+final_All           5   67.03  0.75   65.93   67.91  81.23
+n_stages            5    2.00  0.00    2.00    2.00   6.00
