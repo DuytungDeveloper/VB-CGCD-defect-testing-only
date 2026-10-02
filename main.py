@@ -123,6 +123,9 @@ if __name__ == '__main__':
                         help='diagnostic: argmax over the classes seen so far only (default: all num_classes slots, as upstream)')
     parser.add_argument('--oracle_filter', action='store_true',
                         help='DIAGNOSTIC ONLY, uses true labels: ground-truth old/new filter before the S-pass')
+    parser.add_argument('--print_cluster_xtab', action='store_true',
+                        help='DIAGNOSTIC ONLY, uses true labels: after the metrics table, print the '
+                             'cluster x true-class tables (train pool, novel test) and the clustering objective')
     parser.add_argument('--kmeans_n_init', type=int, default=10,
                         help='k-means restarts (kept in config.json by exp.py; ignored for gmm)')
     parser.add_argument('--gmm_n_init', type=int, default=1,
@@ -244,3 +247,12 @@ if __name__ == '__main__':
                 cm = confusion_matrix(np.asarray(test_all_data._y).astype(int), inv[np.asarray(pr)],
                                       labels=np.arange(label_offset + args.increment))
                 print(f"confusion stage {i}: rows=true cols=pred {cm.tolist()}")
+            if args.print_cluster_xtab:          # DIAGNOSTIC ONLY (true labels). Lists only, never "(array([" or "|":
+                from sklearn.metrics.cluster import contingency_matrix   # scripts/extract_vbcgcd.py parses those
+                xt_rs = clustering.predict_raw(test_data._x)          # = the table pi_test is computed from
+                for xt_name, xt_y, xt_c in (("train", np.asarray(train_data._y).astype(int), raw),
+                                            ("test", np.asarray(test_data._y).astype(int), xt_rs)):
+                    print(f"xtab stage {i} {xt_name}: rows={np.unique(xt_y).tolist()} cols={np.unique(xt_c).tolist()} "
+                          f"{contingency_matrix(xt_y, xt_c).tolist()}")
+                print(f"xtab stage {i} objective: inertia={getattr(clustering.model, 'inertia_', None)} "
+                      f"lower_bound={getattr(clustering.model, 'lower_bound_', None)}")
