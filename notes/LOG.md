@@ -1651,3 +1651,33 @@ note:
 why:
 result: S0_All 87.60 | S1_New 74.50 | final_All 74.51 | M_d 74.56 | M_f 10.68
 note:
+
+## 20261002_172051__gc10_frozen_km_evhung_d64_regress6_s0
+why:
+result: S0_All 77.59 | S1_New 52.80 | final_All 60.66 | M_d 52.80 | M_f 9.96
+note:
+
+## 20261002_173759__gc10_frozen_km_evhung_d64_xtab_s0
+why:
+result: S0_All 77.59 | S1_New 52.80 | final_All 60.66 | M_d 52.80 | M_f 9.96
+note:
+
+## 20261002_174018__gc10_frozen_km_evhung_d64_xtab_s1
+why:
+result: S0_All 78.84 | S1_New 56.07 | final_All 62.64 | M_d 56.07 | M_f 10.37
+note:
+
+## 20261002_174233__gc10_frozen_km_evhung_d64_xtab_s2
+why:
+result: S0_All 79.25 | S1_New 56.07 | final_All 62.86 | M_d 56.07 | M_f 10.37
+note:
+
+## 20261002_174449__gc10_frozen_km_evhung_d64_xtab_s3
+why:
+result: S0_All 78.84 | S1_New 56.07 | final_All 62.86 | M_d 56.07 | M_f 9.96
+note:
+
+## 20261002_174703__gc10_frozen_km_evhung_d64_xtab_s4
+why:
+result: S0_All 78.84 | S1_New 56.07 | final_All 62.86 | M_d 56.07 | M_f 9.96
+note:
