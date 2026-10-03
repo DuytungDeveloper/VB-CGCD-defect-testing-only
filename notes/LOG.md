@@ -1681,3 +1681,8 @@ note:
 why:
 result: S0_All 78.84 | S1_New 56.07 | final_All 62.86 | M_d 56.07 | M_f 9.96
 note:
+
+## 2026-10-03 role split
+why: laptop = exploration only; official numbers are run on the server with tag prefix srv_
+result: laptop runs up to here are archived at tag archive-2026-10-02 (git show archive-2026-10-02:runs/<run>/metrics.json); console.log backup on drive E: vbcgcd-console-2026-10-02.tgz
+note: run folders and agg files removed from the working branch; runs/paper, columns.txt, inputs.txt kept

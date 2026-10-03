@@ -25,6 +25,7 @@ hoặc mã D-xx trong `notes/paper-code-discrepancies.md`. Tên cũ: `notes/vari
 - Chọn (λ, τ) **không được** nhìn tập test hoặc nhãn của lớp 50–99.
 - **Không đổi batch size lúc trích đặc trưng (128)**: nó quyết định tập có nhãn của phase 2 (D17).
 - Commit code trước mỗi run (dirty = no).
+- **Từ 3/10, tách vai trò:** laptop chỉ thăm dò hướng mới; số chính thức chạy trên server, tag có tiền tố `srv_` để `exp.py agg` không trộn với run laptop. Kết quả laptop trước 3/10 nằm ở tag `archive-2026-10-02`. Giữ đường chạy CIFAR để hiệu chuẩn server với số của paper.
 - Tag GĐ2 (đã chạy): `c100_km_evhung_s0..s4` (D13); `c100_extract_base400` + `c100_km_evhung_base400_s0..s4` (D9).
 - Từ GĐ3: mọi run phase 2 dùng `--hungarian_on eval`; phase 1 fine-tune chỉ trên tập có nhãn (sửa D9).
 - Phase 1 luôn gọi qua `exp.py run TAG --inputs - -- …` (phase 1 không đọc `runs/inputs.txt`).
