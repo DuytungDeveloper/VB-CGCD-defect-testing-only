@@ -1,2 +1,7 @@
-started  tag    exit  min  dirty  env  input  S0_All  S1_New  final_All    M_d   M_f  run
-         paper     0    -     no    ?      ?   91.68   83.10      81.23  79.14  6.94  paper
+started           tag                                exit  min  dirty     env   input  S0_All  S1_New  final_All    M_d    M_f  run
+                  paper                                 0    -     no       ?       ?   91.68   83.10      81.23  79.14   6.94  paper
+2026-10-04 13:28  gc10_frozen_km_evhung_d64_head_s0     0  2.3     no  f70b1a  703bbd   77.59   52.80      60.66  52.80   9.96  20261004_132842__gc10_frozen_km_evhung_d64_head_s0
+2026-10-04 13:30  gc10_frozen_km_evhung_d64_head_s1     0  2.3     no  f70b1a  703bbd   78.84   56.07      62.64  56.07  10.37  20261004_133059__gc10_frozen_km_evhung_d64_head_s1
+2026-10-04 13:33  gc10_frozen_km_evhung_d64_head_s2     0  2.3     no  f70b1a  703bbd   79.25   56.07      62.86  56.07  10.37  20261004_133314__gc10_frozen_km_evhung_d64_head_s2
+2026-10-04 13:35  gc10_frozen_km_evhung_d64_head_s3     0  2.3     no  f70b1a  703bbd   78.84   56.07      62.86  56.07   9.96  20261004_133529__gc10_frozen_km_evhung_d64_head_s3
+2026-10-04 13:37  gc10_frozen_km_evhung_d64_head_s4     0  2.3     no  f70b1a  703bbd   78.84   56.07      62.86  56.07   9.96  20261004_133745__gc10_frozen_km_evhung_d64_head_s4

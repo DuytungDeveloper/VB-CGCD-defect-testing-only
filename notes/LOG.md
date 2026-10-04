@@ -1686,3 +1686,28 @@ note: Metrics match the base runs. R1 (s1-s4): silk takes 3 of 5 clusters; creas
 why: laptop = exploration only; official numbers are run on the server with tag prefix srv_
 result: laptop runs up to here are archived at tag archive-2026-10-02 (git show archive-2026-10-02:runs/<run>/metrics.json); console.log backup on drive E: vbcgcd-console-2026-10-02.tgz
 note: run folders and agg files removed from the working branch; runs/paper, columns.txt, inputs.txt kept
+
+## 20261004_132842__gc10_frozen_km_evhung_d64_head_s0
+why: integrity check at HEAD 831386c after deleting 11 f5_* feature dirs and 3 bit-identical duplicates; regenerates the k=5 crosstabs for the PL-Q1 proxy check (console.log is untracked)
+result: S0_All 77.59 | S1_New 52.80 | final_All 60.66 | M_d 52.80 | M_f 9.96
+note: see the _s4 note
+
+## 20261004_133059__gc10_frozen_km_evhung_d64_head_s1
+why: integrity check at HEAD 831386c after deleting 11 f5_* feature dirs and 3 bit-identical duplicates; regenerates the k=5 crosstabs for the PL-Q1 proxy check (console.log is untracked)
+result: S0_All 78.84 | S1_New 56.07 | final_All 62.64 | M_d 56.07 | M_f 10.37
+note: see the _s4 note
+
+## 20261004_133314__gc10_frozen_km_evhung_d64_head_s2
+why: integrity check at HEAD 831386c after deleting 11 f5_* feature dirs and 3 bit-identical duplicates; regenerates the k=5 crosstabs for the PL-Q1 proxy check (console.log is untracked)
+result: S0_All 79.25 | S1_New 56.07 | final_All 62.86 | M_d 56.07 | M_f 10.37
+note: see the _s4 note
+
+## 20261004_133529__gc10_frozen_km_evhung_d64_head_s3
+why: integrity check at HEAD 831386c after deleting 11 f5_* feature dirs and 3 bit-identical duplicates; regenerates the k=5 crosstabs for the PL-Q1 proxy check (console.log is untracked)
+result: S0_All 78.84 | S1_New 56.07 | final_All 62.86 | M_d 56.07 | M_f 9.96
+note: see the _s4 note
+
+## 20261004_133745__gc10_frozen_km_evhung_d64_head_s4
+why: integrity check at HEAD 831386c after deleting 11 f5_* feature dirs and 3 bit-identical duplicates; regenerates the k=5 crosstabs for the PL-Q1 proxy check (console.log is untracked)
+result: S0_All 78.84 | S1_New 56.07 | final_All 62.86 | M_d 56.07 | M_f 9.96
+note: metrics.json identical to archive-2026-10-02 xtab_s0-s4 on every key (5/5 seeds); same feature input hash; env unchanged. The crosstabs exist only in the local console.log files.
