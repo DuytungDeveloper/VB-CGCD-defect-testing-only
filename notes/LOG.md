@@ -1653,34 +1653,34 @@ result: S0_All 87.60 | S1_New 74.50 | final_All 74.51 | M_d 74.56 | M_f 10.68
 note:
 
 ## 20261002_172051__gc10_frozen_km_evhung_d64_regress6_s0
-why:
+why: H2-Q1 regression: --print_cluster_xtab off must reproduce the base run.
 result: S0_All 77.59 | S1_New 52.80 | final_All 60.66 | M_d 52.80 | M_f 9.96
-note:
+note: Matches the base run exactly.
 
 ## 20261002_173759__gc10_frozen_km_evhung_d64_xtab_s0
-why:
+why: H2-Q1 (pre-registered in notes/improvement-2.vi.md): cluster x true-class crosstab on the S1 pool.
 result: S0_All 77.59 | S1_New 52.80 | final_All 60.66 | M_d 52.80 | M_f 9.96
-note:
+note: See the _s4 note.
 
 ## 20261002_174018__gc10_frozen_km_evhung_d64_xtab_s1
-why:
+why: H2-Q1 (pre-registered in notes/improvement-2.vi.md): cluster x true-class crosstab on the S1 pool.
 result: S0_All 78.84 | S1_New 56.07 | final_All 62.64 | M_d 56.07 | M_f 10.37
-note:
+note: See the _s4 note.
 
 ## 20261002_174233__gc10_frozen_km_evhung_d64_xtab_s2
-why:
+why: H2-Q1 (pre-registered in notes/improvement-2.vi.md): cluster x true-class crosstab on the S1 pool.
 result: S0_All 79.25 | S1_New 56.07 | final_All 62.86 | M_d 56.07 | M_f 10.37
-note:
+note: See the _s4 note.
 
 ## 20261002_174449__gc10_frozen_km_evhung_d64_xtab_s3
-why:
+why: H2-Q1 (pre-registered in notes/improvement-2.vi.md): cluster x true-class crosstab on the S1 pool.
 result: S0_All 78.84 | S1_New 56.07 | final_All 62.86 | M_d 56.07 | M_f 9.96
-note:
+note: See the _s4 note.
 
 ## 20261002_174703__gc10_frozen_km_evhung_d64_xtab_s4
-why:
+why: H2-Q1 (pre-registered in notes/improvement-2.vi.md): cluster x true-class crosstab on the S1 pool.
 result: S0_All 78.84 | S1_New 56.07 | final_All 62.86 | M_d 56.07 | M_f 9.96
-note:
+note: Metrics match the base runs. R1 (s1-s4): silk takes 3 of 5 clusters; crease and rolled sit in the waist cluster; two near-pure silk clusters take the names rolled/crease (recall 0). P1 true, P2 invalid (no ownership condition), P3 true, P4 false; s0 is mode R0. Details: notes/improvement-2.vi.md, Q1 results.
 
 ## 2026-10-03 role split
 why: laptop = exploration only; official numbers are run on the server with tag prefix srv_
