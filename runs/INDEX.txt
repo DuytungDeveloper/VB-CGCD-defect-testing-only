@@ -5,3 +5,11 @@ started           tag                                exit  min  dirty     env   
 2026-10-04 13:33  gc10_frozen_km_evhung_d64_head_s2     0  2.3     no  f70b1a  703bbd   79.25   56.07      62.86  56.07  10.37  20261004_133314__gc10_frozen_km_evhung_d64_head_s2
 2026-10-04 13:35  gc10_frozen_km_evhung_d64_head_s3     0  2.3     no  f70b1a  703bbd   78.84   56.07      62.86  56.07   9.96  20261004_133529__gc10_frozen_km_evhung_d64_head_s3
 2026-10-04 13:37  gc10_frozen_km_evhung_d64_head_s4     0  2.3     no  f70b1a  703bbd   78.84   56.07      62.86  56.07   9.96  20261004_133745__gc10_frozen_km_evhung_d64_head_s4
+2026-10-05 01:30  gc10_fz_cls5first_img80pct            0  0.5     no  f70b1a  720382       -       -          -      -      -  20261005_013042__gc10_fz_cls5first_img80pct
+2026-10-05 01:31  gc10_ft_cls5first_img80pct_r0         0  7.1     no  f70b1a  720382       -       -          -      -      -  20261005_013115__gc10_ft_cls5first_img80pct_r0
+2026-10-05 01:38  gc10_ft_cls5first_img80pct_r1         0  5.6     no  f70b1a  720382       -       -          -      -      -  20261005_013822__gc10_ft_cls5first_img80pct_r1
+2026-10-05 01:43  gc10_ft_cls5first_img80pct_r2         0  5.6     no  f70b1a  720382       -       -          -      -      -  20261005_014356__gc10_ft_cls5first_img80pct_r2
+2026-10-05 01:49  neu_fz_cls3first_img80pct             0  0.3     no  f70b1a  f98070       -       -          -      -      -  20261005_014929__neu_fz_cls3first_img80pct
+2026-10-05 01:49  neu_ft_cls3first_img80pct_r0          0  4.1     no  f70b1a  f98070       -       -          -      -      -  20261005_014947__neu_ft_cls3first_img80pct_r0
+2026-10-05 01:53  neu_ft_cls3first_img80pct_r1          0  4.1     no  f70b1a  f98070       -       -          -      -      -  20261005_015351__neu_ft_cls3first_img80pct_r1
+2026-10-05 01:57  neu_ft_cls3first_img80pct_r2          0  4.1     no  f70b1a  f98070       -       -          -      -      -  20261005_015755__neu_ft_cls3first_img80pct_r2

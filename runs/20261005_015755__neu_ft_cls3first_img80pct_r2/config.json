@@ -1,0 +1,36 @@
+{
+  "run_id": "20261005_015755__neu_ft_cls3first_img80pct_r2",
+  "tag": "neu_ft_cls3first_img80pct_r2",
+  "command": [
+    "env",
+    "FT_SEED=2",
+    "FT_EPOCHS=10",
+    "bash",
+    "scripts/run_phase1_neu.sh",
+    "--split",
+    "splits/neu_split.json"
+  ],
+  "cwd": "/home/rito/projects/VB-CGCD-defect",
+  "started": "2026-10-05T01:57:55+07:00",
+  "git": {
+    "commit": "97c57eef2277f81387add20a71fa69ab226ae43a",
+    "dirty": false,
+    "dirty_files": []
+  },
+  "env": {
+    "id": "f70b1aeb7805",
+    "pip_freeze": "runs/envs/f70b1aeb7805.txt",
+    "conda_env": "vbcgcd",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU, 616.92"
+  },
+  "python": "3.12.14",
+  "host": "Rito",
+  "inputs_source": "cli",
+  "inputs": {
+    "splits/neu_split.json": "f98070636f531cce"
+  },
+  "warnings": [],
+  "finished": "2026-10-05T02:01:59+07:00",
+  "duration_min": 4.1,
+  "exit_code": 0
+}

@@ -1711,3 +1711,43 @@ note: see the _s4 note
 why: integrity check at HEAD 831386c after deleting 11 f5_* feature dirs and 3 bit-identical duplicates; regenerates the k=5 crosstabs for the PL-Q1 proxy check (console.log is untracked)
 result: S0_All 78.84 | S1_New 56.07 | final_All 62.86 | M_d 56.07 | M_f 9.96
 note: metrics.json identical to archive-2026-10-02 xtab_s0-s4 on every key (5/5 seeds); same feature input hash; env unchanged. The crosstabs exist only in the local console.log files.
+
+## 20261005_013042__gc10_fz_cls5first_img80pct
+why: renamed frozen set (cls/img naming, scripts/make_label_splits.py): same command and split as 20260930_232359__gc10_extract_frozen
+result: (no metrics.json)
+note: bit-identical to 20260930_232359__gc10_extract_frozen (diff -rq; same input hash as the E1 runs gc10_frozen_km_evhung_d64_head), which was deleted; runs/inputs.txt now points here
+
+## 20261005_013115__gc10_ft_cls5first_img80pct_r0
+why: phase 1 paper setting (first 5 classes labeled, 80% of their train images = 764), FT_SEED 0, 10 epochs = 60 steps; replaces gc10_extract (FT 42) and gc10_extract_ftseed0/1
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_013822__gc10_ft_cls5first_img80pct_r1
+why: phase 1 paper setting (first 5 classes labeled, 80% of their train images = 764), FT_SEED 1, 10 epochs = 60 steps; replaces gc10_extract (FT 42) and gc10_extract_ftseed0/1
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_014356__gc10_ft_cls5first_img80pct_r2
+why: phase 1 paper setting (first 5 classes labeled, 80% of their train images = 764), FT_SEED 2, 10 epochs = 60 steps; replaces gc10_extract (FT 42) and gc10_extract_ftseed0/1
+result: (no metrics.json)
+note: CE first->last 1.77->0.154, 1.71->0.151, 1.59->0.156 (old FT 42: 1.69->0.155): not fully fitted in 60 steps. Old dirs gc10_extract, gc10_extract_ftseed0/1 deleted: their phase-2 numbers in this LOG cannot be re-run on the same features (phase 1 is not bit-reproducible)
+
+## 20261005_014929__neu_fz_cls3first_img80pct
+why: renamed frozen set: same command as 20260930_172146__neu_extract_frozen, --split made explicit
+result: (no metrics.json)
+note: bit-identical to 20260930_172146__neu_extract_frozen (diff -rq), which was deleted
+
+## 20261005_014947__neu_ft_cls3first_img80pct_r0
+why: phase 1 paper setting (first 3 classes labeled, 80% = 576), FT_SEED 0, 10 epochs = 50 steps; replaces neu_extract (FT 42)
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_015351__neu_ft_cls3first_img80pct_r1
+why: phase 1 paper setting (first 3 classes labeled, 80% = 576), FT_SEED 1, 10 epochs = 50 steps; replaces neu_extract (FT 42)
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_015755__neu_ft_cls3first_img80pct_r2
+why: phase 1 paper setting (first 3 classes labeled, 80% = 576), FT_SEED 2, 10 epochs = 50 steps; replaces neu_extract (FT 42)
+result: (no metrics.json)
+note: CE first->last 1.00->0.0028, 1.12->0.0028, 1.21->0.0037: fits almost perfectly. Old dir neu_extract deleted: its phase-2 numbers cannot be re-run on the same features; the D24 NEU check moves to these sets
