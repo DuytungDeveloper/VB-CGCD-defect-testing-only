@@ -1,5 +1,7 @@
 # Kế hoạch, quyết định, câu hỏi — VB-CGCD fork
 
+> **Đóng băng từ 2026-10-03.** Dòng GĐ1–GĐ3, cải tiến 1 và hướng 2 đã chốt hoặc tạm dừng; phần dưới không còn được cập nhật và có chỗ đã cũ. Dòng mới (nhãn giả) ghi ở `notes/pl/`, câu hỏi mở ở `notes/pl/questions.vi.md`. Các quy tắc chung của repo trong file này vẫn hiệu lực.
+
 Viết tiếng Việt, cập nhật mỗi buổi làm việc. Đây là **nơi duy nhất** chứa câu hỏi mở của repo
 (`notes/LOG.md` chỉ trỏ về đây). Không chép số liệu vào file này: trỏ tới entry LOG, `runs/agg_*.txt`
 hoặc mã D-xx trong `notes/paper-code-discrepancies.md`. Tên cũ: `notes/variants-plan.vi.md` (đổi 29/9).
