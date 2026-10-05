@@ -9,7 +9,7 @@ Khi đóng, ghi kết luận một dòng ngay dưới câu hỏi, trỏ tới b�
 
 ## Đang mở
 
-- PL-Q1 [mở] Ở số cụm K' = 20, crease hoặc rolled_pit có cụm riêng không (lớp đó chiếm đa số trong cụm, recall ≥ 50%)? Nếu không, hướng phân cụm thừa rồi gộp bị loại.
+- PL-Q1 [đang làm: PL-E01] Ở số cụm K' = 20, crease hoặc rolled_pit có cụm riêng không (lớp đó chiếm đa số trong cụm, recall ≥ 50%)? Nếu không, hướng phân cụm thừa rồi gộp bị loại.
 - PL-Q2 [mở] Gán nhãn bằng optimal transport với biên nới lỏng có thắng k-means không?
 - PL-Q3 [mở] Re-labeling đúng như paper (D12) có tốt hơn cách code hiện đang chỉ lọc không?
 - PL-Q4 [mở] Nhãn thật tối thiểu có được dùng cho lớp mới (như setting Active GCD), hay chỉ cho lớp cơ sở?
