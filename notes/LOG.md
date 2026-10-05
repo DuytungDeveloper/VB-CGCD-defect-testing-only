@@ -1751,3 +1751,153 @@ note: see the _r2 note
 why: phase 1 paper setting (first 3 classes labeled, 80% = 576), FT_SEED 2, 10 epochs = 50 steps; replaces neu_extract (FT 42)
 result: (no metrics.json)
 note: CE first->last 1.00->0.0028, 1.12->0.0028, 1.21->0.0037: fits almost perfectly. Old dir neu_extract deleted: its phase-2 numbers cannot be re-run on the same features; the D24 NEU check moves to these sets
+
+## 20261005_021012__gc10_ft_cls2top_img80pct_r0
+why: phase 1 label budget (C): 2 labeled classes by top (silk_spot, water_spot), 80pct images each = 604; FT_SEED 0, FT_EPOCHS 12 = 60 steps (fixed-step rule); split splits/gc10_cls2top_img80pct.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_021534__gc10_ft_cls2top_img80pct_r1
+why: phase 1 label budget (C): 2 labeled classes by top (silk_spot, water_spot), 80pct images each = 604; FT_SEED 1, FT_EPOCHS 12 = 60 steps (fixed-step rule); split splits/gc10_cls2top_img80pct.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_022052__gc10_ft_cls2top_img80pct_r2
+why: phase 1 label budget (C): 2 labeled classes by top (silk_spot, water_spot), 80pct images each = 604; FT_SEED 2, FT_EPOCHS 12 = 60 steps (fixed-step rule); split splits/gc10_cls2top_img80pct.json
+result: (no metrics.json)
+note: CE first->last per seed: r0 1.6325->0.0141, r1 1.1753->0.0119, r2 1.4420->0.0151
+
+## 20261005_022612__gc10_ft_cls5first_img10_r0
+why: phase 1 label budget (B): 5 labeled classes by first (punching_hole, welding_line, crescent_gap, water_spot, oil_spot), 10 images each = 50; FT_SEED 0, FT_EPOCHS 60 = 60 steps (fixed-step rule); split splits/gc10_cls5first_img10_r0.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_022933__gc10_ft_cls5first_img10_r1
+why: phase 1 label budget (B): 5 labeled classes by first (punching_hole, welding_line, crescent_gap, water_spot, oil_spot), 10 images each = 50; FT_SEED 1, FT_EPOCHS 60 = 60 steps (fixed-step rule); split splits/gc10_cls5first_img10_r1.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_023256__gc10_ft_cls5first_img10_r2
+why: phase 1 label budget (B): 5 labeled classes by first (punching_hole, welding_line, crescent_gap, water_spot, oil_spot), 10 images each = 50; FT_SEED 2, FT_EPOCHS 60 = 60 steps (fixed-step rule); split splits/gc10_cls5first_img10_r2.json
+result: (no metrics.json)
+note: CE first->last per seed: r0 2.5696->0.0047, r1 2.4432->0.0061, r2 2.2645->0.0040
+
+## 20261005_023619__gc10_ft_cls5first_img25_r0
+why: phase 1 label budget (B): 5 labeled classes by first (punching_hole, welding_line, crescent_gap, water_spot, oil_spot), 25 images each = 125; FT_SEED 0, FT_EPOCHS 60 = 60 steps (fixed-step rule); split splits/gc10_cls5first_img25_r0.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_024220__gc10_ft_cls5first_img25_r1
+why: phase 1 label budget (B): 5 labeled classes by first (punching_hole, welding_line, crescent_gap, water_spot, oil_spot), 25 images each = 125; FT_SEED 1, FT_EPOCHS 60 = 60 steps (fixed-step rule); split splits/gc10_cls5first_img25_r1.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_024820__gc10_ft_cls5first_img25_r2
+why: phase 1 label budget (B): 5 labeled classes by first (punching_hole, welding_line, crescent_gap, water_spot, oil_spot), 25 images each = 125; FT_SEED 2, FT_EPOCHS 60 = 60 steps (fixed-step rule); split splits/gc10_cls5first_img25_r2.json
+result: (no metrics.json)
+note: CE first->last per seed: r0 2.6269->0.0099, r1 2.4338->0.0091, r2 2.2676->0.0081
+
+## 20261005_025421__gc10_ft_cls5first_img50_r0
+why: phase 1 label budget (B): 5 labeled classes by first (punching_hole, welding_line, crescent_gap, water_spot, oil_spot), 50 images each = 250; FT_SEED 0, FT_EPOCHS 30 = 60 steps (fixed-step rule); split splits/gc10_cls5first_img50_r0.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_030004__gc10_ft_cls5first_img50_r1
+why: phase 1 label budget (B): 5 labeled classes by first (punching_hole, welding_line, crescent_gap, water_spot, oil_spot), 50 images each = 250; FT_SEED 1, FT_EPOCHS 30 = 60 steps (fixed-step rule); split splits/gc10_cls5first_img50_r1.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_030550__gc10_ft_cls5first_img50_r2
+why: phase 1 label budget (B): 5 labeled classes by first (punching_hole, welding_line, crescent_gap, water_spot, oil_spot), 50 images each = 250; FT_SEED 2, FT_EPOCHS 30 = 60 steps (fixed-step rule); split splits/gc10_cls5first_img50_r2.json
+result: (no metrics.json)
+note: CE first->last per seed: r0 2.3530->0.0445, r1 2.2238->0.0372, r2 2.0666->0.0308
+
+## 20261005_031134__gc10_ft_cls5top_img80pct_r0
+why: phase 1 label budget (C): 5 labeled classes by top (silk_spot, water_spot, welding_line, crescent_gap, punching_hole), 80pct images each = 1054; FT_SEED 0, FT_EPOCHS 7 = 63 steps (fixed-step rule); split splits/gc10_cls5top_img80pct.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_031654__gc10_ft_cls5top_img80pct_r1
+why: phase 1 label budget (C): 5 labeled classes by top (silk_spot, water_spot, welding_line, crescent_gap, punching_hole), 80pct images each = 1054; FT_SEED 1, FT_EPOCHS 7 = 63 steps (fixed-step rule); split splits/gc10_cls5top_img80pct.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_032215__gc10_ft_cls5top_img80pct_r2
+why: phase 1 label budget (C): 5 labeled classes by top (silk_spot, water_spot, welding_line, crescent_gap, punching_hole), 80pct images each = 1054; FT_SEED 2, FT_EPOCHS 7 = 63 steps (fixed-step rule); split splits/gc10_cls5top_img80pct.json
+result: (no metrics.json)
+note: CE first->last per seed: r0 1.4315->0.1290, r1 1.3830->0.1270, r2 1.3013->0.1213
+
+## 20261005_032736__neu_ft_cls2rand_img80pct_r0
+why: phase 1 label budget (C): 2 labeled classes by rand (pitted_surface, rolled-in_scale), 80pct images each = 384; FT_SEED 0, FT_EPOCHS 17 = 51 steps (fixed-step rule); split splits/neu_cls2rand_img80pct_r0.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_033211__neu_ft_cls2rand_img80pct_r1
+why: phase 1 label budget (C): 2 labeled classes by rand (patches, pitted_surface), 80pct images each = 384; FT_SEED 1, FT_EPOCHS 17 = 51 steps (fixed-step rule); split splits/neu_cls2rand_img80pct_r1.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_033645__neu_ft_cls2rand_img80pct_r2
+why: phase 1 label budget (C): 2 labeled classes by rand (inclusion, rolled-in_scale), 80pct images each = 384; FT_SEED 2, FT_EPOCHS 17 = 51 steps (fixed-step rule); split splits/neu_cls2rand_img80pct_r2.json
+result: (no metrics.json)
+note: CE first->last per seed: r0 1.1576->0.0010, r1 1.3582->0.0017, r2 1.3609->0.0010
+
+## 20261005_034120__neu_ft_cls3first_img10_r0
+why: phase 1 label budget (B): 3 labeled classes by first (crazing, inclusion, patches), 10 images each = 30; FT_SEED 0, FT_EPOCHS 50 = 50 steps (fixed-step rule); split splits/neu_cls3first_img10_r0.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_034251__neu_ft_cls3first_img10_r1
+why: phase 1 label budget (B): 3 labeled classes by first (crazing, inclusion, patches), 10 images each = 30; FT_SEED 1, FT_EPOCHS 50 = 50 steps (fixed-step rule); split splits/neu_cls3first_img10_r1.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_034421__neu_ft_cls3first_img10_r2
+why: phase 1 label budget (B): 3 labeled classes by first (crazing, inclusion, patches), 10 images each = 30; FT_SEED 2, FT_EPOCHS 50 = 50 steps (fixed-step rule); split splits/neu_cls3first_img10_r2.json
+result: (no metrics.json)
+note: CE first->last per seed: r0 1.6504->0.0012, r1 1.9152->0.0014, r2 2.0378->0.0018
+
+## 20261005_034554__neu_ft_cls3first_img25_r0
+why: phase 1 label budget (B): 3 labeled classes by first (crazing, inclusion, patches), 25 images each = 75; FT_SEED 0, FT_EPOCHS 50 = 50 steps (fixed-step rule); split splits/neu_cls3first_img25_r0.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_034911__neu_ft_cls3first_img25_r1
+why: phase 1 label budget (B): 3 labeled classes by first (crazing, inclusion, patches), 25 images each = 75; FT_SEED 1, FT_EPOCHS 50 = 50 steps (fixed-step rule); split splits/neu_cls3first_img25_r1.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_035229__neu_ft_cls3first_img25_r2
+why: phase 1 label budget (B): 3 labeled classes by first (crazing, inclusion, patches), 25 images each = 75; FT_SEED 2, FT_EPOCHS 50 = 50 steps (fixed-step rule); split splits/neu_cls3first_img25_r2.json
+result: (no metrics.json)
+note: CE first->last per seed: r0 1.6699->0.0018, r1 1.8780->0.0016, r2 2.0019->0.0022
+
+## 20261005_035548__neu_ft_cls3first_img50_r0
+why: phase 1 label budget (B): 3 labeled classes by first (crazing, inclusion, patches), 50 images each = 150; FT_SEED 0, FT_EPOCHS 25 = 50 steps (fixed-step rule); split splits/neu_cls3first_img50_r0.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_035845__neu_ft_cls3first_img50_r1
+why: phase 1 label budget (B): 3 labeled classes by first (crazing, inclusion, patches), 50 images each = 150; FT_SEED 1, FT_EPOCHS 25 = 50 steps (fixed-step rule); split splits/neu_cls3first_img50_r1.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_040140__neu_ft_cls3first_img50_r2
+why: phase 1 label budget (B): 3 labeled classes by first (crazing, inclusion, patches), 50 images each = 150; FT_SEED 2, FT_EPOCHS 25 = 50 steps (fixed-step rule); split splits/neu_cls3first_img50_r2.json
+result: (no metrics.json)
+note: CE first->last per seed: r0 1.5565->0.0033, r1 1.7494->0.0030, r2 1.8873->0.0044
+
+## 20261005_040436__neu_ft_cls3rand_img80pct_r0
+why: phase 1 label budget (C): 3 labeled classes by rand (pitted_surface, rolled-in_scale, scratches), 80pct images each = 576; FT_SEED 0, FT_EPOCHS 10 = 50 steps (fixed-step rule); split splits/neu_cls3rand_img80pct_r0.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_040840__neu_ft_cls3rand_img80pct_r1
+why: phase 1 label budget (C): 3 labeled classes by rand (inclusion, patches, rolled-in_scale), 80pct images each = 576; FT_SEED 1, FT_EPOCHS 10 = 50 steps (fixed-step rule); split splits/neu_cls3rand_img80pct_r1.json
+result: (no metrics.json)
+note: see the _r2 note
+
+## 20261005_041245__neu_ft_cls3rand_img80pct_r2
+why: phase 1 label budget (C): 3 labeled classes by rand (crazing, inclusion, pitted_surface), 80pct images each = 576; FT_SEED 2, FT_EPOCHS 10 = 50 steps (fixed-step rule); split splits/neu_cls3rand_img80pct_r2.json
+result: (no metrics.json)
+note: CE first->last per seed: r0 1.0443->0.0030, r1 1.1159->0.0019, r2 1.2220->0.0030
