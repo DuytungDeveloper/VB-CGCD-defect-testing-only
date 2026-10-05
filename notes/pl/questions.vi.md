@@ -13,6 +13,8 @@ Khi đóng, ghi kết luận một dòng ngay dưới câu hỏi, trỏ tới b�
 - PL-Q2 [mở] Gán nhãn bằng optimal transport với biên nới lỏng có thắng k-means không?
 - PL-Q3 [mở] Re-labeling đúng như paper (D12) có tốt hơn cách code hiện đang chỉ lọc không?
 - PL-Q4 [mở] Nhãn thật tối thiểu có được dùng cho lớp mới (như setting Active GCD), hay chỉ cho lớp cơ sở?
+- PL-Q5 [mở] Đặc trưng mức vùng lỗi, không dùng nhãn (patch token, bản đồ bất thường), có giúp khám phá các lớp lỗi nhỏ (inclusion, rolled_pit, crease) không? Hộp XML của lớp mới chỉ được dùng làm cận trên (oracle). Nguồn: `notes/nb/01_data.ipynb` C2, D.
+- PL-Q6 [mở] GC10 khó hơn NEU vì mất cân bằng hay vì lỗi nhỏ? Kiểm bằng pool S1 của NEU dựng theo tỉ lệ lớp mới của GC10. Nguồn: `notes/nb/01_data.ipynb` B1, E1.
 
 ## Đã bỏ hoặc tạm dừng
 
@@ -24,3 +26,5 @@ Khi đóng, ghi kết luận một dòng ngay dưới câu hỏi, trỏ tới b�
 ## Nhật ký
 
 - 2026-10-04: mở dòng PL; gieo PL-Q1–Q4 sau khảo sát tài liệu ngày 2026-10-03.
+
+- 2026-10-05: thêm PL-Q5, PL-Q6 từ `notes/nb/01_data.ipynb`.

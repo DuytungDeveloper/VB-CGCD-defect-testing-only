@@ -5,7 +5,7 @@ Giải thích pipeline VB-CGCD theo từng bước, với đầu vào và đầu
 ## Danh sách (theo luồng dữ liệu)
 
 - `00_map.ipynb` [chưa có]: chạy 1 seed từ đầu đến cuối, in shape ở mỗi bước; bảng mất điểm theo từng khâu.
-- `01_data.ipynb` [đang làm]: GC10 + NEU, dữ liệu thô và giao thức (chia theo cuộn, S0, pool S1, ngân sách nhãn).
+- `01_data.ipynb` [xong]: GC10 + NEU, dữ liệu thô và giao thức (chia theo cuộn, S0, pool S1, ngân sách nhãn).
 - `02_phase1_features.ipynb` [chưa có]: DINO, tiền xử lý, CLS/pooler, đóng băng/FT, độ tách lớp.
 - `03_s0_gaussians.ipynb` [chưa có]: PCA, Gaussian theo lớp, SVI/closed form, dừng sớm, dự đoán Mahalanobis.
 - `04_s1_discovery.ipynb` [chưa có]: pool, k-means, bảng chéo, đặt tên, lượt F, bộ lọc, lượt S; nơi can thiệp của dòng PL.
