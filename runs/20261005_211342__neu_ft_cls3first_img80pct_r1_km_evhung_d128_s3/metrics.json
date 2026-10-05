@@ -1,0 +1,14 @@
+{
+  "S0_All": 100.0,
+  "S0_S0test": 100.0,
+  "S1_cluster_max_min": 1.0,
+  "S1_novel_kept": 578,
+  "S1_All": 97.5,
+  "S1_Old": 95.0,
+  "S1_New": 100.0,
+  "S1_S0test": 95.0,
+  "M_d": 100.0,
+  "M_f": 5.0,
+  "final_All": 97.5,
+  "n_stages": 2
+}

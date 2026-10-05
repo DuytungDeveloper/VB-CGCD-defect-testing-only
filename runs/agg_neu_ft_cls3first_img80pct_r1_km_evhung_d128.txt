@@ -1,0 +1,16 @@
+group neu_ft_cls3first_img80pct_r1_km_evhung_d128   seeds 0 1 2 3 4   std uses n-1   made 2026-10-05T21:46:30+07:00
+runs  20261005_210633__neu_ft_cls3first_img80pct_r1_km_evhung_d128_s0 20261005_210856__neu_ft_cls3first_img80pct_r1_km_evhung_d128_s1 20261005_211120__neu_ft_cls3first_img80pct_r1_km_evhung_d128_s2 20261005_211342__neu_ft_cls3first_img80pct_r1_km_evhung_d128_s3 20261005_211605__neu_ft_cls3first_img80pct_r1_km_evhung_d128_s4
+
+metric              n    mean   std     min     max  paper
+S0_All              5  100.00  0.00  100.00  100.00  91.68
+S0_S0test           5  100.00  0.00  100.00  100.00      -
+S1_cluster_max_min  5    1.00  0.00    1.00    1.00      -
+S1_novel_kept       5  578.00  1.00  577.00  579.00      -
+S1_All              5   97.44  0.12   97.22   97.50  88.40
+S1_Old              5   94.89  0.25   94.44   95.00  89.46
+S1_New              5  100.00  0.00  100.00  100.00  83.10
+S1_S0test           5   94.89  0.25   94.44   95.00      -
+M_d                 5  100.00  0.00  100.00  100.00  79.14
+M_f                 5    5.11  0.25    5.00    5.56   6.94
+final_All           5   97.44  0.12   97.22   97.50  81.23
+n_stages            5    2.00  0.00    2.00    2.00   6.00

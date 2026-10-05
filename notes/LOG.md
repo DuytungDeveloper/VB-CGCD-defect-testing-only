@@ -1730,7 +1730,7 @@ note: see the _r2 note
 ## 20261005_014356__gc10_ft_cls5first_img80pct_r2
 why: phase 1 paper setting (first 5 classes labeled, 80% of their train images = 764), FT_SEED 2, 10 epochs = 60 steps; replaces gc10_extract (FT 42) and gc10_extract_ftseed0/1
 result: (no metrics.json)
-note: CE first->last 1.77->0.154, 1.71->0.151, 1.59->0.156 (old FT 42: 1.69->0.155): not fully fitted in 60 steps. Old dirs gc10_extract, gc10_extract_ftseed0/1 deleted: their phase-2 numbers in this LOG cannot be re-run on the same features (phase 1 is not bit-reproducible)
+note: CE first->last 1.77->0.154, 1.71->0.151, 1.59->0.156 (old FT 42: 1.69->0.155): not fully fitted in 60 steps. Old dirs gc10_extract, gc10_extract_ftseed0/1 deleted; correction 2026-10-05: phase-1 FT is reproducible with the same FT_SEED (phase 2 on r0/r1 gives the same means as gc10_ftseed0/1), so they can be regenerated with FT_SEED 42/0/1
 
 ## 20261005_014929__neu_fz_cls3first_img80pct
 why: renamed frozen set: same command as 20260930_172146__neu_extract_frozen, --split made explicit
@@ -1750,7 +1750,7 @@ note: see the _r2 note
 ## 20261005_015755__neu_ft_cls3first_img80pct_r2
 why: phase 1 paper setting (first 3 classes labeled, 80% = 576), FT_SEED 2, 10 epochs = 50 steps; replaces neu_extract (FT 42)
 result: (no metrics.json)
-note: CE first->last 1.00->0.0028, 1.12->0.0028, 1.21->0.0037: fits almost perfectly. Old dir neu_extract deleted: its phase-2 numbers cannot be re-run on the same features; the D24 NEU check moves to these sets
+note: CE first->last 1.00->0.0028, 1.12->0.0028, 1.21->0.0037: fits almost perfectly. Old dir neu_extract deleted; correction 2026-10-05: FT is reproducible on GC10 with the same FT_SEED, so neu_extract can likely be regenerated with FT_SEED 42 (not checked on NEU); the D24 NEU check moves to these sets
 
 ## 20261005_021012__gc10_ft_cls2top_img80pct_r0
 why: phase 1 label budget (C): 2 labeled classes by top (silk_spot, water_spot), 80pct images each = 604; FT_SEED 0, FT_EPOCHS 12 = 60 steps (fixed-step rule); split splits/gc10_cls2top_img80pct.json
@@ -1901,3 +1901,153 @@ note: see the _r2 note
 why: phase 1 label budget (C): 3 labeled classes by rand (crazing, inclusion, pitted_surface), 80pct images each = 576; FT_SEED 2, FT_EPOCHS 10 = 50 steps (fixed-step rule); split splits/neu_cls3rand_img80pct_r2.json
 result: (no metrics.json)
 note: CE first->last per seed: r0 1.0443->0.0030, r1 1.1159->0.0019, r2 1.2220->0.0030
+
+## 20261005_202557__gc10_ft_cls5first_img80pct_r0_km_evhung_d64_s0
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r0 (FT_SEED 0); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 85.48 | S1_New 57.48 | final_All 69.89 | M_d 57.48 | M_f 4.56
+note: see the _s4 note
+
+## 20261005_202758__gc10_ft_cls5first_img80pct_r0_km_evhung_d64_s1
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r0 (FT_SEED 0); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 85.48 | S1_New 57.48 | final_All 69.89 | M_d 57.48 | M_f 4.56
+note: see the _s4 note
+
+## 20261005_202956__gc10_ft_cls5first_img80pct_r0_km_evhung_d64_s2
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r0 (FT_SEED 0); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 84.65 | S1_New 49.07 | final_All 66.37 | M_d 49.07 | M_f 2.90
+note: see the _s4 note
+
+## 20261005_203153__gc10_ft_cls5first_img80pct_r0_km_evhung_d64_s3
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r0 (FT_SEED 0); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 85.06 | S1_New 56.54 | final_All 69.67 | M_d 56.54 | M_f 3.73
+note: see the _s4 note
+
+## 20261005_203349__gc10_ft_cls5first_img80pct_r0_km_evhung_d64_s4
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r0 (FT_SEED 0); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 85.48 | S1_New 57.01 | final_All 70.11 | M_d 57.01 | M_f 3.73
+note: 5-seed mean S0 85.23, Old 81.33, New 55.51, final 69.19, M_f 3.90, balanced novel 39.4: same 5-seed means as gc10_ftseed0_km_evhung_d64 (same FT_SEED)
+
+## 20261005_203543__gc10_ft_cls5first_img80pct_r1_km_evhung_d64_s0
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r1 (FT_SEED 1); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 85.06 | S1_New 39.25 | final_All 62.20 | M_d 39.25 | M_f 2.49
+note: see the _s4 note
+
+## 20261005_203737__gc10_ft_cls5first_img80pct_r1_km_evhung_d64_s1
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r1 (FT_SEED 1); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 85.06 | S1_New 39.72 | final_All 62.20 | M_d 39.72 | M_f 2.90
+note: see the _s4 note
+
+## 20261005_203933__gc10_ft_cls5first_img80pct_r1_km_evhung_d64_s2
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r1 (FT_SEED 1); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 85.06 | S1_New 40.19 | final_All 62.64 | M_d 40.19 | M_f 2.49
+note: see the _s4 note
+
+## 20261005_204126__gc10_ft_cls5first_img80pct_r1_km_evhung_d64_s3
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r1 (FT_SEED 1); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 84.23 | S1_New 41.12 | final_All 63.08 | M_d 41.12 | M_f 1.66
+note: see the _s4 note
+
+## 20261005_204319__gc10_ft_cls5first_img80pct_r1_km_evhung_d64_s4
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r1 (FT_SEED 1); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 85.48 | S1_New 36.92 | final_All 61.76 | M_d 36.92 | M_f 1.66
+note: 5-seed mean S0 84.98, Old 82.74, New 39.44, final 62.37, M_f 2.24, balanced novel 29.2: same 5-seed means as gc10_ftseed1_km_evhung_d64 (same FT_SEED)
+
+## 20261005_204510__gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s0
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r2 (FT_SEED 2); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 85.06 | S1_New 48.13 | final_All 64.84 | M_d 48.13 | M_f 5.39
+note: see the _s4 note
+
+## 20261005_204703__gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s1
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r2 (FT_SEED 2); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 86.31 | S1_New 56.07 | final_All 68.79 | M_d 56.07 | M_f 6.22
+note: see the _s4 note
+
+## 20261005_204855__gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s2
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r2 (FT_SEED 2); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 86.31 | S1_New 60.28 | final_All 71.21 | M_d 60.28 | M_f 5.39
+note: see the _s4 note
+
+## 20261005_205049__gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s3
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r2 (FT_SEED 2); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 85.89 | S1_New 46.73 | final_All 65.05 | M_d 46.73 | M_f 4.56
+note: see the _s4 note
+
+## 20261005_205241__gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s4
+why: phase 2 on paper-setting FT features gc10_ft_cls5first_img80pct_r2 (FT_SEED 2); same command as the archived gc10_ftseed0_km_evhung_d64 runs + --print_confusion --print_cluster_xtab
+result: S0_All 85.89 | S1_New 58.88 | final_All 70.77 | M_d 58.88 | M_f 4.56
+note: 5-seed mean S0 85.89, Old 80.66, New 54.02, final 68.13, M_f 5.22, balanced novel 36.2
+
+## 20261005_205435__neu_ft_cls3first_img80pct_r0_km_evhung_d128_s0
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r0 (FT_SEED 0); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 95.28 | M_d 100.00 | M_f 9.44
+note: see the _s4 note
+
+## 20261005_205657__neu_ft_cls3first_img80pct_r0_km_evhung_d128_s1
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r0 (FT_SEED 0); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 95.28 | M_d 100.00 | M_f 9.44
+note: see the _s4 note
+
+## 20261005_205922__neu_ft_cls3first_img80pct_r0_km_evhung_d128_s2
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r0 (FT_SEED 0); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 95.56 | M_d 100.00 | M_f 8.89
+note: see the _s4 note
+
+## 20261005_210145__neu_ft_cls3first_img80pct_r0_km_evhung_d128_s3
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r0 (FT_SEED 0); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 95.00 | M_d 100.00 | M_f 10.00
+note: see the _s4 note
+
+## 20261005_210407__neu_ft_cls3first_img80pct_r0_km_evhung_d128_s4
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r0 (FT_SEED 0); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 95.56 | M_d 100.00 | M_f 8.89
+note: 5-seed mean S0 100.00, Old 90.67, New 100.00, final 95.33, M_f 9.33
+
+## 20261005_210633__neu_ft_cls3first_img80pct_r1_km_evhung_d128_s0
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r1 (FT_SEED 1); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 97.22 | M_d 100.00 | M_f 5.56
+note: see the _s4 note
+
+## 20261005_210856__neu_ft_cls3first_img80pct_r1_km_evhung_d128_s1
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r1 (FT_SEED 1); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 97.50 | M_d 100.00 | M_f 5.00
+note: see the _s4 note
+
+## 20261005_211120__neu_ft_cls3first_img80pct_r1_km_evhung_d128_s2
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r1 (FT_SEED 1); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 97.50 | M_d 100.00 | M_f 5.00
+note: see the _s4 note
+
+## 20261005_211342__neu_ft_cls3first_img80pct_r1_km_evhung_d128_s3
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r1 (FT_SEED 1); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 97.50 | M_d 100.00 | M_f 5.00
+note: see the _s4 note
+
+## 20261005_211605__neu_ft_cls3first_img80pct_r1_km_evhung_d128_s4
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r1 (FT_SEED 1); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 97.50 | M_d 100.00 | M_f 5.00
+note: 5-seed mean S0 100.00, Old 94.89, New 100.00, final 97.44, M_f 5.11
+
+## 20261005_211828__neu_ft_cls3first_img80pct_r2_km_evhung_d128_s0
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r2 (FT_SEED 2); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 96.94 | M_d 100.00 | M_f 6.11
+note: see the _s4 note
+
+## 20261005_212051__neu_ft_cls3first_img80pct_r2_km_evhung_d128_s1
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r2 (FT_SEED 2); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 96.94 | M_d 100.00 | M_f 6.11
+note: see the _s4 note
+
+## 20261005_212316__neu_ft_cls3first_img80pct_r2_km_evhung_d128_s2
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r2 (FT_SEED 2); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 96.39 | M_d 100.00 | M_f 7.22
+note: see the _s4 note
+
+## 20261005_212538__neu_ft_cls3first_img80pct_r2_km_evhung_d128_s3
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r2 (FT_SEED 2); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 96.67 | M_d 100.00 | M_f 6.67
+note: see the _s4 note
+
+## 20261005_212803__neu_ft_cls3first_img80pct_r2_km_evhung_d128_s4
+why: phase 2 on paper-setting FT features neu_ft_cls3first_img80pct_r2 (FT_SEED 2); same command as the archived neu_km_evhung_d128 runs + --print_confusion --print_cluster_xtab
+result: S0_All 100.00 | S1_New 100.00 | final_All 96.39 | M_d 100.00 | M_f 7.22
+note: 5-seed mean S0 100.00, Old 93.33, New 100.00, final 96.67, M_f 6.67

@@ -1,0 +1,17 @@
+group gc10_ft_cls5first_img80pct_r2_km_evhung_d64   seeds 0 1 2 3 4   std uses n-1   made 2026-10-05T21:46:30+07:00
+runs  20261005_204510__gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s0 20261005_204703__gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s1 20261005_204855__gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s2 20261005_205049__gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s3 20261005_205241__gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s4
+
+metric              n    mean    std     min     max  paper
+S0_All              5   85.89   0.51   85.06   86.31  91.68
+S0_S0test           5   85.89   0.51   85.06   86.31      -
+S1_cluster_max_min  5    2.56   0.59    1.76    3.20      -
+S1_novel_kept       5  696.80   5.54  688.00  702.00      -
+S1_estop_S          5  493.60  12.52  475.00  507.00      -
+S1_All              5   68.13   3.05   64.84   71.21  88.40
+S1_Old              5   80.66   0.75   79.67   81.33  89.46
+S1_New              5   54.02   6.22   46.73   60.28  83.10
+S1_S0test           5   80.66   0.75   79.67   81.33      -
+M_d                 5   54.02   6.22   46.73   60.28  79.14
+M_f                 5    5.22   0.69    4.56    6.22   6.94
+final_All           5   68.13   3.05   64.84   71.21  81.23
+n_stages            5    2.00   0.00    2.00    2.00   6.00
