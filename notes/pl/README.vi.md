@@ -56,3 +56,12 @@ Quy tắc chung của repo (commit trước khi chạy, Hungarian chỉ lúc đ�
 - Thay cho: thứ tự chốt ngày 2026-10-05: 00 (phần bản đồ) → 04 → PL-E01 → 02 → 03 → 00 (bảng nghẽn).
 - Lý do: phần bản đồ của 00 không đổi quyết định thí nghiệm nào, vì PL-E01 đã tiền đăng ký; trang tổng quan nên viết một lần ở cuối; 04 và `12_cluster` dựng đúng các mảnh PL-E01 cần.
 - Đánh giá module thay được: tầng 1 chấm đầu ra của module bằng nhãn thật (chỉ để chấm) để lọc nhanh; tầng 2 chạy cả pipeline. Thứ hạng ở tầng 1 phải được xác nhận ở tầng 2.
+
+### PL-QD4 — Mốc so sánh là cấu hình paper (fine-tune); `fz` là bối cảnh phụ (2026-10-06)
+
+- Nội dung: mốc so sánh của dòng PL là cấu hình paper trên GC10, fine-tune trên tập có nhãn (`gc10_ft_cls5first_img80pct_r0`–`r2`, mỗi FT seed 5 seed phase 2; 30 run ngày 2026-10-05). Đặc trưng không fine-tune (`fz`) là bối cảnh phụ để hiểu cơ chế, không dùng để kết luận cải tiến.
+- Thay cho: quyết định ngày 2026-10-05 (bối cảnh chính `fz`, cấu hình paper là bối cảnh thứ hai).
+- Lý do: cải tiến phải đo so với VB-CGCD như công bố; fine-tune offline là một thành phần cốt lõi của paper (Bảng 1). Thứ tự giữ đúng: tái lập (CIFAR-100 khớp paper ở chỉ số cuối; GC10 cấu hình paper tái lập được theo `FT_SEED`), rồi mới thay đổi và so sánh.
+- Bằng chứng nền: note LOG `gc10_ftseed0_km_evhung_d64_s4` (fine-tune giữ lớp cũ tốt hơn, ổn định qua FT seed; khám phá không ổn định).
+- Hệ quả: so sánh trên `ft` ghép cặp theo FT seed (r0–r2); atlas dùng `ft` r0, seed 4 (mode đa số). PL-E01 giữ tiền đăng ký trên `fz`; thí nghiệm tương ứng trên `ft` tiền đăng ký riêng, và hướng phân cụm thừa xét theo kết quả trên `ft`.
+- Lưu ý: `fz` và `ft` khác nhau ở hai yếu tố cùng lúc (có fine-tune hay không; CLS hay pooler, D8); fine-tune trong code chỉ có cross-entropy (D3).

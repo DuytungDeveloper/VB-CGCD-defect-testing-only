@@ -10,7 +10,7 @@ Notebook để giải trình pipeline VB-CGCD theo từng module (đầu vào, �
 
 ## Atlas (theo luồng dữ liệu)
 
-- `00_map.ipynb` [làm cuối]: bản đồ từng module (shape thật, code, mã D; trỏ về mã M) và bảng mất điểm theo từng khâu, sinh từ `replay`.
+- `00_map.ipynb` [làm cuối]: bản đồ từng module (shape thật, code, mã D; trỏ về mã M; sinh từ `replay`, 1 seed, cấu hình paper) và bảng mất điểm theo từng khâu (tổng hợp từ run chính thức, nhiều seed).
 - `01_data.ipynb` [xong]: GC10 + NEU, dữ liệu thô và giao thức (chia theo cuộn, S0, pool S1, ngân sách nhãn).
 - `02_phase1_features.ipynb` [chưa có]: DINO, tiền xử lý, CLS/pooler, đóng băng/FT, độ tách lớp.
 - `03_s0_gaussians.ipynb` [chưa có]: PCA, Gaussian theo lớp, SVI/closed form, dừng sớm, dự đoán Mahalanobis; đếm dự đoán test S0 rơi vào slot chưa học (ứng viên D24).
@@ -67,6 +67,7 @@ M10 → M11 → M7 (F) + M8 → M9 + M12 → M7 (S) + M8 → M9 + M13.
 - Notebook import từ `.py`, không có chiều ngược lại; bộ đo viết một lần trong script, notebook import lại.
 - Xem code trong model: in đúng hàm bằng `inspect.getsource` cạnh đầu vào/đầu ra của nó, không chép code.
 - Khoang đo hai tầng: tầng 1 chấm đầu ra của module bằng nhãn thật (chỉ để chấm), để lọc nhanh; tầng 2 chạy cả pipeline qua `exp.py`, ít nhất 5 seed. Thứ hạng ở tầng 1 phải được xác nhận ở tầng 2.
+- Bối cảnh mặc định: cấu hình paper (`ft`, fine-tune trên tập có nhãn); `fz` là bối cảnh phụ (PL-QD4).
 
 ## Ngôn ngữ
 
