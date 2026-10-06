@@ -14,7 +14,7 @@ Notebook để giải trình pipeline VB-CGCD theo từng module (đầu vào, �
 - `01_data.ipynb` [xong]: GC10 + NEU, dữ liệu thô và giao thức (chia theo cuộn, S0, pool S1, ngân sách nhãn).
 - `02_phase1_features.ipynb` [chưa có]: DINO, tiền xử lý, CLS/pooler, đóng băng/FT, độ tách lớp.
 - `03_s0_gaussians.ipynb` [chưa có]: PCA, Gaussian theo lớp, SVI/closed form, dừng sớm, dự đoán Mahalanobis; đếm dự đoán test S0 rơi vào slot chưa học (ứng viên D24).
-- `04_s1_discovery.ipynb` [chưa có]: atlas mỏng của luồng S1: pool → phân cụm → đặt tên → lượt F → lọc → lượt S; phần can thiệp nằm ở khoang 12, 13.
+- `04_s1_discovery.ipynb` [xong]: atlas mỏng của luồng S1: pool → phân cụm → đặt tên → lượt F → lọc → lượt S; phần can thiệp nằm ở khoang 12, 13.
 
 ## Module
 
