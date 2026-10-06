@@ -15,6 +15,7 @@ Khi đóng, ghi kết luận một dòng ngay dưới câu hỏi, trỏ tới b�
 - PL-Q4 [mở] Nhãn thật tối thiểu có được dùng cho lớp mới (như setting Active GCD), hay chỉ cho lớp cơ sở?
 - PL-Q5 [mở] Đặc trưng mức vùng lỗi, không dùng nhãn (patch token, bản đồ bất thường), có giúp khám phá các lớp lỗi nhỏ (inclusion, rolled_pit, crease) không? Hộp XML của lớp mới chỉ được dùng làm cận trên (oracle). Nguồn: `notes/nb/01_data.ipynb` C2, D.
 - PL-Q6 [mở] GC10 khó hơn NEU vì mất cân bằng hay vì lỗi nhỏ? Kiểm bằng pool S1 của NEU dựng theo tỉ lệ lớp mới của GC10. Nguồn: `notes/nb/01_data.ipynb` B1, E1.
+- PL-Q7 [mở] Ở M10 (phân cụm), phương pháp nào cho nhãn giả tốt hơn k-means theo bộ đo tầng 1 (ứng viên: GMM trên PCA-64 hoặc covariance chéo, phân cụm phổ trên đồ thị kNN, HDBSCAN), và thứ hạng có giữ ở tầng 2 không? Siêu tham số không chỉnh trên pool có nhãn thật của lớp mới. Nguồn: PL-QD3.
 
 ## Đã bỏ hoặc tạm dừng
 
@@ -28,3 +29,5 @@ Khi đóng, ghi kết luận một dòng ngay dưới câu hỏi, trỏ tới b�
 - 2026-10-04: mở dòng PL; gieo PL-Q1–Q4 sau khảo sát tài liệu ngày 2026-10-03.
 
 - 2026-10-05: thêm PL-Q5, PL-Q6 từ `notes/nb/01_data.ipynb`.
+
+- 2026-10-06: thêm PL-Q7; ghi PL-QD3 (notebook ba lớp, thứ tự làm mới).

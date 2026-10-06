@@ -48,3 +48,11 @@ Quy tắc chung của repo (commit trước khi chạy, Hungarian chỉ lúc đ�
 - Khi giấy và `.md` lệch nhau, `.md` đúng. `.md` phải tự đủ, không trỏ sang sổ giấy.
 - Công cụ khác (Obsidian, tablet) không chứa số liệu hay trạng thái dự án.
 - Xem lại cách ghi sau hai tuần dùng thử.
+
+### PL-QD3 — Notebook theo ba lớp; thứ tự làm mới (2026-10-06)
+
+- Nội dung: `notes/nb/` gồm bàn mổ (`scripts/replay.py`), atlas 00–04 theo luồng và khoang 10–13 theo nhóm module; mã M1–M13 và thứ tự chạy định nghĩa ở `notes/nb/README.vi.md`.
+- Thứ tự làm: 04 (mỏng) → `12_cluster` (Học, Mổ; chốt bộ đo tầng 1) → lưu trạng thái RNG trước M10, script tầng 1, PL-E01 → `12_cluster` (Cấy) → 02, 03 (kèm đếm D24) → khoang khác khi cần → 00 cuối cùng.
+- Thay cho: thứ tự chốt ngày 2026-10-05: 00 (phần bản đồ) → 04 → PL-E01 → 02 → 03 → 00 (bảng nghẽn).
+- Lý do: phần bản đồ của 00 không đổi quyết định thí nghiệm nào, vì PL-E01 đã tiền đăng ký; trang tổng quan nên viết một lần ở cuối; 04 và `12_cluster` dựng đúng các mảnh PL-E01 cần.
+- Đánh giá module thay được: tầng 1 chấm đầu ra của module bằng nhãn thật (chỉ để chấm) để lọc nhanh; tầng 2 chạy cả pipeline. Thứ hạng ở tầng 1 phải được xác nhận ở tầng 2.
