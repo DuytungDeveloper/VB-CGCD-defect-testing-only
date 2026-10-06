@@ -4,7 +4,7 @@ Mỗi thí nghiệm một mục: tiền đăng ký (không sửa sau khi commit)
 
 ## PL-E01 — Phân cụm thừa: lớp hiếm có cụm riêng không? (PL-Q1)
 
-### Tiền đăng ký (2026-10-05; commit: điền sau khi push)
+### Tiền đăng ký (2026-10-05; commit: e02f0af)
 
 - Câu hỏi (PL-Q1): trên đặc trưng DINO đóng băng của GC10, nếu k-means có nhiều cụm hơn số lớp mới (K' > 5), crease hoặc rolled_pit có sở hữu một cụm chứa ít nhất một nửa số ảnh của nó không?
 - Làm rõ PL-Q1: "chiếm đa số" hiểu là lớp đông nhất trong cụm (điều kiện sở hữu, như Q1 ở `notes/improvement-2.vi.md`).
@@ -27,3 +27,11 @@ Mỗi thí nghiệm một mục: tiền đăng ký (không sửa sau khi commit)
   - Loại: cả hai không đạt → bỏ hướng phân cụm thừa trên đặc trưng CLS đóng băng; chuyển sang câu hỏi đặc trưng (phase 1) hoặc Active GCD (PL-Q4).
 - Ngoài phạm vi: đặc trưng fine-tune (làm sau nếu cần).
 - Tag: `gc10_pl01_s<N>`, N = 0–9; mỗi run ghi mọi K' vào `metrics.json`.
+
+### Sửa đổi (2026-10-06, quyết định 2026-10-05; trước khi chạy; phần tiền đăng ký ở trên giữ nguyên)
+
+- I1 đổi thành: ở K' = 5, seed 0–4, bảng chéo lớp × cụm (contingency table) của bản phát lại (`scripts/replay.py`) trùng khít bảng mà các run `gc10_frozen_km_evhung_d64_head_s*` in ra; inertia chỉ cần lệch tương đối < 1e-6 so với các giá trị ở I1 cũ.
+- Lý do: `scripts/replay.py` cho bảng chéo trùng khít ở cả 5 seed, nhưng inertia lệch đúng 1 ULP float32 (0.0625 ở độ lớn khoảng 790 nghìn); seed bị lệch đổi theo thứ tự import thư viện (lần đầu seed 1–3, sau khi đổi thứ tự import là seed 0). [suy luận] Bit cuối của inertia phụ thuộc thứ tự cộng số dấu phẩy động (Goldberg 1991), không phụ thuộc luồng RNG.
+- Tiêu chí mới đủ cho I1: mọi đại lượng quyết định của PL-E01 (sở hữu, best, độ thuần) là hàm của bảng chéo. Bảng trùng chưa chắc phân hoạch trùng từng ảnh (đổi chỗ hai ảnh cùng lớp giữa hai cụm cho cùng bảng), nhưng điều đó không đổi kết quả PL-E01.
+- Nguồn tham chiếu: bảng chéo chỉ có trong `console.log` của các run trên (không vào git); phần có trong git là inertia ở I1 cũ và cỡ cụm từng seed (`notes/improvement-2.vi.md`, Q1). Vì vậy `metrics.json` của PL-E01 phải ghi bảng chéo K' = 5 của bản phát lại.
+- Sửa đổi làm trước khi có bất kỳ dữ liệu nào của PL-E01 (K' > 5 chưa chạy).
