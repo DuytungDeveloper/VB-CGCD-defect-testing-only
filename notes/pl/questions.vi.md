@@ -9,7 +9,8 @@ Khi đóng, ghi kết luận một dòng ngay dưới câu hỏi, trỏ tới b�
 
 ## Đang mở
 
-- PL-Q1 [đang làm: PL-E01, PL-E01b] Ở số cụm K' = 20, crease hoặc rolled_pit có cụm riêng không (lớp đó chiếm đa số trong cụm, recall ≥ 50%)? Nếu không, hướng phân cụm thừa rồi gộp bị loại.
+- PL-Q1 [đóng] Ở số cụm K' = 20, crease hoặc rolled_pit có cụm riêng không (lớp đó chiếm đa số trong cụm, recall ≥ 50%)? Nếu không, hướng phân cụm thừa rồi gộp bị loại.
+  - Kết luận (2026-10-07): trên cấu hình paper, có (PL-E01b SỐNG); trên `fz`, không (PL-E01 LOẠI). Bước tiếp: PL-E02.
 - PL-Q2 [mở] Gán nhãn bằng optimal transport với biên nới lỏng có thắng k-means không?
 - PL-Q3 [mở] Re-labeling đúng như paper (D12) có tốt hơn cách code hiện đang chỉ lọc không?
 - PL-Q4 [mở] Nhãn thật tối thiểu có được dùng cho lớp mới (như setting Active GCD), hay chỉ cho lớp cơ sở?
@@ -17,6 +18,7 @@ Khi đóng, ghi kết luận một dòng ngay dưới câu hỏi, trỏ tới b�
 - PL-Q6 [mở] GC10 khó hơn NEU vì mất cân bằng hay vì lỗi nhỏ? Kiểm bằng pool S1 của NEU dựng theo tỉ lệ lớp mới của GC10. Nguồn: `notes/nb/01_data.ipynb` B1, E1.
 - PL-Q7 [mở] Ở M10 (phân cụm), phương pháp nào cho nhãn giả tốt hơn k-means theo bộ đo tầng 1 (ứng viên: GMM trên PCA-64 hoặc covariance chéo, phân cụm phổ trên đồ thị kNN, HDBSCAN), và thứ hạng có giữ ở tầng 2 không? Siêu tham số không chỉnh trên pool có nhãn thật của lớp mới. Nguồn: PL-QD3.
 - PL-Q8 [mở] Vì sao bộ phân lớp 10 slot đẩy nhiều ảnh inclusion sang lớp cũ, và bộ lọc cũng loại một phần ảnh inclusion của pool? Giả thuyết: nhiễu nhãn và đồng xuất hiện với water_spot (`01_data` C1), lỗi nhỏ (PL-Q5), hay tham số Gaussian gần khởi tạo (D23). Nguồn: `notes/nb/04_s1_discovery.ipynb` (cell 7, 9; một seed).
+- PL-Q9 [mở] Trên cấu hình paper, vì sao balanced accuracy của phân hoạch pool (tầng 1) cao hơn nhiều so với balanced novel cuối pipeline trên test (tầng 2), nhất là ở FT seed r1, trong khi trên `fz` hai con số gần nhau? Mất ở khâu nào: chuyển từ pool sang test, đặt tên cụm, hay bộ phân lớp 10 slot? Ảnh hưởng: tầng 1 có dùng được để sàng lọc phương pháp không (PL-QD3). Nguồn: PL-E01b (Kết quả).
 
 ## Đã bỏ hoặc tạm dừng
 
@@ -36,3 +38,5 @@ Khi đóng, ghi kết luận một dòng ngay dưới câu hỏi, trỏ tới b�
 - 2026-10-06: thêm PL-Q8 từ `notes/nb/04_s1_discovery.ipynb`.
 
 - 2026-10-07: tiền đăng ký PL-E01b (phân cụm thừa trên cấu hình paper, PL-QD4).
+
+- 2026-10-07: PL-E01 LOẠI (`fz`), PL-E01b SỐNG (`ft`); đóng PL-Q1; thêm PL-Q9.

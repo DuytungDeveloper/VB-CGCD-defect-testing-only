@@ -36,6 +36,27 @@ Mỗi thí nghiệm một mục: tiền đăng ký (không sửa sau khi commit)
 - Nguồn tham chiếu: bảng chéo chỉ có trong `console.log` của các run trên (không vào git); phần có trong git là inertia ở I1 cũ và cỡ cụm từng seed (`notes/improvement-2.vi.md`, Q1). Vì vậy `metrics.json` của PL-E01 phải ghi bảng chéo K' = 5 của bản phát lại.
 - Sửa đổi làm trước khi có bất kỳ dữ liệu nào của PL-E01 (K' > 5 chưa chạy).
 
+### Kết quả (2026-10-07; run `gc10_pl01_s0`–`s9`, commit 89e94d4)
+
+- Cài đặt: `scripts/pl_cluster.py` gọi `scripts/replay.py` (`stop="cluster"`, nên SVI ở S0 vẫn chạy) và chụp trạng thái RNG ở lối vào `KMeansCluster.fit`; mọi K' bắt đầu từ trạng thái đó. Thứ tự rút RNG như tiền đăng ký; I1 xác nhận.
+- Toàn vẹn: I1 (seed 0–4: bảng chéo trùng run E1, inertia lệch tương đối < 1e-6; seed 5–9: phân hoạch K' = 5 trùng pipeline), I2, I3 đạt ở cả 10 seed.
+- Quyết định ở K' = 20, số ảnh trong cụm tốt nhất theo seed 0–9:
+  - rolled_pit: 13, 0, 0, 0, 0, 0, 0, 11, 0, 0 → đạt 2/10 seed.
+  - crease: 8, 15, 13, 13, 0, 14, 0, 8, 16, 13 → đạt 1/10 seed.
+  - Cả hai không đạt: LOẠI.
+- Kèm theo ở K' = 20 (trung bình 10 seed): rolled sở hữu 0.2 cụm, độ thuần trung vị của cụm tốt nhất 0.25 (2 seed có cụm); crease best 10.0/32, tổng trên các cụm sở hữu 11.6/32, độ thuần trung vị 0.41.
+- Mô tả theo K' = 5, 10, 15, 20, 30 (số seed đạt): crease 0, 7, 4, 1, 1; rolled 0, 0, 2, 2, 0. Balanced accuracy ghép một–một trên pool: 0.366, 0.407, 0.391, 0.342, 0.282.
+- Dự đoán (ít nhất một lớp đạt; rolled dễ hơn crease): sai.
+
+### Đánh đổi
+
+- Chốt ở K' = 20 tránh vườn rẽ nhánh, nhưng bỏ qua việc crease đạt nhiều nhất ở K' = 10; số đó chỉ để mô tả.
+- best(c) chỉ tính cụm lớn nhất, nên lớp bị chẻ thành nhiều cụm nhỏ bị đánh giá thấp; bước gộp có thể nhặt lại.
+
+### Kết luận
+
+- LOẠI theo quy tắc: trên đặc trưng CLS đóng băng, phân cụm thừa không cho rolled_pit hay crease cụm riêng; khi có, cụm đó lẫn nhiều lớp khác. Đây là bối cảnh phụ (PL-QD4); kết luận về hướng lấy theo PL-E01b.
+
 ## PL-E01b — Phân cụm thừa trên cấu hình paper (PL-Q1, PL-QD4)
 
 ### Tiền đăng ký (2026-10-07; commit: 885e2dc)
@@ -58,3 +79,27 @@ Mỗi thí nghiệm một mục: tiền đăng ký (không sửa sau khi commit)
   - Loại: cả hai không đạt → bỏ hướng phân cụm thừa cho cấu hình paper, dù PL-E01 cho kết quả nào; chuyển sang PL-Q7 (phương pháp khác ở M10), PL-Q5 (đặc trưng) hoặc PL-Q4.
 - Ngoài phạm vi: phương pháp phân cụm khác (PL-Q7); bước gộp (PL-E02).
 - Tag: `gc10_pl01b_r<r>_s<N>`, r = 0–2, N = 0–9 (30 run); mỗi run ghi mọi K' vào `metrics.json`.
+
+### Kết quả (2026-10-07; run `gc10_pl01b_r0_s0`–`gc10_pl01b_r2_s9`, commit 89e94d4)
+
+- Toàn vẹn: I1 (phân hoạch K' = 5 trùng pipeline; seed 0–4: cỡ cụm trùng run nhóm A), I2, I3 đạt ở cả 30 run.
+- Quyết định ở K' = 20, số ảnh trong cụm tốt nhất theo seed 0–9:
+  - rolled_pit r0: 13, 0, 11, 12, 12, 0, 0, 0, 12, 10 (6/10); r1: 13, 13, 14, 0, 0, 13, 11, 12, 12, 14 (8/10); r2: 11, 0, 8, 13, 0, 12, 12, 8, 0, 14 (5/10) → đạt 2/3 FT seed.
+  - crease r0: 19, 19, 19, 19, 20, 15, 20, 14, 17, 19 (8/10); r1: 14, 13, 15, 14, 26, 15, 15, 15, 14, 11 (1/10); r2: 14, 16, 15, 15, 15, 16, 23, 19, 23, 20 (6/10) → đạt 2/3 FT seed.
+  - Cả hai đạt: SỐNG.
+- Kèm theo ở K' = 20 (trung bình 10 seed, r0/r1/r2): độ thuần trung vị của cụm tốt nhất: rolled 0.48/0.40/0.46, crease 0.75/0.71/0.62. Riêng crease r1: best 15.2/32 nhưng tổng trên các cụm sở hữu 20.2/32 (trung bình 1.5 cụm).
+- Mô tả theo K' = 5, 10, 15, 20, 30 (số lần đạt trên 30 run): rolled 0, 2, 3, 19, 21; crease 15, 12, 19, 15, 11.
+- Balanced accuracy ghép một–một trên pool ở K' = 5 (trung bình 10 seed): r0/r1/r2 0.497/0.491/0.392, so với `fz` 0.366. Cùng cấu hình, balanced novel cuối pipeline trên test (nhóm A, 5 seed) là 39.4/29.2/36.2, so với `fz` 37.6: tính trung bình, tầng 1 xếp `ft` trên `fz`, tầng 2 xếp ngược lại (PL-Q9).
+- Dự đoán (ít nhất một lớp đạt): đúng.
+
+### Đánh đổi
+
+- Biên mỏng: rolled r0 và crease r2 đạt đúng 6/10. Kết luận SỐNG chịu được một seed đổi kết quả, không chịu được hai seed đổi đúng ở hai ô này. crease r1 trượt sát ngưỡng (9/10 seed có 13–15 ảnh).
+- Cụm của rolled lẫn nhiều (độ thuần trung vị 0.40–0.48), nên bước gộp có nguy cơ nuốt lại.
+- Khi chưa gộp, phân cụm thừa làm giảm balanced accuracy một–một trên pool (r0: 0.497 ở K' = 5, 0.413 ở K' = 20), nên bước gộp là bắt buộc.
+- Kết luận ràng buộc theo `ft` đúng với cấu hình paper, nhưng thừa hưởng nhiễu giữa các FT seed (crease r1).
+
+### Kết luận
+
+- SỐNG theo quy tắc, ràng buộc cho cấu hình paper (PL-QD4): với K' = 20, sức chứa đủ để rolled_pit và crease có cụm riêng ở 2/3 FT seed. Đây chỉ là điều kiện cần.
+- Bước tiếp: PL-E02 (gộp cụm con), tiền đăng ký riêng. K' và ngưỡng gộp phải chốt trước hoặc hiệu chỉnh trên lớp cơ sở; không chọn theo các số mô tả ở trên.
