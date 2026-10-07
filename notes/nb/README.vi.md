@@ -49,7 +49,7 @@ M10 → M11 → M7 (F) + M8 → M9 + M12 → M7 (S) + M8 → M9 + M13.
 
 - `10_feature.ipynb` [chưa có]: M2–M4.
 - `11_gauss.ipynb` [chưa có]: M6–M9.
-- `12_cluster.ipynb` [chưa có]: M10, cộng M11 để chấm.
+- `12_cluster.ipynb` [đợt 1 xong]: M10, cộng M11 để chấm.
 - `13_filter.ipynb` [chưa có]: M12.
 
 ## Khung mỗi notebook
@@ -68,6 +68,8 @@ M10 → M11 → M7 (F) + M8 → M9 + M12 → M7 (S) + M8 → M9 + M13.
 - Xem code trong model: in đúng hàm bằng `inspect.getsource` cạnh đầu vào/đầu ra của nó, không chép code.
 - Khoang đo hai tầng: tầng 1 chấm đầu ra của module bằng nhãn thật (chỉ để chấm), để lọc nhanh; tầng 2 chạy cả pipeline qua `exp.py`, ít nhất 5 seed. Thứ hạng ở tầng 1 phải được xác nhận ở tầng 2.
 - Bối cảnh mặc định: cấu hình paper (`ft`, fine-tune trên tập có nhãn); `fz` là bối cảnh phụ (PL-QD4).
+- Trước mỗi cell code có một cell Markdown: bước đó nhận gì, làm gì, đọc output thế nào.
+- Không nhìn trước dữ liệu: cấu hình thuộc một thí nghiệm sẽ tiền đăng ký (ví dụ K' > 5, phương pháp phân cụm khác) không chạy trên pool lớp mới của GC10 trước khi tiền đăng ký; muốn thử thì dùng dữ liệu đồ chơi hoặc mô phỏng khám phá trên lớp cơ sở.
 
 ## Ngôn ngữ
 
