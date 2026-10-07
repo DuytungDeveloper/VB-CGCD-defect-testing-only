@@ -35,3 +35,26 @@ Mỗi thí nghiệm một mục: tiền đăng ký (không sửa sau khi commit)
 - Tiêu chí mới đủ cho I1: mọi đại lượng quyết định của PL-E01 (sở hữu, best, độ thuần) là hàm của bảng chéo. Bảng trùng chưa chắc phân hoạch trùng từng ảnh (đổi chỗ hai ảnh cùng lớp giữa hai cụm cho cùng bảng), nhưng điều đó không đổi kết quả PL-E01.
 - Nguồn tham chiếu: bảng chéo chỉ có trong `console.log` của các run trên (không vào git); phần có trong git là inertia ở I1 cũ và cỡ cụm từng seed (`notes/improvement-2.vi.md`, Q1). Vì vậy `metrics.json` của PL-E01 phải ghi bảng chéo K' = 5 của bản phát lại.
 - Sửa đổi làm trước khi có bất kỳ dữ liệu nào của PL-E01 (K' > 5 chưa chạy).
+
+## PL-E01b — Phân cụm thừa trên cấu hình paper (PL-Q1, PL-QD4)
+
+### Tiền đăng ký (2026-10-07; commit: điền sau khi push)
+
+- Câu hỏi (PL-Q1, trên cấu hình paper): với đặc trưng fine-tune trên tập có nhãn, nếu k-means có K' > 5 cụm, crease hoặc rolled_pit có sở hữu một cụm chứa ít nhất một nửa số ảnh của nó không?
+- Vì sao có thí nghiệm này: PL-QD4 đặt mốc so sánh là cấu hình paper; PL-E01 (`fz`) là bối cảnh phụ. Kết luận về hướng phân cụm thừa lấy theo PL-E01b.
+- Giả thuyết: như PL-E01 (thiếu sức chứa do hiệu ứng đồng đều; Xiong, Wu & Chen 2009). Ở `ft` r0 seed 4 với K = 5, 27/32 ảnh crease và 16/17 ảnh rolled nằm chung cụm do waist sở hữu (`notes/nb/04_s1_discovery.ipynb`).
+- Dữ liệu: pool S1 đúng như pipeline (748 ảnh, thành phần như PL-E01); đặc trưng `gc10_ft_cls5first_img80pct_r0`, `_r1`, `_r2` (`dino-vitb16-sl`, 768 chiều, đúng đầu vào của bước phân cụm).
+- Cách làm: với mỗi FT seed r ∈ {0, 1, 2} và mỗi seed 0–9, `scripts/replay.py` (`stop="cluster"`) chạy lại pipeline tới hết M10; trạng thái RNG ở lối vào `KMeansCluster.fit` được chụp từ bên ngoài (`notes/nb/12_cluster.ipynb` cell 8). Với mỗi K' ∈ {5, 10, 15, 20, 30}, khôi phục trạng thái đó rồi chạy `KMeansCluster` (`n_init` 10). Nhãn thật chỉ dùng để chấm.
+- Đại lượng: như PL-E01 (sở hữu, best(c), các đại lượng kèm theo), tính bằng `scripts/pl_cluster.py`. Ngưỡng 50% nghĩa là rolled ≥ 9/17 ảnh, crease ≥ 16/32 ảnh.
+- Phép kiểm toàn vẹn; chỉ đọc kết quả K' > 5 khi cả ba đạt:
+  - I1: ở K' = 5, phân hoạch chạy lại từ trạng thái đã chụp trùng phân hoạch của pipeline trong cùng lần phát lại; với seed 0–4, cỡ cụm (sắp xếp) còn phải trùng cỡ cụm in trong `console.log` của run `gc10_ft_cls5first_img80pct_r<r>_km_evhung_d64_s<N>` (nhóm A, 2026-10-05).
+  - I2: pool đúng 748 ảnh với thành phần như PL-E01.
+  - I3 (đối chứng dương): ở K' = 5, waist_folding có best ≥ 50% ở mọi cặp (FT seed, seed).
+- Dự đoán [suy luận, xác suất chủ quan khoảng 50%]: ở K' = 20, ít nhất một trong hai lớp đạt. Không đoán lớp nào dễ hơn: trên `ft` cả hai cùng nằm trong cụm của waist.
+- Quy tắc quyết định (chốt ở K' = 20; các K' khác chỉ để mô tả):
+  - Trong một FT seed, một lớp đạt nếu best ≥ 50% ở ít nhất 6/10 seed.
+  - Một lớp đạt PL-E01b nếu đạt ở ít nhất 2/3 FT seed.
+  - Sống: crease hoặc rolled_pit đạt → PL-E02 (gộp cụm con), làm trên cấu hình paper.
+  - Loại: cả hai không đạt → bỏ hướng phân cụm thừa cho cấu hình paper, dù PL-E01 cho kết quả nào; chuyển sang PL-Q7 (phương pháp khác ở M10), PL-Q5 (đặc trưng) hoặc PL-Q4.
+- Ngoài phạm vi: phương pháp phân cụm khác (PL-Q7); bước gộp (PL-E02).
+- Tag: `gc10_pl01b_r<r>_s<N>`, r = 0–2, N = 0–9 (30 run); mỗi run ghi mọi K' vào `metrics.json`.
