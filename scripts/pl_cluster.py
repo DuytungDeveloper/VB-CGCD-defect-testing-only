@@ -31,4 +31,100 @@ def score(y, ids, names, n_old):
         own = np.flatnonzero(owner == c)
         out[f"owned_{names[c]}"] = int(len(own))
         out[f"best_{names[c]}"] = float((n[c, own] / n_c[c]).max()) if len(own) else 0.0
+        # PL-E01 accompanying measures: total recall over the owned clusters, purity of the best owned cluster
+        out[f"recall_owned_{names[c]}"] = float(n[c, own].sum() / n_c[c])
+        k_best = own[np.argmax(n[c, own])] if len(own) else -1
+        out[f"purity_best_{names[c]}"] = float(n[c, k_best] / n_k[k_best]) if len(own) else 0.0
     return out
+
+
+def _capture(seed, features):
+    """Replay the pipeline up to M10 (scripts/replay.py, stop="cluster") and capture the global NumPy RNG
+    state at the entry of KMeansCluster.fit, from outside: replay.py is unchanged (12_cluster, cell 8)."""
+    from replay import replay
+    from clustering.kmeans import KMeansCluster
+    states, orig = [], KMeansCluster.fit
+
+    def rec(self, *a, **kw):
+        states.append(np.random.get_state())                # read-only: does not consume the RNG
+        return orig(self, *a, **kw)
+
+    KMeansCluster.fit = rec
+    try:
+        r = replay(seed, features=features, stop="cluster")
+    finally:
+        KMeansCluster.fit = orig
+    assert len(states) == 1, len(states)
+    return r, states[0]
+
+
+def _ref_check(seed, tag, y, ids5, inertia5):
+    """Check I1 against the pipeline run runs/*__<tag>_s<seed>: its contingency table and inertia if the run
+    printed them (--print_cluster_xtab; PL-E01), else its cluster sizes (PL-E01b). None if there is no such run."""
+    import re
+    from pathlib import Path
+    from sklearn.metrics.cluster import contingency_matrix
+    from replay import _reference
+    rd = sorted(Path("runs").glob(f"*__{tag}_s{seed}"))
+    if not rd:
+        return None
+    ref_inertia, ref_table, _ = _reference(seed, tag=tag)
+    if ref_table is not None:
+        return bool(contingency_matrix(y, ids5).tolist() == ref_table
+                    and abs(inertia5 - ref_inertia) / ref_inertia < 1e-6)
+    text = (rd[0] / "console.log").read_text(errors="replace")
+    i = text.index("(array([")
+    arrays = re.findall(r"array\(\[([^\]]*)\]", text[i:text.index("]))", i) + 3])
+    assert len(arrays) == 2, arrays
+    ref_sizes = sorted((int(v) for v in arrays[1].replace(",", " ").split()), reverse=True)
+    return bool(sorted(np.bincount(ids5).tolist(), reverse=True) == ref_sizes)
+
+
+def main():
+    """Tier-1 run of the clustering slot: k-means with K' clusters on the S1 pool, every K' from the
+    pipeline's RNG state at M10 (PL-E01, PL-E01b). Writes a flat metrics.json when run through exp.py."""
+    import argparse, json, os
+    from pathlib import Path
+    ap = argparse.ArgumentParser(description=main.__doc__)
+    ap.add_argument("--seed", type=int, required=True)
+    ap.add_argument("--features", default=None, help="features/<run>/<model>; default: first line of runs/inputs.txt")
+    ap.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30])
+    ap.add_argument("--ref-tag", required=True, help="pipeline runs used by check I1, e.g. gc10_frozen_km_evhung_d64_head")
+    a = ap.parse_args()
+    assert 5 in a.ks, "K' = 5 is needed for checks I1 and I3"
+    r, state = _capture(a.seed, a.features)
+    from clustering.kmeans import KMeansCluster
+    st, args = r["stages"][1], r["args"]
+    X, raw = st["train"]._x, np.asarray(st["raw"])
+    y = np.asarray(st["train"]._y).astype(int)
+    names = [c.split("_")[0] for c in json.load(open("splits/gc10_split.json"))["classes"]]
+    comp = dict(zip(names, np.bincount(y, minlength=len(names)).tolist()))
+    expected = {**{nm: 10 for nm in names[:args.base]},
+                "silk": 420, "inclusion": 135, "rolled": 17, "crease": 32, "waist": 94}
+    out = {"seed": a.seed, "I2_ok": int(comp == expected)}
+    for k in a.ks:
+        np.random.set_state(state)                           # every K' starts from the pipeline's RNG state
+        cl = KMeansCluster(num_classes=k, label_offset=args.base, n_init=args.kmeans_n_init)
+        cl.fit(X)
+        ids = np.asarray(cl.predict_raw(X))
+        sc = score(y, ids, names, n_old=args.base)
+        sc["inertia"] = float(cl.model.inertia_)
+        out.update({f"k{k}_{key}": v for key, v in sc.items()})
+        if k == 5:
+            ref = _ref_check(a.seed, a.ref_tag, y, ids, sc["inertia"])
+            out["I1_internal_ok"] = int(np.array_equal(ids, raw))
+            out["I1_has_ref"] = int(ref is not None)
+            out["I1_ok"] = int(out["I1_internal_ok"] == 1 and ref is not False)
+            out["I3_ok"] = int(sc["best_waist"] >= 0.5)
+    out["checks_ok"] = int(out["I1_ok"] and out["I2_ok"] and out["I3_ok"])
+    for key, v in out.items():
+        print(f"{key:30s} {v}")
+    if os.environ.get("EXP_RUN_DIR"):
+        (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
+
+
+if __name__ == "__main__":
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))   # repo root: clustering/, main.py
+    main()

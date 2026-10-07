@@ -38,7 +38,7 @@ Mỗi thí nghiệm một mục: tiền đăng ký (không sửa sau khi commit)
 
 ## PL-E01b — Phân cụm thừa trên cấu hình paper (PL-Q1, PL-QD4)
 
-### Tiền đăng ký (2026-10-07; commit: điền sau khi push)
+### Tiền đăng ký (2026-10-07; commit: 885e2dc)
 
 - Câu hỏi (PL-Q1, trên cấu hình paper): với đặc trưng fine-tune trên tập có nhãn, nếu k-means có K' > 5 cụm, crease hoặc rolled_pit có sở hữu một cụm chứa ít nhất một nửa số ảnh của nó không?
 - Vì sao có thí nghiệm này: PL-QD4 đặt mốc so sánh là cấu hình paper; PL-E01 (`fz`) là bối cảnh phụ. Kết luận về hướng phân cụm thừa lấy theo PL-E01b.
