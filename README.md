@@ -29,7 +29,9 @@ Upstream:  https://github.com/daihao42/VB-CGCD (its README declares MIT; the ups
     notes/paper-code-discrepancies.md  where the code differs from the paper
     notes/code-changes.vi.md           what the fork changed vs upstream (Vietnamese)
     notes/plan.vi.md                   plan, decisions, open questions (Vietnamese)
-    archive/                           old runs                                           (not in git)
+    lab/README.vi.md                   index of lab/: notebooks per pipeline step, helper .py (Vietnamese)
+    archive/pre-rerun-20260915/        runs before the clean rerun; removed 2026-10-15, packed in
+                                       /mnt/e/AI_Storage/backups/vbcgcd-archive-pre-rerun-20260915.tar
 
 ## 2. Environment
 

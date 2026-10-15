@@ -307,7 +307,8 @@ headroom instead of ~1.6 GB.
 ## Run 3 — 2026-09-15 13:30 — completed
 
 Features used by baseline seeds 0-2. Moved to `archive/pre-rerun-20260915/`
-on 2026-09-16.
+on 2026-09-16; packed into a tar on drive E: on 2026-10-15 (path and restore
+command at the top of `notes/LOG.md`).
 
 Run 1 is one reason features now live inside the project (ext4), not on
 `/mnt/e` (drvfs).

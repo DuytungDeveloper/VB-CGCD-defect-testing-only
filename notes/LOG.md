@@ -1,7 +1,9 @@
 # LOG
 
 One entry per run, appended by exp run. Fill in "why" and "note".
-Before the clean rerun: archive/pre-rerun-20260915/ (not in git) and git tag pre-rerun-20260915
+Before the clean rerun: archive/pre-rerun-20260915/ (not in git) and git tag pre-rerun-20260915.
+On 2026-10-15 the folder was packed into a tar on drive E: and removed. Restore from the repo root:
+`mkdir -p archive && tar -xf /mnt/e/AI_Storage/backups/vbcgcd-archive-pre-rerun-20260915.tar -C archive`
 
 ## Open questions
 Moved to `notes/plan.vi.md` §5 (single list since 2026-09-29).
