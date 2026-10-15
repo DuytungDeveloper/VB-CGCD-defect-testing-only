@@ -18,9 +18,11 @@ Trạng thái câu hỏi không ghi ở đây: xem `questions.vi.md`.
 
 ## 3. Mã và tag
 
-- Câu hỏi `PL-Q<n>`, quyết định `PL-QD<n>`, thí nghiệm `PL-E<nn>`. Không dùng lại mã; mục bị bỏ ghi "bỏ" kèm lý do, không xoá.
-- Tag run: `<dataset>_pl<nn>_<biến thể>_s<N>`, ví dụ `gc10_pl01_k20_s0`, để `exp.py agg gc10_pl01_k20` gom đúng các seed.
-- Trong `notes/LOG.md`, dòng `why:` của run thuộc dòng PL bắt đầu bằng mã thí nghiệm, ví dụ `PL-E01: ...`.
+- Từ 2026-10-15 (PL-QD5), mã theo bước: câu hỏi `Q<bước>.<nn>`, thí nghiệm `E<bước>.<nn>`, phép kiểm trong một thí nghiệm `C1, C2…`. Bước 00 là dữ liệu; 01–14 là các bước của mô hình (`lab/README.vi.md`). Quyết định vẫn là `PL-QD<n>`.
+- Không dùng lại mã; mục bị bỏ ghi "bỏ" kèm lý do, không xoá.
+- Mã cũ (`PL-Q<n>`, `PL-E<nn>`) giữ trong ngoặc, ví dụ `Q09.01 (= PL-Q1)`; bảng đối chiếu ở `lab/README.vi.md` mục 8.
+- Tag run mới: `<dataset>_e<bước>_<nn>[_<biến thể>]_s<N>`, ví dụ `gc10_e09_03_r0_s3`, để `exp.py agg gc10_e09_03_r0` gom đúng các seed. Tag cũ (`gc10_pl01_…`) giữ nguyên.
+- Trong `notes/LOG.md`, dòng `why:` bắt đầu bằng mã thí nghiệm, ví dụ `E09.03: ...`; dòng cũ (`PL-E01: ...`) không sửa.
 
 ## 4. Thí nghiệm
 
@@ -65,3 +67,18 @@ Quy tắc chung của repo (commit trước khi chạy, Hungarian chỉ lúc đ�
 - Bằng chứng nền: note LOG `gc10_ftseed0_km_evhung_d64_s4` (fine-tune giữ lớp cũ tốt hơn, ổn định qua FT seed; khám phá không ổn định).
 - Hệ quả: so sánh trên `ft` ghép cặp theo FT seed (r0–r2); atlas dùng `ft` r0, seed 4 (mode đa số). PL-E01 giữ tiền đăng ký trên `fz`; thí nghiệm tương ứng trên `ft` tiền đăng ký riêng, và hướng phân cụm thừa xét theo kết quả trên `ft`.
 - Lưu ý: `fz` và `ft` khác nhau ở hai yếu tố cùng lúc (có fine-tune hay không; CLS hay pooler, D8); fine-tune trong code chỉ có cross-entropy (D3).
+
+### PL-QD5 — Bố cục `lab/`, mã theo bước, khung notebook (2026-10-15)
+
+- Nội dung:
+  - Notebook và bàn mổ nằm thẳng trong thư mục gốc `lab/`, không có thư mục con. Mục lục, bảng đối chiếu mã và quy tắc notebook ở `lab/README.vi.md`.
+  - Bước 00 là dữ liệu: mỗi dataset một notebook `00-data-<dataset>.ipynb`, được phép dài. Mô hình chia thành 14 bước 01–14 theo thứ tự chạy, thay cho M1–M13 (mã M giữ làm tra cứu).
+  - Biến thể và phần thêm mang chữ cái của bước gốc, có ba loại: thay thế, chèn sau, phân tích. Số 00–14 không bao giờ đổi.
+  - Mã câu hỏi và thí nghiệm theo bước (`Q<bước>.<nn>`, `E<bước>.<nn>`); mã cũ giữ trong ngoặc.
+  - "Chạy độc lập": sửa bước k thì không chạy lại 01…k−1, chạy lại toàn bộ k+1…14. Đạt được khi có bàn mổ v2 (`lab/replay.py` nâng tại chỗ).
+  - Kế hoạch file `.py`: `replay.py` (v2), `variants.py`, `score.py`, `data_io.py`; `pl_cluster.py` nghỉ khi đã có `score.py` và v2.
+  - Notebook có khung cố định: cell đầu (tiêu đề; Câu hỏi, Vị trí, Bối cảnh, Kết luận), Markdown Trước và Sau mỗi cell code, cuối là Summary (EN). Không làm notebook tổng quan 00.
+- Thay cho: PL-QD3 (bố cục ba lớp trong `notes/nb/` và thứ tự làm); quyết định ngày 2026-10-05 không dời file code, nay có ngoại lệ cho `replay.py` và `pl_cluster.py`.
+- Lý do: tách hẳn dữ liệu và mô hình; đánh số theo thứ tự chạy để cải tiến gắn ngay tại bước của nó và so được với chuỗi mặc định; một hệ mã đồng bộ cho bước, notebook, câu hỏi và thí nghiệm.
+- Bản cũ: tag `nb-v1` (`notes/nb/`, `scripts/replay.py`, `scripts/pl_cluster.py`); dời ở commit `dd7a954`.
+- Hệ quả: tiền đăng ký E09.01, E09.02 trỏ tới đường dẫn cũ, chạy lại bằng commit `89e94d4` hoặc tag `nb-v1`; `exp.py` không kiểm dirty notebook và `.md` trong `lab/`, vẫn kiểm `lab/*.py`.

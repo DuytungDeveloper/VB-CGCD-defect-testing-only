@@ -61,7 +61,7 @@ Biến thể và phần thêm:
   1. thay thế bước gốc, kết quả đổi (ví dụ `06a-closed-form` thay SVI);
   2. chèn thêm ngay sau bước gốc, kết quả đổi (ví dụ `09b-overcluster-merge` chạy sau phân cụm);
   3. phân tích thêm cho bước gốc, kết quả không đổi (ví dụ `14a-loss-by-step`).
-- Cell đầu của notebook chữ cái ghi ba điều: loại (thay thế, chèn, phân tích); vị trí trong thứ tự chạy; dựa trên notebook nào.
+- Dòng **Vị trí** ở cell đầu của notebook chữ cái ghi ba điều: loại (thay thế, chèn, phân tích); vị trí trong thứ tự chạy; dựa trên notebook nào (khung ở mục 9).
 - Biến thể dựa trên một biến thể khác lấy chữ kế tiếp và ghi nguồn; không lồng chữ (`09c` ghi "dựa trên 09b", không đặt `09b1`).
 - Biến thể được chọn làm mặc định mới vẫn giữ chữ cái của nó; mục lục đánh dấu bản nào đang là mặc định.
 - Code dùng chung (SVI ở 06, 11, 13; bộ phân lớp ở 08, 12, 14): cải tiến một bước là hàm mới của riêng bước đó. Sửa thẳng code chung thì coi như sửa ở bước sớm nhất dùng nó.
@@ -134,10 +134,17 @@ Cảnh báo trùng số: `12_cluster` cũ (khoang 12 = phân cụm) khác hẳn 
 
 ## 9. Quy tắc notebook
 
-- Trước mỗi cell code có một cell Markdown: bước đó nhận gì, làm gì, đọc output thế nào.
+- Khung mỗi notebook:
+  - Cell đầu (Markdown, trước cell 0): tiêu đề trùng tên file, ví dụ `# 09a-overcluster — Phân cụm thừa K' = 20`, rồi bốn dòng: **Câu hỏi** (kèm mã Q/E); **Vị trí** (bước nào; loại: gốc, thay thế, chèn, phân tích; dựa trên notebook nào); **Bối cảnh** (bộ đặc trưng, seed); **Kết luận** (1–2 câu kèm số, điền khi xong).
+  - Mỗi cell code kẹp giữa hai cell Markdown có nhãn cố định:
+    - Trước, tối đa 3 dòng: **Mục đích** (câu hỏi, mã Q/E); **Vào → Ra** (tên biến, shape); **Đọc kết quả** (nhìn vào đâu, giá trị nào nghĩa là gì). Cell có công thức hay thuật toán mới thêm dòng **Cách làm** (công thức kèm nguồn).
+    - Sau, tối đa 3 gạch: **Kết quả** (số chính, chép đúng từ output); **Ý nghĩa** (nói gì cho câu hỏi, khớp hay trái dự đoán; phần diễn giải ghi [SUY LUẬN]); **Tiếp** (hệ quả cho bước sau, bỏ nếu không có).
+  - Notebook dữ liệu: tiêu đề mục `## 1. Giao thức`, `## 2. Ảnh`, `## 3. Nhãn`.
+  - Cuối notebook: "Summary (EN)".
+- Cách viết Markdown: cho người chưa đọc code; dùng số cụ thể, không diễn giải lại code; thuật ngữ lần đầu kèm tiếng Anh (mục 10). Mỗi cell code làm một việc: phần Trước cần quá 3 dòng thì tách cell. Cell thiết lập (cell 0, import) cũng có Sau, một dòng kiểm tra, ví dụ "dirty phải là False". Chạy lại mà số đổi thì sửa Sau.
 - Code, chú thích code, tên biến, nhãn trục, tiêu đề và chú giải hình: tiếng Anh. Markdown: tiếng Việt, kèm thuật ngữ tiếng Anh.
 - Notebook mô hình ngắn, một câu hỏi chính, Restart & Run All không quá 5 phút; dài thì tách thành chữ cái mới. Notebook dữ liệu được phép dài.
-- Cell đầu in commit, trạng thái dirty, đường dẫn đặc trưng (mẫu ở mục 11). Trước khi commit: Restart & Run All; commit kèm output, hình nhỏ.
+- Cell code đầu tiên (cell 0) in commit, trạng thái dirty, đường dẫn đặc trưng (mẫu ở mục 11). Trước khi commit: Restart & Run All; commit kèm output, hình nhỏ.
 - Không huấn luyện nặng trong notebook: đọc đặc trưng có sẵn; tối đa chạy SVI cho 1 seed.
 - Bộ đo viết một lần trong `.py`, notebook import lại. Xem code trong model: in đúng hàm bằng `inspect.getsource` cạnh đầu vào/đầu ra của nó, không chép code.
 - Đánh giá hai tầng: tầng 1 chấm đầu ra của một bước bằng nhãn thật (chỉ để chấm), để lọc nhanh; tầng 2 chạy cả pipeline qua `exp.py`, ít nhất 5 seed. Thứ hạng ở tầng 1 phải được xác nhận ở tầng 2.
@@ -159,7 +166,7 @@ Cảnh báo trùng số: `12_cluster` cũ (khoang 12 = phân cụm) khác hẳn 
 - cấy ghép — graft; ảnh chụp — snapshot; chạy độc lập — independent step runs
 - đánh giá tầng 1 / tầng 2 — tier-1 (step output) / tier-2 (full pipeline) evaluation
 
-## 11. Cell đầu (mẫu)
+## 11. Cell 0 (mẫu)
 
 Chép nguyên khối dưới vào cell code đầu tiên của mỗi notebook:
 
