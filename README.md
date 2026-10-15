@@ -1,7 +1,8 @@
 # VB-CGCD reproduction (fork)
 
 Reproduction of VB-CGCD on CIFAR-100, with notes on where the code differs from the paper.
-Planned next: industrial surface defect data (NEU-DET, GC10-DET).
+Then industrial surface defect data: GC10-DET (main benchmark) and NEU-DET (sanity checks).
+Current work: pseudo-label quality with minimal real labels (notes/pl/, lab/).
 
 Paper:     Dai & Chauhan, "Continual Generalized Category Discovery: Learning and Forgetting
            from a Bayesian Perspective", ICML 2025.
@@ -24,11 +25,14 @@ Upstream:  https://github.com/daihao42/VB-CGCD (its README declares MIT; the ups
     runs/inputs.txt                    feature folder that phase 2 reads
     runs/columns.txt                   metrics shown in INDEX.txt and in the LOG
     runs/paper/                        paper numbers, shown as a reference row
-    notes/LOG.md                       one entry per run (automatic) + open questions
+    notes/LOG.md                       one entry per run (automatic)
     notes/reproducibility-issues.md    environment problems and local patches
     notes/paper-code-discrepancies.md  where the code differs from the paper
     notes/code-changes.vi.md           what the fork changed vs upstream (Vietnamese)
-    notes/plan.vi.md                   plan, decisions, open questions (Vietnamese)
+    notes/plan.vi.md                   repo rules; plan, decisions, questions up to 2026-10-03 (Vietnamese)
+    notes/pl/README.vi.md              current work (pseudo-labels, PL): scope, codes, decisions (Vietnamese)
+    notes/pl/questions.vi.md           open questions of the PL work (Vietnamese)
+    notes/pl/experiments.vi.md         PL experiments: preregistration, results (Vietnamese)
     lab/README.vi.md                   index of lab/: notebooks per pipeline step, helper .py (Vietnamese)
     archive/pre-rerun-20260915/        runs before the clean rerun; removed 2026-10-15, packed in
                                        /mnt/e/AI_Storage/backups/vbcgcd-archive-pre-rerun-20260915.tar

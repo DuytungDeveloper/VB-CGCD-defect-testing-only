@@ -6,7 +6,7 @@ On 2026-10-15 the folder was packed into a tar on drive E: and removed. Restore 
 `mkdir -p archive && tar -xf /mnt/e/AI_Storage/backups/vbcgcd-archive-pre-rerun-20260915.tar -C archive`
 
 ## Open questions
-Moved to `notes/plan.vi.md` §5 (single list since 2026-09-29).
+Moved to `notes/plan.vi.md` §5 on 2026-09-29; since 2026-10-03 (plan.vi.md frozen) in `notes/pl/questions.vi.md`.
 
 ---
 

@@ -1,4 +1,4 @@
-]633;E;echo "# Generated from the working vbcgcd env on $(date +%F) with: pip list --format=freeze (pip line removed)";db115645-7e8f-4aee-8cba-1a6c294df6a4]633;C# Generated from the working vbcgcd env on 2026-09-16 with: pip list --format=freeze (pip line removed)
+# Generated from the working vbcgcd env on 2026-09-16 with: pip list --format=freeze (pip line removed)
 # Python 3.12. Install with: pip install -r requirements-lock.txt
 --extra-index-url https://download.pytorch.org/whl/cu121
 absl-py==2.5.0

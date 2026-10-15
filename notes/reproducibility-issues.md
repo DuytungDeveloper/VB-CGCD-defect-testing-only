@@ -338,6 +338,14 @@ in the whole system.
 tokenizers 0.23.2, huggingface_hub 1.31.0), had a conda `@ file://` line, and had no
 `--extra-index-url` for torch cu121, so it could not be installed.
 
+Line 1 of the 2026-09-16 lock also held terminal escape codes (VS Code shell
+integration, OSC 633), captured with the `echo` that wrote it, so `pip install -r`
+stopped at line 1 ("Invalid requirement"). Fixed on 2026-10-15. The pins match the
+env of the runs of 2026-10-04/05 (`runs/envs/f70b1aeb7805.txt`). The env of the runs
+of 2026-10-07 (`893900df6375.txt`) adds 21 Jupyter packages (ipykernel, ipython,
+jupyter_client and dependencies) and changes no pinned version. No fresh install
+has been tested yet.
+
 `environment.yml` (commit fd8316b) had the same broken pins and a machine-specific `prefix`.
 Removed on 2026-09-17; `requirements-lock.txt` is the only environment file.
 
