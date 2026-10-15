@@ -1,5 +1,5 @@
 """Tier-1 evaluation of the clustering slot (M10): scores of a pool partition, used by
-notes/nb/12_cluster.ipynb and by the PL experiments. True labels enter only here, for scoring;
+the notebooks in lab/ (tag nb-v1: notes/nb/12_cluster.ipynb) and by the PL experiments. True labels enter only here, for scoring;
 they never reach a clustering method."""
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -39,8 +39,8 @@ def score(y, ids, names, n_old):
 
 
 def _capture(seed, features):
-    """Replay the pipeline up to M10 (scripts/replay.py, stop="cluster") and capture the global NumPy RNG
-    state at the entry of KMeansCluster.fit, from outside: replay.py is unchanged (12_cluster, cell 8)."""
+    """Replay the pipeline up to M10 (lab/replay.py, stop="cluster") and capture the global NumPy RNG
+    state at the entry of KMeansCluster.fit, from outside: replay.py is unchanged (tag nb-v1: 12_cluster, cell 8)."""
     from replay import replay
     from clustering.kmeans import KMeansCluster
     states, orig = [], KMeansCluster.fit

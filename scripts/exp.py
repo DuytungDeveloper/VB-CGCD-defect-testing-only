@@ -61,8 +61,8 @@ def load_runs(runs):
 
 # ---------------------------------------------------------------- what the run used
 def git_info(root):
-    # untracked files count as dirty; bookkeeping folders do not
-    status = sh("git status --porcelain -- . ':(exclude)runs' ':(exclude)notes'", root)
+    # untracked files count as dirty; runs/, notes/ and lab notebooks/.md do not; lab/*.py does
+    status = sh("git status --porcelain -- . ':(exclude)runs' ':(exclude)notes' ':(exclude)lab/*.ipynb' ':(exclude)lab/*.md'", root)
     return {"commit": sh("git rev-parse HEAD", root), "dirty": bool(status), "dirty_files": status.splitlines()}
 
 

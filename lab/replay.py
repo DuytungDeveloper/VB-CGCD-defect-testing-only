@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Replay main.py stage by stage for one seed (t1 protocol, --hungarian_on eval, labeled S0) and keep the
-intermediate objects, for the notebooks in notes/nb and offline experiments of the PL line.
+intermediate objects, for the notebooks in lab/ and offline experiments of the PL line.
 
 Same calls in the same order as main.py, so the global numpy RNG (loader permutations, the S0 PCA with the
 randomized solver, k-means) is consumed identically. main.py itself is not changed.
@@ -10,8 +10,8 @@ randomized solver, k-means) is consumed identically. main.py itself is not chang
                   inertia, pi_test (cluster -> novel offset), lut, offset, acc (full mode only)
   r["svi"]: (log_prefix, params) of every SVI pass (S0, then F and S of each session); r["clf"]: the classifier
 Check against runs of the pipeline (default: the E1 runs gc10_frozen_km_evhung_d64_head_s*):
-  python scripts/replay.py 0 1 2 3 4      # stop="cluster": inertia must equal the run's
-  python scripts/replay.py --full 0       # full: S1 accuracies must equal the run's metrics.json
+  python lab/replay.py 0 1 2 3 4      # stop="cluster": contingency table equal, inertia rel < 1e-6
+  python lab/replay.py --full 0       # full: S1 accuracies must equal the run's metrics.json
 """
 import functools, json, os, re, sys, tempfile, types
 from pathlib import Path

@@ -188,7 +188,7 @@ __pycache__
 
 
 # ---- Project-specific: VB-CGCD defect adaptation ----
-data/
+/data/
 datasets/
 checkpoints/
 features/
