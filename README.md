@@ -46,6 +46,10 @@ Do not install from requirements.txt: it does not work (see notes, A1 and A2).
     conda activate vbcgcd
     pip install -r requirements-lock.txt
 
+For the notebooks in lab/ only (Jupyter kernel; runs do not need it):
+
+    pip install ipykernel==7.4.0
+
 Check that JAX uses the GPU. It must print [CudaDevice(id=0)]:
 
     python -c "import jax; print(jax.devices())"

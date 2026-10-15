@@ -82,3 +82,24 @@ Quy tắc chung của repo (commit trước khi chạy, Hungarian chỉ lúc đ�
 - Lý do: tách hẳn dữ liệu và mô hình; đánh số theo thứ tự chạy để cải tiến gắn ngay tại bước của nó và so được với chuỗi mặc định; một hệ mã đồng bộ cho bước, notebook, câu hỏi và thí nghiệm.
 - Bản cũ: tag `nb-v1` (`notes/nb/`, `scripts/replay.py`, `scripts/pl_cluster.py`); dời ở commit `dd7a954`.
 - Hệ quả: tiền đăng ký E09.01, E09.02 trỏ tới đường dẫn cũ, chạy lại bằng commit `89e94d4` hoặc tag `nb-v1`; `exp.py` không kiểm dirty notebook và `.md` trong `lab/`, vẫn kiểm `lab/*.py`.
+
+### PL-QD6 — Bàn mổ v2: bước là hàm, ảnh chụp theo bước, RNG chung (2026-10-15)
+
+- Nội dung:
+  - `lab/replay.py` nâng tại chỗ lên v2. Phạm vi: t1, `--hungarian_on eval`, S0 có nhãn; GC10 và NEU.
+  - Mỗi bước 04–14 là một hàm `sNN(st) -> dict`: đọc trạng thái `st`, trả các khoá mới; Vào/Ra ghi trong docstring. Bước mặc định gọi đúng hàm của pipeline, theo thứ tự của `main.py` và `MNGMMClassifier.train()`.
+  - 06, 07, 08 trả thêm thành phần (cách ước lượng, luật dừng sớm, cách phân lớp) để 11–14 dùng lại, nên biến thể ở 06–08 áp dụng cả xuống 11–14. Thành phần cắm bằng cách gán đè phương thức trên đối tượng `clf`, không sửa code gốc.
+  - Nhãn thật của pool và của mọi tập test nằm trong khoá `true_*`. Hàm biến thể nhận `st` đã bỏ các khoá này; chỉ s10, s14 và `score.py` đọc chúng. Bước mặc định 06/11/13 vẫn nhận nhãn test như `main.py`, chỉ để in log.
+  - Ảnh chụp sau mỗi bước: `runs/<run_id>/snap/NN.pkl` gồm đầu ra, trạng thái RNG, commit, mã băm. Không vào git; chỉ dùng trên máy đã tạo ra nó.
+  - Chuỗi mặc định chạy từ đầu một lần cho mỗi (bộ đặc trưng, seed); biến thể chạy tiếp từ ảnh chụp đó (`--from`, `--start`, `--at`).
+  - RNG chung (common random numbers): ở lối vào 04, 05, 09 đặt lại trạng thái RNG của chuỗi mặc định.
+  - Phát hiện ảnh chụp cũ theo từng bước, bằng chuỗi băm: h(k) = băm(h(k−1), AST của hàm ở bước k và các hàm trong `lab/` mà nó gọi, tham số biến thể, file pipeline dùng lần đầu ở bước k). AST bỏ chú thích và docstring. File pipeline: 04 `main.py`, `dataloaders/`, `utils/`; 05 `classifier/`; 09 `clustering/`. h(04) băm thêm cấu hình, đặc trưng, file split, phiên bản các gói tính toán và code của bộ chạy. Sửa bước k chỉ làm cũ ảnh chụp từ k trở đi. Không chạy tiếp từ run gốc bị dirty.
+  - Run qua `exp.py`: console log cùng định dạng `main.py`; `metrics.json` do `scripts/extract_vbcgcd.py` tạo.
+  - Phép kiểm, phải qua trước khi dùng:
+    - C1: chuỗi mặc định khớp 15 run `gc10_ft_cls5first_img80pct_r{0,1,2}_km_evhung_d64_s{0–4}` ở từng ảnh chụp (tham số S0 và S1, bảng S0 và S1, bảng chéo và inertia, `pi_test`, bước dừng F/S, số ảnh giữ). 15 run này cũng là ảnh chụp gốc cho các biến thể.
+    - C2: với 1 seed, chạy tiếp từ mỗi k = 05…14 ra đúng như chạy từ đầu.
+    - C3: biến thể giả ở 05 rút thêm RNG; phân hoạch ở 09 không đổi.
+    - C4: sửa giả bước k (trong bộ nhớ) chỉ đổi h(k)…h(14); sửa chú thích không đổi mã băm nào.
+- Thay cho: không. Cụ thể hoá "chạy độc lập" của PL-QD5. Chọn ngày 2026-10-15: phát hiện cũ theo từng bước (không theo file), C1 trên cả 15 run.
+- Lý do: chạy độc lập (PL-QD5); hiệu số giữa biến thể và mặc định không lẫn nhiễu RNG (Law & Kelton); chỉ tạo lại phần bị ảnh hưởng, như `make` (Feldman 1979) nhưng so nội dung thay vì thời gian.
+- Hệ quả: số của biến thể đo bằng v2 có thể lệch bản cài thẳng vào `main.py` chỉ do đường đi của RNG; biến thể được chọn làm mặc định thì đo lại. `pl_cluster.py` nghỉ khi v2 qua C1–C4; bản v1 ở tag `nb-v1`.
