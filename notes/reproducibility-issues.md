@@ -106,6 +106,24 @@ paper — and it changes the training configuration, not just speed.
 
 **Suspect list.** If S0 differs from 91.68 by more than 2pp, come back here.
 
+## A6. Phase 2 on the GPU is not bit-reproducible
+
+Measured on 2026-10-15 with `gc10_ft_cls5first_img80pct_r0_km_evhung_d64_s0` (the steps of `lab/replay.py`,
+which call the functions of `main.py`; same input in every process):
+
+- Every printed result equals the run of 2026-10-05: S0 and S1 tables, kept count, early-stop steps,
+  cluster sizes, `pi_test`.
+- The class means and covariances do not: at most 1.7e-7 of the largest value (float32 epsilon is
+  1.2e-7). Two runs on the same day also differ at this level (max |diff| 6e-8).
+- With `XLA_FLAGS=--xla_gpu_deterministic_ops=true`, two runs are identical to the bit.
+
+Likely cause (not verified): in the SVI model the gradient of `class_means[y_batch]` is a scatter-add,
+which XLA runs on the GPU with atomic adds, so the order of the float additions changes from run to run.
+The GPU driver also changed in between: 616.92 on 2026-10-05, 617.42 on 2026-10-15.
+
+`main.py` does not set the flag, so its runs repeat only up to this noise. `lab/replay.py` v2 sets it
+(PL-QD6); its check against `main.py` runs (C1) compares the parameters within 1e-6 of their largest value.
+
 ---
 
 # Part B — Patches

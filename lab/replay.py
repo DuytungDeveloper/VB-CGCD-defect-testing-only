@@ -106,6 +106,241 @@ def _reference(seed, tag="gc10_frozen_km_evhung_d64_head"):
         json.loads((rd[0] / "metrics.json").read_text())
 
 
+# ====================================================================================================== v2
+# Replay harness v2 (PL-QD6, notes/pl/README.vi.md). The default chain of main.py (t1, --hungarian_on eval,
+# labeled S0) as one function per step 04-14 (lab/README.vi.md section 3). A step sNN(st) reads the state dict
+# st and returns only the keys it adds (OWNS). True labels of the pool and of the test sets live in true_* keys.
+
+STEPS = ("04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14")
+DEFAULT = {"04": "s04_loader", "05": "s05_pca", "06": "s06_gauss_svi", "07": "s07_early_stop",
+           "08": "s08_classifier", "09": "s09_cluster", "10": "s10_naming", "11": "s11_gauss_f",
+           "12": "s12_filter", "13": "s13_gauss_s", "14": "s14_eval"}
+OWNS = {"04": ("s0_x", "s0_y", "pool_x", "test0_x", "test1_x", "test_old_x", "test_all_x", "offset",
+               "true_pool_y", "true_test0_y", "true_test1_y", "true_test_old_y", "true_test_all_y"),
+        "05": ("pca", "z_s0", "z_pool", "z_test0", "z_test1"), "06": ("params0", "fit"), "07": ("stop",),
+        "08": ("predict", "acc0"), "09": ("ids", "cluster", "inertia"), "10": ("pi_test", "lut"),
+        "11": ("params_f",), "12": ("keep",), "13": ("params1",), "14": ("acc1",)}
+PROTOCOL = dict(load_mode="t1", hungarian_on="eval", s0_labels="true", clustering_alg="kmeans", classifier_alg="mngmm",
+                estimator="svi", cov_prior_kappa=0.0, mask_unseen=False, oracle_filter=False)
+DETERMINISTIC = "--xla_gpu_deterministic_ops=true"    # without it the GPU scatter-add is not bit-reproducible (A6)
+
+
+def _xla_flags():
+    """XLA_FLAGS with the deterministic GPU mode added; XLA reads it when jax starts."""
+    flags = os.environ.get("XLA_FLAGS", "")
+    return flags if DETERMINISTIC in flags else f"{flags} {DETERMINISTIC}".strip()
+
+
+def new_state(args):
+    """Fresh state: args and the classifier object, set up as main.py does, used by the steps as a workbench.
+    The GPU runs in deterministic mode, so two runs on the same input agree to the bit; main.py on the GPU
+    does not (notes/reproducibility-issues.md A6)."""
+    bad = {k: getattr(args, k) for k, v in PROTOCOL.items() if getattr(args, k) != v}
+    assert not bad, f"replay v2 runs the default protocol only, not {bad}"
+    assert Path("main.py").exists(), "run from the repo root (relative paths: splits/, features/)"
+    if os.environ.get("XLA_FLAGS") != _xla_flags():
+        assert "jax" not in sys.modules, f"jax was imported before replay.new_state: start Python with XLA_FLAGS={DETERMINISTIC}"
+        os.environ["XLA_FLAGS"] = _xla_flags()
+    os.environ.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")   # memory only, results unchanged
+    import torch, jax                                                  # noqa: F401  (import order of main.py)
+    import main
+    clf = main.Classifier_alg(args.classifier_alg)(num_classes=args.num_classes, num_dim=args.num_dim,
+                                                   with_early_stop=args.with_early_stop)
+    for k in ("cov_prior_kappa", "cov_prior_target", "estimator", "mask_unseen", "oracle_filter"):
+        setattr(clf, k, getattr(args, k))
+    tmp = tempfile.mkdtemp(prefix="replay_")
+    clf.init_parameters(n_epochs=args.n_epochs, lr=args.lr, log_dir=f"{tmp}/log", save_dir=f"{tmp}/",
+                        batch_size=args.batch_size, increment=args.increment, base=args.base,
+                        scaling_factor=args.scaling_factor, use_correct_scaling_factor=args.use_correct_scaling_factor,
+                        early_stop_ratio=args.early_stop_ratio)
+    return {"args": args, "clf": clf}
+
+
+# ---------------------------------------------------------------- components (chosen at 06, 07, 08; used by 11-14)
+def fit_svi(clf, z, y, z_test, y_test, prefix, correct_sf):
+    """Estimator: class Gaussians by SVI (mngmm.run_inference, as in train(); PRNGKey(0) inside, no global RNG).
+    The test data only feed the log lines."""
+    import jax.numpy as jnp
+    return clf.run_inference(jnp.array(z), jnp.array(y), jnp.array(z_test), jnp.array(y_test),
+                             log_prefix=prefix, use_correct_scaling_factor=correct_sf)
+
+
+def stop_default(clf, args):
+    """Early-stop rule: mngmm's det(Sigma) rule, on when --with_early_stop (inactive at S0)."""
+    clf.with_early_stop = args.with_early_stop
+    clf.__dict__.pop("calculate_metrics_on_covariances", None)       # drop an override left by a variant
+
+
+def predict_default(clf):
+    """Classifier: argmax of the class log-densities over all num_classes slots (mngmm._predict)."""
+    clf.__dict__.pop("_predict", None)
+
+
+def _component(name):
+    return globals()[name] if name in globals() else getattr(__import__("variants"), name)
+
+
+def _clf(st):
+    clf = st["clf"]
+    clf.pca = st.get("pca")                                          # None before step 05
+    return clf
+
+
+def _jnp(p):
+    import jax.numpy as jnp
+    return {k: jnp.asarray(v) for k, v in p.items()}
+
+
+def _np(p):
+    return {k: np.asarray(v) for k, v in p.items()}
+
+
+def _rel(st, key):
+    """True labels mapped to cluster space by lut (step 10), as main.py does for evaluation."""
+    return st["lut"][np.asarray(st[key]).astype(int)]
+
+
+def _table(clf, rows):
+    """The result table of mngmm.run(), same format (scripts/extract_vbcgcd.py reads it)."""
+    from prettytable import PrettyTable
+    t, acc = PrettyTable(["TestSet", "Correct", "Smaples", "Accuracy"]), {}
+    for name, x, y in rows:
+        correct, total, a = clf.test(x, y)
+        t.add_row([name, correct, total, a])
+        acc[name] = a
+    print(t)
+    return acc
+
+
+# ---------------------------------------------------------------- steps 04-14
+def s04_loader(st):
+    """04 Sessions of the t1 protocol (main.Dataloader); the permutations draw the global RNG.
+    In: args. Out: s0_x, s0_y (labeled S0), pool_x (S1 pool), test0_x (S0 test), test1_x (novel test),
+    test_old_x, test_all_x (S1 evaluation), offset (first novel id); true_* labels of the pool and test sets."""
+    import main
+    a = st["args"]
+    tr, te, te_old, te_all = (list(it) for it in main.Dataloader(a))
+    assert len(tr) == 2, "t1: S0 and one online session"
+    y = lambda d: np.asarray(d._y)
+    return dict(s0_x=tr[0]._x, s0_y=y(tr[0]), pool_x=tr[1]._x, test0_x=te[0]._x, test1_x=te[1]._x,
+                test_old_x=te_old[1]._x, test_all_x=te_all[1]._x, offset=a.base,
+                true_pool_y=y(tr[1]), true_test0_y=y(te[0]), true_test1_y=y(te[1]),
+                true_test_old_y=y(te_old[1]), true_test_all_y=y(te_all[1]))
+
+
+def s05_pca(st):
+    """05 PCA to num_dim, fit on the labeled S0 data (mngmm.pre_processing: fit_transform on the first call; the
+    randomized solver draws the global RNG). In: s0_x, s0_y, pool_x, test0_x, test1_x.
+    Out: pca, z_s0, z_pool, z_test0, z_test1 (num_dim features)."""
+    clf = _clf(st)
+    z_s0, _ = clf.pre_processing(st["s0_x"], st["s0_y"])
+    t = clf.pca.transform
+    return dict(pca=clf.pca, z_s0=z_s0, z_pool=t(st["pool_x"]), z_test0=t(st["test0_x"]), z_test1=t(st["test1_x"]))
+
+
+def s06_gauss_svi(st):
+    """06 Class Gaussians of S0 (mngmm.train at stage 0), default early-stop rule (inactive at S0).
+    In: z_s0, s0_y; z_test0, true_test0_y (log lines only). Out: params0; fit (estimator for 11 and 13)."""
+    clf, a = _clf(st), st["args"]
+    stop_default(clf, a)
+    clf.global_params, clf.label_offset, clf.n_seen = None, 0, clf.num_base
+    p = fit_svi(clf, st["z_s0"], np.asarray(st["s0_y"]).astype(int), st["z_test0"], st["true_test0_y"],
+                "stage_0_Flearning", False)
+    return dict(params0=_np(p), fit=fit_svi.__name__)
+
+
+def s07_early_stop(st):
+    """07 Early-stop rule of the online SVI passes (used by 11 and 13). In: -. Out: stop."""
+    return dict(stop=stop_default.__name__)
+
+
+def s08_classifier(st):
+    """08 Classifier (used by 12 and 14) and the S0 test table, printed as mngmm.run prints it.
+    In: params0, test0_x, true_test0_y. Out: predict, acc0."""
+    clf = _clf(st)
+    predict_default(clf)
+    clf.params = clf.global_params = _jnp(st["params0"])
+    clf.label_offset, clf.n_seen = 0, clf.num_base
+    rows = [(n, st["test0_x"], st["true_test0_y"]) for n in ("All", "Old", "Novel", "S0")]
+    return dict(predict=predict_default.__name__, acc0=_table(clf, rows))
+
+
+def s09_cluster(st):
+    """09 k-means on the raw pool features (KMeansCluster, n_init = kmeans_n_init; random_state=None draws the
+    global RNG). In: pool_x, offset. Out: ids (0..K-1, fit order), cluster (has predict_raw), inertia."""
+    import main
+    a = st["args"]
+    cl = main.Clustering_alg(a.clustering_alg)(num_classes=a.increment, label_offset=st["offset"], n_init=a.kmeans_n_init)
+    cl.fit(st["pool_x"])
+    ids = cl.predict_raw(st["pool_x"])
+    print(np.unique(ids + st["offset"], return_counts=True))         # cluster sizes, as main.py prints them
+    return dict(ids=ids, cluster=cl, inertia=float(cl.model.inertia_))
+
+
+def s10_naming(st):
+    """10 Cluster names for evaluation only (D13): Hungarian on the novel test set.
+    In: cluster, test1_x, true_test1_y, offset. Out: pi_test (cluster -> novel id - offset), lut (true id -> cluster space)."""
+    from clustering.clustering_base import hungarian_map
+    a, off = st["args"], st["offset"]
+    pi = hungarian_map(st["cluster"].predict_raw(st["test1_x"]), np.asarray(st["true_test1_y"]).astype(int) - off,
+                       a.increment)
+    print(f"hungarian stage 1: mode=eval pi_test={pi}")
+    lut = np.arange(a.num_classes)
+    for c, t in pi.items():
+        lut[off + t] = off + c
+    return dict(pi_test=pi, lut=lut)
+
+
+def s11_gauss_f(st):
+    """11 Pass F: SVI on the whole pool, cluster ids as labels, started from the S0 Gaussians (mngmm.train).
+    In: z_pool, ids, params0, fit, stop; z_test1, true_test1_y, lut (log lines only). Out: params_f."""
+    clf, a, off = _clf(st), st["args"], st["offset"]
+    _component(st["stop"])(clf, a)
+    clf._set_label_offset(off)
+    clf.global_params, clf.n_seen = _jnp(st["params0"]), off + a.increment
+    p = _component(st["fit"])(clf, st["z_pool"], (st["ids"] + off).astype(int), st["z_test1"],
+                              _rel(st, "true_test1_y"), "stage_1_Flearning", False)
+    return dict(params_f=_np(p))
+
+
+def s12_filter(st):
+    """12 Old/new filter: keep the pool images that the pass-F classifier puts in a novel slot (mngmm.train).
+    In: z_pool, params_f, predict, offset. Out: keep (bool per pool image)."""
+    import jax.numpy as jnp
+    clf, off = _clf(st), st["offset"]
+    _component(st["predict"])(clf)
+    clf.label_offset, clf.n_seen = off, off + st["args"].increment
+    pred, _ = clf._predict(jnp.array(st["z_pool"]), _jnp(st["params_f"]))
+    novel = pred >= off
+    print(f"Number of Novel Samples: {novel.sum()} / {len(st['z_pool'])}")
+    return dict(keep=np.asarray(novel))
+
+
+def s13_gauss_s(st):
+    """13 Pass S: SVI on the kept pool images, started again from the S0 Gaussians (mngmm.train).
+    In: z_pool, ids, keep, params0, fit, stop; z_test1, true_test1_y, lut (log lines only). Out: params1."""
+    clf, a, off = _clf(st), st["args"], st["offset"]
+    _component(st["stop"])(clf, a)
+    clf._set_label_offset(off)
+    clf.global_params, clf.n_seen = _jnp(st["params0"]), off + a.increment
+    k = st["keep"]
+    p = _component(st["fit"])(clf, st["z_pool"][k], (st["ids"] + off).astype(int)[k], st["z_test1"],
+                              _rel(st, "true_test1_y"), "stage_1_Slearning", a.use_correct_scaling_factor)
+    return dict(params1=_np(p))
+
+
+def s14_eval(st):
+    """14 S1 test table as mngmm.run prints it; test labels mapped to cluster space by lut (D13).
+    In: params1, predict, lut, test sets. Out: acc1."""
+    clf, off = _clf(st), st["offset"]
+    _component(st["predict"])(clf)
+    clf.params = clf.global_params = _jnp(st["params1"])
+    clf.label_offset, clf.n_seen = off, off + st["args"].increment
+    rows = (("All", st["test_all_x"], _rel(st, "true_test_all_y")), ("Old", st["test_old_x"], _rel(st, "true_test_old_y")),
+            ("Novel", st["test1_x"], _rel(st, "true_test1_y")), ("S0", st["test0_x"], st["true_test0_y"]))
+    return dict(acc1=_table(clf, rows))
+
+
 if __name__ == "__main__":
     from sklearn.metrics.cluster import contingency_matrix
     full = "--full" in sys.argv
