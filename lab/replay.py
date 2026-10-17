@@ -13,7 +13,7 @@ Check against runs of the pipeline (default: the E1 runs gc10_frozen_km_evhung_d
   python lab/replay.py 0 1 2 3 4      # stop="cluster": contingency table equal, inertia rel < 1e-6
   python lab/replay.py --full 0       # full: S1 accuracies must equal the run's metrics.json
 """
-import functools, json, os, re, sys, tempfile, types
+import argparse, ast, contextlib, functools, hashlib, inspect, io, json, os, pickle, re, subprocess, sys, tempfile, textwrap, time, types
 from pathlib import Path
 import numpy as np
 
@@ -341,7 +341,245 @@ def s14_eval(st):
     return dict(acc1=_table(clf, rows))
 
 
-if __name__ == "__main__":
+
+# ---------------------------------------------------------------- runner, snapshots, hash chain (PL-QD6)
+RNG_STEPS = ("04", "05", "09")                     # the only steps that draw the global numpy RNG
+FILES = {"04": ("main.py", "dataloaders", "utils"), "05": ("classifier",), "09": ("clustering",)}
+PACKAGES = ("numpy", "scipy", "scikit-learn", "jax", "jaxlib", "numpyro", "optax", "continuum")
+PRESETS = {"gc10": GC10, "neudet": NEU}
+LAB = Path(__file__).resolve().parent
+
+
+def _fn(item):
+    """Spec item 'name' or 'name:key=value,...' -> the function (this file, then lab/variants.py)."""
+    name, _, kw = item.partition(":")
+    f = globals()[name] if name in globals() else getattr(__import__("variants"), name)
+    return functools.partial(f, **{k: ast.literal_eval(v) for k, v in (x.split("=", 1) for x in kw.split(","))}) if kw else f
+
+
+def _check_out(k, item, out, default):
+    if default:
+        assert set(out) == set(OWNS[k]), f"step {k}: {item} returned {sorted(out)}"
+        return
+    others = {x for j in STEPS if j != k for x in OWNS[j]}
+    bad = [x for x in out if x.startswith("true_") or x in others]
+    assert not bad, f"step {k}: {item} may not write {bad}"
+
+
+class _Tee(io.TextIOBase):
+    """stdout to the console and to a buffer: each snapshot keeps the log lines of its step."""
+    def __init__(self, out):
+        self.out, self.buf = out, io.StringIO()
+
+    def write(self, s):
+        self.out.write(s)
+        self.buf.write(s)
+        return len(s)
+
+    def flush(self):
+        self.out.flush()
+
+
+def chain(st, spec=None, start="04", parent=None, snap=None, meta=None, upto="14"):
+    """Run steps start..upto on st, in place (st is also returned).
+    spec: {step: [items]}, default DEFAULT. The items of a step run in order: a variant replaces the default
+    function or comes after it (lab/variants.py). Variants get st without the true_* keys.
+    parent: {step: snapshot} of a chain made by this runner; at the entry of 04, 05, 09 the global RNG state is
+    set to the parent's (common random numbers). Without a parent, 04 starts from the seed, as main.py does.
+    snap: folder for one snapshot per step: out, rng_in, log, hash, spec, meta."""
+    spec = spec or {k: [DEFAULT[k]] for k in STEPS}
+    a = st["args"]
+    hashes = step_hashes(spec, _base(a)) if snap is not None else {}
+    if parent is None and start == "04":
+        import torch, jax
+        torch.manual_seed(a.seed); np.random.seed(a.seed); jax.random.PRNGKey(a.seed)     # main.py order
+    for k in STEPS[STEPS.index(start):STEPS.index(upto) + 1]:
+        if parent is not None and k in RNG_STEPS:
+            np.random.set_state(parent[k]["rng_in"])
+        rng_in, new, tee = np.random.get_state(), {}, _Tee(sys.stdout)
+        sys.stdout = tee
+        try:
+            for item in spec[k]:
+                default = item == DEFAULT[k]
+                out = _fn(item)(st if default else {x: v for x, v in st.items() if not x.startswith("true_")})
+                _check_out(k, item, out, default)
+                st.update(out)
+                new.update(out)
+        finally:
+            sys.stdout = tee.out
+        if snap is not None:
+            blob = dict(step=k, out=new, rng_in=rng_in, log=tee.buf.getvalue(), hash=hashes[k], spec=spec, meta=meta or {})
+            (Path(snap) / f"{k}.pkl").write_bytes(pickle.dumps(blob, protocol=pickle.HIGHEST_PROTOCOL))
+    return st
+
+
+def _src_hash(src):
+    """sha256 of the syntax tree without docstrings: comments and layout do not count."""
+    tree = ast.parse(textwrap.dedent(src))
+    for node in ast.walk(tree):
+        body = getattr(node, "body", None)
+        if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and body \
+                and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) \
+                and isinstance(body[0].value.value, str):
+            node.body = body[1:] or [ast.Pass()]
+    return hashlib.sha256(ast.dump(tree).encode()).hexdigest()[:16]
+
+
+def _closure(fn, override=None, out=None):
+    """Hashes of fn and of what it reaches in lab/ by global name: functions and classes (also inside dicts,
+    lists, tuples) by syntax tree, plain constants by value. Keys file:name, the same in a script and a notebook."""
+    out = {} if out is None else out
+    fn = getattr(fn, "func", fn)                                     # functools.partial from a spec item
+    key = f"{Path(inspect.getsourcefile(fn)).name}:{fn.__qualname__}"
+    if key in out:
+        return out
+    out[key] = (override or {}).get(key) or _src_hash(inspect.getsource(fn))
+    if inspect.isclass(fn):
+        return out
+    codes = [fn.__code__]
+    while codes:
+        c = codes.pop()
+        codes += [x for x in c.co_consts if isinstance(x, types.CodeType)]
+        for n in c.co_names:
+            if n not in fn.__globals__ or n.startswith("__"):          # __name__ differs: script vs import
+                continue
+            obj = fn.__globals__[n]
+            items = list(obj.values()) if isinstance(obj, dict) else list(obj) if isinstance(obj, (list, tuple)) else [obj]
+            code = [o for o in items if inspect.isfunction(o) or inspect.isclass(o)]
+            for o in code:
+                try:
+                    src = inspect.getsourcefile(o)
+                except TypeError:                                    # built-in
+                    src = None
+                if src and Path(src).resolve().parent == LAB:
+                    _closure(o, override, out)
+            if not code and isinstance(obj, (str, int, float, tuple, list, dict, frozenset)):
+                ckey = f"{Path(inspect.getsourcefile(fn)).name}:={n}"
+                out[ckey] = (override or {}).get(ckey) or repr(obj)
+    return out
+
+
+def _sha_file(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()[:16]
+
+
+def _file_hash(rel):
+    """Syntax-tree hash of a pipeline .py file, or of every .py file under a folder."""
+    p = ROOT / rel
+    h = hashlib.sha256()
+    for f in (sorted(p.rglob("*.py")) if p.is_dir() else [p]):
+        h.update(f"{f.relative_to(ROOT)}\0{_src_hash(f.read_text())}\0".encode())
+    return h.hexdigest()[:16]
+
+
+def _base(args):
+    """Inputs of step 04 besides code: configuration, features, split file, versions of the numeric packages."""
+    import importlib, importlib.metadata as md
+    f = Path(args.data_dir) / args.pretrained_model_name
+    feats = {p.name: _sha_file(p) for p in sorted(f.glob("*.npy"))}
+    split = getattr(importlib.import_module(f"dataloaders.{args.dataset}"), "SPLIT", None)
+
+    def version(p):
+        try:
+            return md.version(p)
+        except md.PackageNotFoundError:
+            return None
+    return {"args": sorted((k, str(v)) for k, v in vars(args).items()), "features": feats,
+            "split": _sha_file(ROOT / split) if split else None, "packages": {p: version(p) for p in PACKAGES},
+            "python": sys.version.split()[0], "xla_flags": _xla_flags()}
+
+
+def step_hashes(spec, base, override=None):
+    """h(k) = sha256(h(k-1), code of the items at step k with what they reach in lab/, pipeline files first used
+    at k); h(04) also covers base and the runner (chain, new_state). Changing step k changes h(k)..h(14) only."""
+    out, prev = {}, ""
+    for k in STEPS:
+        parts = {"prev": prev, "items": [(i, _closure(_fn(i), override)) for i in spec[k]],
+                 "files": {f: _file_hash(f) for f in FILES.get(k, ())}}
+        if k == "04":
+            parts.update(base=base, runner=[_closure(chain, override), _closure(new_state, override)])
+        prev = out[k] = hashlib.sha256(json.dumps(parts, sort_keys=True, default=str).encode()).hexdigest()[:16]
+    return out
+
+
+def _run_dir(run):
+    """Run folder from a run id or a tag (runs/*__<tag>, must be unique)."""
+    d = ROOT / "runs" / run
+    if d.is_dir():
+        return d
+    found = sorted((ROOT / "runs").glob(f"*__{run}"))
+    assert len(found) == 1, f"run {run!r}: {len(found)} folders match"
+    return found[0]
+
+
+def snapshots(run):
+    """{step: snapshot} of a v2 run; the steps it did not run come from its parent run."""
+    d = _run_dir(run) / "snap"
+    blobs = {p.stem: pickle.loads(p.read_bytes()) for p in sorted(d.glob("*.pkl"))}
+    assert blobs, f"no snapshots in {d}"
+    parent = next(iter(blobs.values()))["meta"].get("parent")
+    return {**{k: v for k, v in snapshots(parent).items() if k not in blobs}, **blobs} if parent else blobs
+
+
+def _fresh(blobs, upto="14"):
+    """Refuse snapshots made from a dirty tree, and stale ones: the hash chain recomputed from the code now."""
+    args = types.SimpleNamespace(**blobs["04"]["meta"]["args"])
+    now = step_hashes(blobs[upto]["spec"], _base(args))
+    for k in STEPS[:STEPS.index(upto) + 1]:
+        if blobs[k]["meta"].get("dirty"):
+            raise SystemExit(f"replay: snapshot {k} was made from a dirty tree")
+        if now[k] != blobs[k]["hash"]:
+            raise SystemExit(f"replay: snapshots stale from step {k} (code, features or packages changed): "
+                             f"run the chain again from step {k}")
+
+
+def load(run, upto="14", check=True):
+    """State after step `upto` of a v2 run (runs/<run>/snap), with a fresh workbench (new_state)."""
+    blobs = snapshots(run)
+    if check:
+        _fresh(blobs, upto)
+    st = new_state(types.SimpleNamespace(**blobs["04"]["meta"]["args"]))
+    for k in STEPS[:STEPS.index(upto) + 1]:
+        st.update(blobs[k]["out"])
+    return st
+
+
+# ---------------------------------------------------------------- command C4 (more commands: part 3)
+def cmd_check_hash(argv):
+    """C4: python lab/replay.py check-hash: changing step k makes h(k)..h(14) change and nothing before;
+    comments and docstrings do not count. No data, a few seconds."""
+    spec, base = {k: [DEFAULT[k]] for k in STEPS}, {"C4": "fixed inputs"}
+    h, ok = step_hashes(spec, base), True
+    cases = [(f"edit {DEFAULT[k]}", f"replay.py:{DEFAULT[k]}", k) for k in STEPS] + [
+        ("edit fit_svi (06, then 11 and 13 by name)", "replay.py:fit_svi", "06"),
+        ("edit _rel (11, 13, 14)", "replay.py:_rel", "11"),
+        ("edit the runner (chain)", "replay.py:chain", "04"),
+        ("edit new_state", "replay.py:new_state", "04"),
+        ("edit DEFAULT (a constant the runner reads)", "replay.py:=DEFAULT", "04")]
+    for label, key, first in cases:
+        h2 = step_hashes(spec, base, {key: "edited"})
+        good = all((h2[k] == h[k]) == (STEPS.index(k) < STEPS.index(first)) for k in STEPS)
+        print(f"  {'OK  ' if good else 'DIFF'} {label}: stale from {first}")
+        ok &= good
+    src = inspect.getsource(s12_filter)
+    cosmetic = src.replace('"""12 Old/new', '"""12 (edited docstring) Old/new').replace(
+        "novel = pred >= off", "novel = pred >= off      # a comment")
+    real = src.replace("novel = pred >= off", "novel = pred > off")
+    good = cosmetic != src and _src_hash(cosmetic) == _src_hash(src) and _src_hash(real) != _src_hash(src)
+    print(f"  {'OK  ' if good else 'DIFF'} comments and docstrings do not count, code does")
+    print(f"C4 {'OK' if ok and good else 'DIFF'}")
+
+
+COMMANDS = {"check-hash": cmd_check_hash}
+
+
+if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] in COMMANDS:
+    COMMANDS[sys.argv[1]](sys.argv[2:])
+elif __name__ == "__main__":                                 # v1 self-check (tag nb-v1)
     from sklearn.metrics.cluster import contingency_matrix
     full = "--full" in sys.argv
     seeds = [int(a) for a in sys.argv[1:] if a != "--full"] or [0]
