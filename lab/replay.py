@@ -548,7 +548,199 @@ def load(run, upto="14", check=True):
     return st
 
 
-# ---------------------------------------------------------------- command C4 (more commands: part 3)
+# ---------------------------------------------------------------- commands: run, check (C1), C2, C3
+def _git():
+    sh = lambda *c: subprocess.run(c, cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    status = sh("git", "status", "--porcelain", "--", ".", ":(exclude)runs", ":(exclude)notes",
+                ":(exclude)lab/*.ipynb", ":(exclude)lab/*.md")         # the same rule as scripts/exp.py
+    return {"commit": sh("git", "rev-parse", "HEAD"), "dirty": bool(status)}
+
+
+def _metrics(run_dir):
+    """metrics.json from console.log with scripts/extract_vbcgcd.py: one definition of the metrics."""
+    import importlib.util
+    print("replay v2: done", flush=True)
+    log = run_dir / "console.log"
+    for _ in range(100):                                             # exp.py copies our output as it comes
+        if log.exists() and "replay v2: done" in log.read_text(errors="replace"):
+            break
+        time.sleep(0.1)
+    spec = importlib.util.spec_from_file_location("extract_vbcgcd", ROOT / "scripts" / "extract_vbcgcd.py")
+    ex = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ex)
+    m = ex.extract(ex.clean_lines(log.read_text(errors="replace")))
+    (run_dir / "metrics.json").write_text(json.dumps(m, indent=2) + "\n")
+    for k, v in m.items():
+        print(f"{k:22s} {v}")
+
+
+def cmd_run(argv):
+    """Default chain:  exp.py run TAG --inputs F -- python lab/replay.py run --features F --seed S
+    Variant:        exp.py run TAG --inputs runs/<parent>/snap -- python lab/replay.py run --from <parent>
+                        --start 09 --at 09=v09a_overcluster+v09b_merge"""
+    p = argparse.ArgumentParser(prog="replay.py run")
+    p.add_argument("--features", help="features/<run_id>/<model>")
+    p.add_argument("--seed", type=int)
+    p.add_argument("--dataset", default="gc10", choices=sorted(PRESETS))
+    p.add_argument("--set", action="append", default=[], help="key=value: change one setting (default chain only)")
+    p.add_argument("--from", dest="parent", help="run id or tag of a v2 run: steps before --start come from it")
+    p.add_argument("--start", default="04", choices=STEPS)
+    p.add_argument("--at", action="append", default=[], help="NN=f1+f2: the functions of step NN, in order")
+    o = p.parse_args(argv)
+    if not os.environ.get("EXP_RUN_DIR"):
+        sys.exit("replay run: run it through scripts/exp.py (the run folder holds the snapshots)")
+    run_dir, git = Path(os.environ["EXP_RUN_DIR"]), _git()
+    if git["dirty"]:
+        sys.exit("replay run: commit the code first (same dirty rule as scripts/exp.py)")
+    at = {k: v.split("+") for k, v in (x.split("=", 1) for x in o.at)}
+    assert all(k in STEPS and k >= o.start for k in at), f"--at only for steps from --start {o.start}: {at}"
+    parent = None
+    if o.parent:
+        assert not (o.features or o.seed is not None or o.set), "--from: features, seed and settings come from the parent"
+        parent = snapshots(o.parent)
+        _fresh(parent)                       # this run is compared with the parent: it must match the code now
+        spec = {k: at.get(k, [DEFAULT[k]]) if k >= o.start else parent[k]["spec"][k] for k in STEPS}
+        prev = STEPS[STEPS.index(o.start) - 1] if o.start != "04" else None
+        st = load(o.parent, prev, check=False) if prev else new_state(types.SimpleNamespace(**parent["04"]["meta"]["args"]))
+    else:
+        if at or o.start != "04":
+            sys.exit("replay run: variants and --start run from the snapshots of a chain: give --from <run>")
+        over = {k: ast.literal_eval(v) if v[:1].isdigit() or v[:1] in "-[{(" or v in ("True", "False") else v
+                for k, v in (x.split("=", 1) for x in o.set)}
+        spec, st = None, new_state(make_args(o.features, o.seed, PRESETS[o.dataset], **over))
+    meta = dict(git, run_id=run_dir.name, parent=_run_dir(o.parent).name if o.parent else None, start=o.start,
+                args=vars(st["args"]))
+    changed = {k: v for k, v in (spec or {}).items() if v != [DEFAULT[k]]}
+    print(f"replay v2: {run_dir.name} | commit {git['commit'][:7]} | parent {meta['parent']} | start {o.start} | "
+          f"changed {changed}")
+    for k in STEPS[:STEPS.index(o.start)]:                           # log lines of the steps taken from the parent
+        sys.stdout.write(parent[k]["log"])
+    (run_dir / "snap").mkdir()
+    chain(st, spec, o.start, parent, run_dir / "snap", meta)
+    _metrics(run_dir)
+
+
+def _confusion(st):
+    """Confusion matrix of the S1 test set, rows true ids, columns predicted true ids, as main.py prints it."""
+    import jax.numpy as jnp
+    from sklearn.metrics import confusion_matrix
+    clf, off = _clf(st), st["offset"]
+    _component(st["predict"])(clf)
+    clf.label_offset, clf.n_seen = off, off + st["args"].increment
+    pr, _ = clf._predict(jnp.array(clf.pca.transform(st["test_all_x"])), _jnp(st["params1"]))
+    return confusion_matrix(np.asarray(st["true_test_all_y"]).astype(int), np.argsort(st["lut"])[np.asarray(pr)],
+                            labels=np.arange(off + st["args"].increment))
+
+
+def cmd_check(argv):
+    """C1: python lab/replay.py check <v2 run> <main.py run>: equal at every snapshot (PL-QD6)."""
+    from sklearn.metrics.cluster import contingency_matrix
+    rd, fd = _run_dir(argv[0]), _run_dir(argv[1])
+    blobs = snapshots(rd.name)
+    _fresh(blobs)
+    st = load(rd.name, check=False)
+    a, m, mr = st["args"], json.loads((rd / "metrics.json").read_text()), json.loads((fd / "metrics.json").read_text())
+    cfg = json.loads((fd / "config.json").read_text())
+    log = (fd / "console.log").read_text(errors="replace") if (fd / "console.log").exists() else ""
+    find = lambda pat: (lambda r: r.groups() if r else None)(re.search(pat, log))
+    res = []
+    seed = re.findall(r"--seed (\d+)", " ".join(cfg["command"]))
+    feats = list(cfg.get("inputs") or {})
+    res.append(("input: seed, features", int(seed[-1]) == a.seed and len(feats) == 1 and Path(feats[0]).resolve()
+                == (Path(a.data_dir) / a.pretrained_model_name).resolve() if seed and feats else None))
+    sm = fd / "artifacts" / "saved_models"
+    for stage, key in (("0", "params0"), ("1", "params1")):
+        for f, k in (("class_means", "class_means"), ("class_covariances", "class_covs")):
+            p = sm / f"stage{stage}{f}.npy"
+            ref = np.load(p) if p.exists() else None                 # GPU noise of main.py: ~1e-7 (A6)
+            res.append((f"{key} {k} (max|diff| <= 1e-6 max|value|)", bool(np.abs(st[key][k].astype(np.float64) - ref).max()
+                        <= 1e-6 * np.abs(ref).max()) if ref is not None else None))
+    res.append(("metrics.json (tables S0, S1; cluster sizes; kept; early stop)", m == mr))
+    y = np.asarray(st["true_pool_y"]).astype(int)
+    x = find(r"xtab stage 1 train: rows=(\[[^\]]*\]) cols=(\[[^\]]*\]) (\[\[.*\]\])")
+    res.append(("partition (contingency table)", [np.unique(y).tolist(), np.unique(st["ids"]).tolist(),
+                contingency_matrix(y, st["ids"]).tolist()] == [ast.literal_eval(v) for v in x] if x else None))
+    i = find(r"xtab stage 1 objective: inertia=(\S+)")
+    res.append(("inertia (relative < 1e-6)", abs(st["inertia"] - float(i[0])) / float(i[0]) < 1e-6 if i else None))
+    pi = find(r"hungarian stage 1: mode=eval pi_test=(\{[^}]*\})")
+    res.append(("pi_test", ast.literal_eval(pi[0]) == st["pi_test"] if pi else None))
+    res.append(("kept", int(st["keep"].sum()) == mr.get("S1_novel_kept")))
+    c = find(r"confusion stage 1: rows=true cols=pred (\[\[.*\]\])")
+    res.append(("confusion S1", _confusion(st).tolist() == ast.literal_eval(c[0]) if c else None))
+    for name, ok in res:
+        print(f"  {'OK  ' if ok else 'n/a ' if ok is None else 'DIFF'} {name}")
+    if m != mr:
+        print("  metrics differ:", {k: (m.get(k), mr.get(k)) for k in set(m) | set(mr) if m.get(k) != mr.get(k)})
+    verdict = "DIFF" if any(ok is False for _, ok in res) else "INCOMPLETE" if any(ok is None for _, ok in res) else "OK"
+    print(f"C1 {verdict}: {rd.name} = {fd.name}")
+
+
+def _same(a, b):
+    if isinstance(a, dict):
+        return isinstance(b, dict) and a.keys() == b.keys() and all(_same(a[k], b[k]) for k in a)
+    if hasattr(a, "components_"):                                    # PCA
+        return _same({k: v for k, v in vars(a).items()}, {k: v for k, v in vars(b).items()})
+    if hasattr(a, "model"):                                          # KMeansCluster: OpenMP sums, ULP-level
+        return np.allclose(a.model.cluster_centers_, b.model.cluster_centers_, rtol=1e-6, atol=1e-6)
+    if isinstance(a, float):
+        return a == b or abs(a - b) <= 1e-6 * abs(b)
+    if isinstance(a, np.ndarray) or isinstance(b, np.ndarray):
+        return np.array_equal(np.asarray(a), np.asarray(b))
+    return a == b
+
+
+def cmd_check_resume(argv):
+    """C2: python lab/replay.py check-resume <v2 run> [05,06,...]: continuing from the snapshot before step k, in a
+    new process as a variant run does, gives the same snapshots k..14 as the run itself."""
+    run, ks = argv[0], argv[1].split(",") if len(argv) > 1 else list(STEPS[1:])
+    assert all(k in STEPS[1:] for k in ks), f"steps 05..14 only: {ks}"
+    blobs = snapshots(run)
+    _fresh(blobs)
+    if len(ks) > 1:                                                  # one process per step
+        me = [sys.executable, str(Path(__file__).resolve()), "check-resume", run]
+        bad = [k for k in ks if subprocess.run(me + [k]).returncode]
+        print(f"C2 {'OK' if not bad else 'DIFF'}: {run}")
+        return
+    k = ks[0]
+    st = load(run, STEPS[STEPS.index(k) - 1], check=False)
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        chain(st, blobs["14"]["spec"], k, blobs)
+    diff = [x for j in STEPS[STEPS.index(k):] for x in blobs[j]["out"] if not _same(st[x], blobs[j]["out"][x])]
+    print(f"  {'OK  ' if not diff else 'DIFF'} continue from {k} {diff or ''}", flush=True)
+    sys.exit(1 if diff else 0)
+
+
+def _burn05(st):
+    """C3 only: draw extra numbers from the global RNG, then step 05 as usual."""
+    np.random.rand(1000)
+    return s05_pca(st)
+
+
+def cmd_check_crn(argv):
+    """C3: python lab/replay.py check-crn <v2 run>: a variant at 05 that draws extra RNG changes the PCA but not
+    the k-means at 09, which reads the raw pool features (common random numbers). Control: the same k-means with
+    the RNG shifted gives another result, so this check can fail."""
+    run = argv[0]
+    blobs = snapshots(run)
+    _fresh(blobs)
+    st = load(run, "04", check=False)
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        chain(st, {**blobs["14"]["spec"], "05": ["_burn05"]}, "05", blobs, upto="10")
+        np.random.set_state(blobs["09"]["rng_in"])
+        np.random.rand(1000)                                         # control: the RNG at 09 without CRN
+        ctl = s09_cluster(st)
+    pca_moved = not _same(st["z_s0"], blobs["05"]["out"]["z_s0"])
+    same = {x: _same(st[x], blobs[j]["out"][x]) for x, j in (("ids", "09"), ("inertia", "09"), ("pi_test", "10"))}
+    power = not all(_same(ctl[x], blobs["09"]["out"][x]) for x in ("ids", "inertia"))
+    print(f"  {'OK  ' if pca_moved else 'DIFF'} PCA changed by the extra draws")
+    for x, ok in same.items():
+        print(f"  {'OK  ' if ok else 'DIFF'} {x} unchanged")
+    print(f"  {'OK  ' if power else 'n/a '} control: k-means with the RNG shifted gives another result")
+    ok = pca_moved and all(same.values())
+    print(f"C3 {'DIFF' if not ok else 'OK' if power else 'INCOMPLETE'}: {run}")
+
+
+# ---------------------------------------------------------------- command C4
 def cmd_check_hash(argv):
     """C4: python lab/replay.py check-hash: changing step k makes h(k)..h(14) change and nothing before;
     comments and docstrings do not count. No data, a few seconds."""
@@ -574,7 +766,8 @@ def cmd_check_hash(argv):
     print(f"C4 {'OK' if ok and good else 'DIFF'}")
 
 
-COMMANDS = {"check-hash": cmd_check_hash}
+COMMANDS = {"run": cmd_run, "check": cmd_check, "check-resume": cmd_check_resume, "check-crn": cmd_check_crn,
+            "check-hash": cmd_check_hash}
 
 
 if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] in COMMANDS:
