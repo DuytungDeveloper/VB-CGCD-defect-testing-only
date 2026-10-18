@@ -1,8 +1,8 @@
-# Câu hỏi của dòng PL
+# Câu hỏi
 
-Nơi duy nhất chứa câu hỏi mở của dòng PL. Trạng thái ghi ở đầu mỗi mục: `mở`, `đang làm`, `chờ <việc>`, `đóng`, `bỏ`.
-Khi đóng, ghi kết luận một dòng ngay dưới câu hỏi, trỏ tới bằng chứng (mã E hoặc entry LOG). Không chép số liệu.
-Mã theo bước (PL-QD5), mã cũ trong ngoặc; các mục xếp theo thứ tự bước. Notebook cũ (`01_data`, `04_s1_discovery`) nằm ở tag `nb-v1`.
+Nơi duy nhất chứa câu hỏi của repo (QD22). Trạng thái ghi ở đầu mỗi câu: `mở`, `đang làm`, `chờ <việc>`, `tạm dừng`, `xong`, `bỏ`.
+Khi đóng, ghi kết luận một dòng ngay dưới câu hỏi, trỏ tới bằng chứng (mã E hoặc entry LOG), rồi chuyển câu xuống mục "Đã xong hoặc bỏ", giữ số. Không chép số liệu.
+Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `notes/old-codes.vi.md`. Notebook cũ (`01_data`, `04_s1_discovery`) nằm ở tag `nb-v1`.
 
 ## Phiên
 
@@ -10,36 +10,110 @@ Mã theo bước (PL-QD5), mã cũ trong ngoặc; các mục xếp theo thứ t�
 
 ## Đang mở
 
-- Q00.01 (= PL-Q6) [mở] GC10 khó hơn NEU vì mất cân bằng hay vì lỗi nhỏ? Kiểm bằng pool S1 của NEU dựng theo tỉ lệ lớp mới của GC10. Nguồn: `01_data` B1, E1.
-- Q03.01 (= PL-Q5) [mở] Đặc trưng mức vùng lỗi, không dùng nhãn (patch token, bản đồ bất thường), có giúp khám phá các lớp lỗi nhỏ (inclusion, rolled_pit, crease) không? Hộp XML của lớp mới chỉ được dùng làm cận trên (oracle). Nguồn: `01_data` C2, D.
-- Q08.01 (= PL-Q8) [mở] Vì sao bộ phân lớp 10 slot đẩy nhiều ảnh inclusion sang lớp cũ, và bộ lọc cũng loại một phần ảnh inclusion của pool? Giả thuyết: nhiễu nhãn và đồng xuất hiện với water_spot (`01_data` C1), lỗi nhỏ (Q03.01), hay tham số Gaussian gần khởi tạo (D23). Nguồn: `04_s1_discovery` (cell 7, 9; một seed).
-- Q09.01 (= PL-Q1) [đóng] Ở số cụm K' = 20, crease hoặc rolled_pit có cụm riêng không (lớp đó chiếm đa số trong cụm, recall ≥ 50%)? Nếu không, hướng phân cụm thừa rồi gộp bị loại.
-  - Kết luận (2026-10-07): trên cấu hình paper, có (E09.02 = PL-E01b, SỐNG); trên `fz`, không (E09.01 = PL-E01, LOẠI). Bước tiếp: E09.03 (= PL-E02).
-- Q09.02 (= PL-Q2) [mở] Gán nhãn bằng optimal transport với biên nới lỏng có thắng k-means không?
-- Q09.03 (= PL-Q4) [mở] Nhãn thật tối thiểu có được dùng cho lớp mới (như setting Active GCD), hay chỉ cho lớp cơ sở?
-- Q09.04 (= PL-Q7) [mở] Ở bước 09 (= M10, phân cụm), phương pháp nào cho nhãn giả tốt hơn k-means theo bộ đo tầng 1 (ứng viên: GMM trên PCA-64 hoặc covariance chéo, phân cụm phổ trên đồ thị kNN, HDBSCAN), và thứ hạng có giữ ở tầng 2 không? Siêu tham số không chỉnh trên pool có nhãn thật của lớp mới. Nguồn: PL-QD3.
-- Q12.01 (= PL-Q3) [mở] Re-labeling đúng như paper (D12) có tốt hơn cách code hiện đang chỉ lọc không?
-- Q14.01 (= PL-Q9) [mở] Trên cấu hình paper, vì sao balanced accuracy của phân hoạch pool (tầng 1) cao hơn nhiều so với balanced novel cuối pipeline trên test (tầng 2), nhất là ở FT seed r1, trong khi trên `fz` hai con số gần nhau? Mất ở khâu nào: chuyển từ pool sang test, đặt tên cụm, hay bộ phân lớp 10 slot? Ảnh hưởng: tầng 1 có dùng được để sàng lọc phương pháp không (PL-QD3). Nguồn: E09.02 (= PL-E01b), Kết quả.
+### 00 Dữ liệu
 
-## Đã bỏ hoặc tạm dừng
+- Q00.01 [mở] NEU: ablation đồng xuất hiện (oracle), và vì sao patches → pitted_surface không gây quên?
+- Q00.02 [mở] GC10 khó hơn NEU vì mất cân bằng hay vì lỗi nhỏ? Kiểm bằng pool S1 của NEU dựng theo tỉ lệ lớp mới của GC10. Nguồn: `01_data`, mục B1 và E1.
 
-- Ánh xạ nhãn giả động (dynamic pseudo-label mapping) [bỏ]: pipeline chỉ phân cụm một lần mỗi phiên, không có gì để ánh xạ lại.
-- EMA teacher, consistency [bỏ]: cần huấn luyện mạng và augmentation ảnh, không hợp với đặc trưng đóng băng tính sẵn.
-- Confirmation bias qua nhiều phiên [tạm dừng]: GC10 và NEU chỉ có một phiên online nên chưa quan sát được.
-- Hiệp phương sai low-rank/sparse [tạm dừng]: chỉ chạm giới hạn ước lượng Σ khi ít mẫu, không chạm lỗi phân cụm.
+### 02 Fine-tune
+
+- Q02.01 [mở] D9 với ít nhất 3 lần phase 1, kèm đối chứng "400 ảnh ngẫu nhiên" để tách rò rỉ khỏi kích thước dữ liệu. Chỉ làm khi cần số cho báo cáo. Nguồn: E02.03.
+- Q02.02 [mở] Code có tái lập Bảng 5 "w/o fine-tuning" (S0 = 88.54) không? Cần wrapper `c100_extract_noft`.
+- Q02.03 [tạm dừng] Giới hạn của E02.02: 30 cặp âm mỗi neo, không projection head; bản SimCLR có head chưa thử. Tạm dừng vì GĐ1 đã đóng.
+
+### 03 Đặc trưng
+
+- Q03.01 [mở] Tách yếu tố trộn pooler/CLS (D8): trích CLS từ mô hình đã fine-tune.
+- Q03.02 [mở] crease và rolled_pit có tách được khỏi waist_folding trong đặc trưng không? Kiểm bằng probe cân trọng số lớp trên ba lớp này. Nguồn: CT2.
+- Q03.03 [mở] Đặc trưng mức vùng lỗi, không dùng nhãn (patch token, bản đồ bất thường), có giúp khám phá các lớp lỗi nhỏ (inclusion, rolled_pit, crease) không? Hộp XML của lớp mới chỉ được dùng làm cận trên (oracle). Nguồn: `01_data`, mục C2 và D.
+
+### 04 Nạp dữ liệu theo phiên
+
+- Q04.01 [tạm dừng] Confirmation bias qua nhiều phiên: GC10 và NEU chỉ có một phiên online nên chưa quan sát được.
+
+### 05 PCA
+
+- Q05.01 [mở] D21: công thức CUB của upstream có n = 25 < d = 384; số CUB của paper đến từ cấu hình nào?
+- Q05.02 [mở] Phép chiếu học từ nhãn lớp cũ (LDA, hoặc làm trắng trong lớp) có tách được các lớp chồng lấn không? Đây là hướng sửa biểu diễn nếu giả thuyết chồng lấn của E09.03 đúng. Nguồn: CT2.
+
+### 06 Gaussian theo lớp (SVI)
+
+- Q06.01 [mở] Cố định Σ = I ở phase 2 thì còn bao nhiêu? Mahalanobis có thực sự đóng góp? (D11, D20.4, Bảng 15 của paper)
+- Q06.02 [mở] S0_All tăng theo số bước SVI thế nào? Một phần đã thấy ở E06.02.
+- Q06.03 [mở] Khi n ≈ d (CIFAR: 400 so với 384), điều chuẩn mạnh hơn (Σ gộp, tức LDA) có cứu được ước lượng dạng đóng không? Chọn trên CIFAR, xác nhận trên GC10 một lần. Nguồn: E06.03.
+- Q06.04 [tạm dừng] Hiệp phương sai low-rank/sparse: chỉ chạm giới hạn ước lượng Σ khi ít mẫu, không chạm lỗi phân cụm.
+
+### 07 Dừng sớm
+
+- Q07.01 [mở] logdet của lớp mới tăng hay giảm theo từng bước? Cần log logdet theo bước (Hình 2b của paper so với D14).
+- Q07.02 [mở] `--scaling-factor 1.2` tác động vào đâu trong luật dừng (D14)?
+- Q07.03 [mở] Tắt dừng sớm thì khám phá lớp mới có khá hơn không? Dừng sớm không kích hoạt trên NEU, kích hoạt giữa chừng trên GC10 fine-tune (D14). Biến thể dự kiến: `07a-no-early-stop`.
+
+### 08 Bộ phân lớp
+
+- Q08.01 [mở] D24: paper có chỉ dự đoán trên các lớp đã gặp không? Code lấy argmax trên cả các khe chưa huấn luyện. Nguồn: E06.03.
+- Q08.02 [mở] Vì sao bộ phân lớp 10 slot đẩy nhiều ảnh inclusion sang lớp cũ, và bộ lọc cũng loại một phần ảnh inclusion của pool? Giả thuyết: nhiễu nhãn và đồng xuất hiện với water_spot (`01_data`, mục C1), lỗi nhỏ (Q03.03), hay tham số Gaussian gần khởi tạo (D23). Nguồn: `04_s1_discovery` (cell 7, 9; một seed).
+
+### 09 Phân cụm
+
+- Q09.01 [mở] Khoảng cách S1_New so với paper trên CIFAR-100. Manh mối: S1_New gắn với độ cân bằng cụm ở S1 (note LOG `c100_km_evhung_base400_s4`, D9).
+- Q09.02 [mở] Ước lượng k trên GC10 (silhouette thất bại): giao thức không biết trước k.
+- Q09.03 [mở] New có thấp hơn khi `cluster_max_min` cao không?
+- Q09.04 [mở] Gán nhãn bằng optimal transport với biên nới lỏng có thắng k-means không?
+- Q09.05 [mở] Nhãn thật tối thiểu có được dùng cho lớp mới (như setting Active GCD), hay chỉ cho lớp cơ sở? (QD16)
+- Q09.06 [mở] Ở bước 09, phương pháp nào cho nhãn giả tốt hơn k-means theo bộ đo tầng 1 (ứng viên: GMM trên PCA-64 hoặc covariance chéo, phân cụm phổ trên đồ thị kNN, HDBSCAN), và thứ hạng có giữ ở tầng 2 không? Siêu tham số không chỉnh trên pool có nhãn thật của lớp mới. Nguồn: QD18.
+
+### 12 Bộ lọc cũ/mới
+
+- Q12.01 [mở] Trên CIFAR, trong khoảng 4000 mẫu mỗi phiên bị lọc là "mới", bao nhiêu là dương tính giả, bao nhiêu âm tính giả?
+- Q12.02 [mở] Một bộ lọc không dùng nhãn và không dựa vào pass F yếu. Nguồn: E06.03.
+- Q12.03 [mở] Re-labeling đúng như paper (D12) có tốt hơn cách code hiện đang chỉ lọc không?
+
+### 14 Đánh giá
+
+- Q14.01 [mở] `exp.py agg`: cột `paper` cần tra theo bộ dữ liệu (hiện luôn là số CIFAR).
+- Q14.02 [mở] Đưa balanced accuracy vào chỉ số chính (hiện chỉ có qua `cm_summary`).
+- Q14.03 [mở] S4_New ổn định, S5_New không: có đánh đổi giữa hai phiên? (r = −0.55, n = 5, không có ý nghĩa; E09.01)
+- Q14.04 [mở] Trên cấu hình paper, vì sao balanced accuracy của phân hoạch pool (tầng 1) cao hơn nhiều so với balanced novel cuối pipeline trên test (tầng 2), nhất là ở FT seed r1, trong khi trên `fz` hai con số gần nhau? Mất ở khâu nào: chuyển từ pool sang test, đặt tên cụm, hay bộ phân lớp 10 slot? Ảnh hưởng: tầng 1 có dùng được để sàng lọc phương pháp không (QD18). Nguồn: E09.05, mục Kết quả.
+
+## Đã xong hoặc bỏ
+
+### 02 Fine-tune
+
+- Q02.04 [xong] Đánh đổi ổn định–thích nghi có vững qua các FT seed không?
+  - Kết luận (2026-10-01): giữ lớp cũ tốt hơn ở cả 3 FT seed; khám phá lớp mới thì không ổn định (E02.04).
+- Q02.05 [bỏ] EMA teacher, consistency: cần huấn luyện mạng và augmentation ảnh, không hợp với đặc trưng đóng băng tính sẵn.
+
+### 04 Nạp dữ liệu theo phiên
+
+- Q04.02 [xong] S0 không nhãn: điểm thứ ba của trục lượng nhãn.
+  - Kết luận (2026-10-01): chạy được; khám phá lớp mới không cần nhãn S0 (E04.01). Đầu thấp của trục lượng nhãn sau đó đổi thành nhãn thật tối thiểu (QD16).
+
+### 09 Phân cụm
+
+- Q09.07 [bỏ] k-means hay GMM? Phép so cũ (E09.02) không kiểm được giả thuyết sức chứa, vì GMM full ở n_k < d tự ưu tiên cụm đều; câu được làm tiếp bằng E09.03, rồi thay bằng Q09.06. CORRECTION ở note LOG `gc10_frozen_gmm10_evhung_d64_s4`.
+- Q09.08 [xong] Proxy giống pipeline hơn (PCA fit trên lớp cơ sở, 64 chiều).
+  - Kết luận (2026-10-06): bàn mổ chạy lại đúng pipeline (`scripts/replay.py`, nay `lab/replay.py`), nên không cần proxy.
+- Q09.09 [xong] Một cụm có hút hết mẫu lớp cũ ở S1 không?
+  - Kết luận (2026-10-02): không; ảnh cũ rải theo độ giống (E09.03/P4).
+- Q09.10 [xong] Khám phá lớp mới có phụ thuộc bộ phân loại không?
+  - Kết luận (2026-10-02): không; balanced novel khoảng 36% với cả SVI và dạng đóng (E06.03). Chuyển sang hình học đặc trưng và phân cụm (CT2).
+- Q09.11 [xong] Ở số cụm K' = 20, crease hoặc rolled_pit có cụm riêng không (lớp đó chiếm đa số trong cụm, recall ≥ 50%)? Nếu không, hướng phân cụm thừa rồi gộp bị loại.
+  - Kết luận (2026-10-07): trên cấu hình paper, có (E09.05, SỐNG); trên `fz`, không (E09.04, LOẠI). Bước tiếp: E09.06.
+
+### 10 Đặt tên cụm
+
+- Q10.01 [xong] Đổi tên cụm có cứu được recall của lớp hiếm không?
+  - Kết luận (2026-10-02): không; một cụm chỉ mang một tên, và hai cụm silk thừa lấy tên rolled_pit và crease (E09.03).
+- Q10.02 [bỏ] Ánh xạ nhãn giả động (dynamic pseudo-label mapping): pipeline chỉ phân cụm một lần mỗi phiên, không có gì để ánh xạ lại.
 
 ## Nhật ký
 
-- 2026-10-04: mở dòng PL; gieo PL-Q1–Q4 sau khảo sát tài liệu ngày 2026-10-03.
-
-- 2026-10-05: thêm PL-Q5, PL-Q6 từ `notes/nb/01_data.ipynb`.
-
-- 2026-10-06: thêm PL-Q7; ghi PL-QD3 (notebook ba lớp, thứ tự làm mới).
-
-- 2026-10-06: thêm PL-Q8 từ `notes/nb/04_s1_discovery.ipynb`.
-
-- 2026-10-07: tiền đăng ký PL-E01b (phân cụm thừa trên cấu hình paper, PL-QD4).
-
-- 2026-10-07: PL-E01 LOẠI (`fz`), PL-E01b SỐNG (`ft`); đóng PL-Q1; thêm PL-Q9.
-
-- 2026-10-15: đổi sang mã theo bước (PL-QD5), mã cũ giữ trong ngoặc; xếp lại theo thứ tự bước; nguồn notebook trỏ tới tag `nb-v1`.
+- 2026-10-04: mở dòng PL; gieo Q09.11, Q09.04, Q12.03, Q09.05 sau khảo sát tài liệu ngày 2026-10-03.
+- 2026-10-05: thêm Q03.03, Q00.02 từ `notes/nb/01_data.ipynb`.
+- 2026-10-06: thêm Q09.06; ghi QD18 (notebook ba lớp, thứ tự làm mới).
+- 2026-10-06: thêm Q08.02 từ `notes/nb/04_s1_discovery.ipynb`.
+- 2026-10-07: tiền đăng ký E09.05 (phân cụm thừa trên cấu hình paper, QD19).
+- 2026-10-07: E09.04 LOẠI (`fz`), E09.05 SỐNG (`ft`); đóng Q09.11; thêm Q14.04.
+- 2026-10-15: đổi sang mã theo bước (QD20); xếp lại theo thứ tự bước; nguồn notebook trỏ tới tag `nb-v1`.
+- 2026-10-18: hệ mã mới (QD22): chuyển vào mọi câu còn mở của `plan.vi.md` §5 và `improvement-1.vi.md` §7, cùng ba câu của CT2; đánh số lại một lần, câu còn mở lên trước.
