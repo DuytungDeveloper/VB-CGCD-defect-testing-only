@@ -122,7 +122,7 @@ which XLA runs on the GPU with atomic adds, so the order of the float additions 
 The GPU driver also changed in between: 616.92 on 2026-10-05, 617.42 on 2026-10-15.
 
 `main.py` does not set the flag, so its runs repeat only up to this noise. `lab/replay.py` v2 sets it
-(PL-QD6); its check against `main.py` runs (C1) compares the parameters within 1e-6 of their largest value.
+(QD21); its check against `main.py` runs (QD21/C1) compares the parameters within 1e-6 of their largest value.
 
 ---
 
