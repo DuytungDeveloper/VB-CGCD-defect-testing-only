@@ -1,6 +1,6 @@
 # Thay đổi code so với upstream — VB-CGCD fork
 
-Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-09-30.
+Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-10-19: thêm các thay đổi từ 1/10 tới 18/10; mã theo QD22 (mã cũ: `notes/old-codes.vi.md`); bảng đổi thành danh sách.
 
 Nguyên tắc: **mặc định trong code Python = hành vi upstream**. Wrapper phase 1 đặt
 `FT_BATCH_SIZE=32 FT_ACCUM=4` vì giới hạn 8 GB; cấu hình này đổi số ở mức nhỏ (PATCH 2).
@@ -9,42 +9,76 @@ Cách chia nhóm dựa trên `git diff --name-status upstream-baseline` (xem m�
 
 ---
 
-## 1a. Sửa file có sẵn của upstream (7 file)
+## 1a. Sửa file có sẵn của upstream (8 file)
 
 ### `feature_extractor/sl_finetuned_model.py`
 
-| Vị trí | Thay đổi | Lý do | Đổi số? |
-|---|---|---|---|
-| dòng 32, mức module | `FT_SEED = int(os.environ.get("FT_SEED", 42))` rồi `torch.manual_seed(FT_SEED)` | Seed 42 cố định khiến hai lần chạy cùng cấu hình ra kết quả giống hệt → **không đo được nhiễu phase 1**. Đây là thay đổi quan trọng nhất về phương pháp | chỉ khi đổi seed |
-| hàm mới `nt_xent(z, tau)` | NT-Xent (SimCLR): 2N neo, đối xứng, mẫu số gồm 2N−1 view | Cài Eq. 2. Paper viết thiếu 4 chỗ; hiểu theo chữ nghĩa cho loss âm | chỉ khi λ > 0 |
-| `finetune_dino`, dòng 76 | `batch_size` đọc từ `FT_BATCH_SIZE` (mặc định 128 = upstream) — PATCH 2 | Batch 128 không vừa 8 GB | qua wrapper |
-| `finetune_dino`, `epochs` | đọc từ `FT_EPOCHS` (mặc định 10) | Run validation dùng 3 epoch | chỉ khi đổi |
-| vòng lặp epoch | gradient accumulation: `accum`, `loss/accum`, `step` mỗi `accum` batch, flush cuối epoch, in `mean CE` / `mean CON` mỗi epoch — PATCH 2 | Giữ batch hiệu dụng 128 và số bước như upstream | nhỏ, xem PATCH 2 |
-| thân vòng lặp, nhánh `lam > 0` | nối 2 view thành một forward, CE trên view 1, `con_loss = nt_xent(...)`, `loss = ((1-lam)*cls + lam*con)/accum` | Cài Eq. 3 | có |
-| cùng chỗ, nhánh `else` | nếu batch có `images2` thì vẫn nối 2 view, CE trên view 1 | Cho phép `FT_AUG=1` với λ = 0: có augmentation, không có L_con, giữ nguyên luồng RNG như nhánh λ > 0 | có |
-| cuối mỗi epoch | lưu `ft_ckpt.pt` theo `FT_CKPT_PATH`, giữ 2 key pooler — PATCH 5 | Hai run từng chết giữa chừng không để lại gì | không |
+- dòng 32, mức module: `FT_SEED = int(os.environ.get("FT_SEED", 42))` rồi `torch.manual_seed(FT_SEED)`
+  Lý do: Seed 42 cố định khiến hai lần chạy cùng cấu hình ra kết quả giống hệt → **không đo được nhiễu phase 1**. Đây là thay đổi quan trọng nhất về phương pháp. Đổi số: chỉ khi đổi seed.
+- hàm mới `nt_xent(z, tau)`: NT-Xent (SimCLR): 2N neo, đối xứng, mẫu số gồm 2N−1 view
+  Lý do: Cài Eq. 2. Paper viết thiếu 4 chỗ; hiểu theo chữ nghĩa cho loss âm. Đổi số: chỉ khi λ > 0.
+- `finetune_dino`, dòng 76: `batch_size` đọc từ `FT_BATCH_SIZE` (mặc định 128 = upstream) — PATCH 2
+  Lý do: Batch 128 không vừa 8 GB. Đổi số: qua wrapper.
+- `finetune_dino`, `epochs`: đọc từ `FT_EPOCHS` (mặc định 10)
+  Lý do: Run validation dùng 3 epoch. Đổi số: chỉ khi đổi.
+- vòng lặp epoch: gradient accumulation: `accum`, `loss/accum`, `step` mỗi `accum` batch, flush cuối epoch, in `mean CE` / `mean CON` mỗi epoch — PATCH 2
+  Lý do: Giữ batch hiệu dụng 128 và số bước như upstream. Đổi số: nhỏ, xem PATCH 2.
+- thân vòng lặp, nhánh `lam > 0`: nối 2 view thành một forward, CE trên view 1, `con_loss = nt_xent(...)`, `loss = ((1-lam)*cls + lam*con)/accum`
+  Lý do: Cài Eq. 3. Đổi số: có.
+- cùng chỗ, nhánh `else`: nếu batch có `images2` thì vẫn nối 2 view, CE trên view 1
+  Lý do: Cho phép `FT_AUG=1` với λ = 0: có augmentation, không có L_con, giữ nguyên luồng RNG như nhánh λ > 0. Đổi số: có.
+- cuối mỗi epoch: lưu `ft_ckpt.pt` theo `FT_CKPT_PATH`, giữ 2 key pooler — PATCH 5
+  Lý do: Hai run từng chết giữa chừng không để lại gì. Đổi số: không.
 
 ### `feature_extractor/dino-cifar100.py`
 
-| Vị trí | Thay đổi | Lý do | Đổi số? |
-|---|---|---|---|
-| dòng 17 | `@torch.no_grad()` trên `infer_features_labels` — PATCH 1 | `eval()` không tắt autograd; batch 128 cần ~15 GB | không |
-| trước `train_dataset.set_format` | thêm `aug_transforms` và `two_view_func` | Augmentation hai view. Ảnh đã transform sẵn ở `trans_func`, nên phải cài ở đây | chỉ khi bật |
-| nhánh `else` của `if (not args.finetuned)` | `select(FT_LABELED_IDX)` thay `filter(labels < 50)`; lọc theo `FT_FOLD`; bật augmentation theo `FT_AUG` / `FT_LAMBDA` | Sửa D9 (500 → 400 ảnh/lớp), tạo fold validation, tách augmentation khỏi λ | chỉ khi bật |
+- dòng 17: `@torch.no_grad()` trên `infer_features_labels` — PATCH 1
+  Lý do: `eval()` không tắt autograd; batch 128 cần ~15 GB. Đổi số: không.
+- trước `train_dataset.set_format`: thêm `aug_transforms` và `two_view_func`
+  Lý do: Augmentation hai view. Ảnh đã transform sẵn ở `trans_func`, nên phải cài ở đây. Đổi số: chỉ khi bật.
+- nhánh `else` của `if (not args.finetuned)`: `select(FT_LABELED_IDX)` thay `filter(labels < 50)`; lọc theo `FT_FOLD`; bật augmentation theo `FT_AUG` / `FT_LAMBDA`
+  Lý do: Sửa D9 (500 → 400 ảnh/lớp), tạo fold validation, tách augmentation khỏi λ. Đổi số: chỉ khi bật.
 
 ### `main.py`
 
-| Vị trí | Thay đổi | Lý do |
-|---|---|---|
-| dòng 24 | `from clustering.kmeans import KMeansCluster` | — |
-| `Clustering_alg`, dòng 33–36 | thêm nhánh `elif alg == 'kmeans'` | Cho phép `--clustering_alg kmeans` (D5, D18) |
-| argparse | `--kmeans_n_init` (10), `--gmm_n_init` (1 = upstream) | Tách "số lần khởi tạo" khỏi "thuật toán" trong thiết kế 2×2 (D18) |
-| sau `Clustering = Clustering_alg(...)` | `functools.partial(Clustering, n_init=...)` | `Clustering_alg` trả về lớp; dòng gọi ở vòng lặp stage không đổi |
-| import, argparse | `hungarian_map`, `SimpleNamespace`; cờ `--hungarian_on` (`train`/`eval`, mặc định `train` = upstream) | Sửa D13 (`98d2c55`) |
-| vòng lặp stage, `i > 0` | `predict_raw` + `pi_test` (Hungarian trên tập test lớp mới). `train`: đường cũ + log `pi_train`/`pi_test`/`same=`. `eval`: nhãn = thứ tự cụm; ánh xạ đóng băng; bản sao nhãn test đổi sang không gian cụm qua LUT; dòng S0 giữ nguyên | D13, Q10b |
-| import, `Dataloader`, `load_mode` | `NEUDETLoader`; nhánh `--dataset neudet`; chế độ `--load_mode t1` | NEU-DET, GĐ3 (`ea9e24a`) |
-| argparse + vòng lặp stage | `--print_confusion` (mặc định tắt): in ma trận nhầm lẫn test_all theo id thật sau mỗi phiên online, **sau** bảng kết quả | Chẩn đoán (`5692e3f`); không đổi số (đã kiểm) |
-| import, `Dataloader` | `GC10Loader`; nhánh `--dataset gc10` | GC10-DET (`a542c78`) |
+- dòng 24: `from clustering.kmeans import KMeansCluster`
+- `Clustering_alg`, dòng 33–36: thêm nhánh `elif alg == 'kmeans'`
+  Lý do: Cho phép `--clustering_alg kmeans` (D5, D18).
+- argparse: `--kmeans_n_init` (10), `--gmm_n_init` (1 = upstream)
+  Lý do: Tách "số lần khởi tạo" khỏi "thuật toán" trong thiết kế 2×2 (D18).
+- sau `Clustering = Clustering_alg(...)`: `functools.partial(Clustering, n_init=...)`
+  Lý do: `Clustering_alg` trả về lớp; dòng gọi ở vòng lặp stage không đổi.
+- import, argparse: `hungarian_map`, `SimpleNamespace`; cờ `--hungarian_on` (`train`/`eval`, mặc định `train` = upstream)
+  Lý do: Sửa D13 (`98d2c55`).
+- vòng lặp stage, `i > 0`: `predict_raw` + `pi_test` (Hungarian trên tập test lớp mới). `train`: đường cũ + log `pi_train`/`pi_test`/`same=`. `eval`: nhãn = thứ tự cụm; ánh xạ đóng băng; bản sao nhãn test đổi sang không gian cụm qua LUT; dòng S0 giữ nguyên
+  Lý do: D13, QD15.
+- import, `Dataloader`, `load_mode`: `NEUDETLoader`; nhánh `--dataset neudet`; chế độ `--load_mode t1`
+  Lý do: NEU-DET, GĐ3 (`ea9e24a`).
+- argparse + vòng lặp stage: `--print_confusion` (mặc định tắt): in ma trận nhầm lẫn test_all theo id thật sau mỗi phiên online, **sau** bảng kết quả
+  Lý do: Chẩn đoán (`5692e3f`); không đổi số (đã kiểm).
+- import, `Dataloader`: `GC10Loader`; nhánh `--dataset gc10`
+  Lý do: GC10-DET (`a542c78`).
+- argparse + stage 0: `--s0_labels true|none` (mặc định `true` = upstream). `none`: phân cụm dữ liệu cơ sở (k = `--base`), Gaussian học id cụm; Hungarian trên tập test chỉ để đánh giá; bắt buộc kèm `--hungarian_on eval`
+  Lý do: S0 không nhãn, E04.01 (`ed7a6d6`).
+- argparse: `--cov_prior_kappa`, `--cov_prior_target`, `--estimator`, `--mask_unseen`, `--oracle_filter`; chỉ chuyển giá trị sang thuộc tính của `s_classifier` (xem `classifier/mngmm.py`)
+  Lý do: CT1, E06.01–E06.03 (`f6d7841`, `bd70b17`, `3e45d55`, `0ea29f0`).
+- argparse + vòng lặp stage: `--print_cluster_xtab` (mặc định tắt; CHỈ CHẨN ĐOÁN, dùng nhãn thật): sau bảng kết quả, in bảng chéo cụm × lớp thật trên pool train và tập test lớp mới, cùng hàm mục tiêu của phân cụm (inertia)
+  Lý do: E09.03 (`c7bc7e7`); không đổi số (đã kiểm).
+
+### `classifier/mngmm.py`
+
+Mọi nhánh mới chỉ chạy khi bật cờ; mặc định giữ đúng đường upstream (kiểm hồi quy ở mục 4).
+
+- `model()`: khi `--cov_prior_kappa` > 0, cộng `numpyro.factor("cov_prior", ...)`: tiên nghiệm co Inverse-Wishart (RDA) lên hiệp phương sai của các lớp thuộc lượt hiện tại
+  Lý do: E06.01 (`f6d7841`); lát cắt lớp sửa ở `fe95908` (trước đó, từ S1 tiên nghiệm áp lên lớp cũ). Đổi số: chỉ khi κ > 0.
+- `run_inference()`: đích co theo `--cov_prior_target`: `pooled` (hiệp phương sai trong lớp gộp của lượt) hoặc `sphere` = (tr/d) I; bỏ tiên nghiệm khi lượt không có mẫu
+  Lý do: E06.01 (`bd70b17`). Đổi số: chỉ khi κ > 0.
+- `train()`, `_fit_closed()`: `--estimator closed` thay SVI bằng ước lượng dạng đóng (`classifier/closed_form.py`)
+  Lý do: E06.03 (`3e45d55`). Đổi số: chỉ khi bật.
+- `train()`: `--oracle_filter` thay bộ lọc cũ/mới bằng phép tách theo nhãn thật trước lượt S
+  Lý do: CHỈ CHẨN ĐOÁN, không thuộc phương pháp (`0ea29f0`). Đổi số: chỉ khi bật.
+- `_predict()`: `--mask_unseen` lấy argmax chỉ trên các lớp đã gặp
+  Lý do: chẩn đoán D24 (`0ea29f0`). Đổi số: chỉ khi bật.
 
 ### `clustering/gmm.py`
 
@@ -60,21 +94,33 @@ Thêm `predict_raw(features)` (id cụm, không dùng nhãn) và hàm `hungarian
 
 - README: tag dạng `c100_*`, quy ước `<dataset>_<purpose>[_<variant>][_s<N>]`; 29/9: lệnh phase 1 thêm `--inputs -` (`ad7314f`); 30/9: lệnh khuyến nghị thêm `--hungarian_on eval` và biến thể `FT_LABELED_IDX`.
 - `.gitignore`: thêm `!splits/*.npy` để file chỉ số không bị quy tắc `*.npy` chặn.
+- README từ 1/10: lệnh GC10-DET (`fa5cafb`); dòng mục lục `lab/README.vi.md` và bản lưu `archive/pre-rerun-20260915` nay là file tar trên E: (`ebcdd49`); câu hỏi mở trỏ tới `notes/pl/questions.vi.md`, liệt kê các file `notes/pl/` (`e75889f`); cài `ipykernel` cho notebook trong `lab/` (`d18fef2`).
+- `.gitignore` (15/10): `data/` thành `/data/`, chỉ bỏ qua thư mục `data/` ở gốc repo (`dd7a954`).
 
 ---
 
-## 1b. File mới, ảnh hưởng kết quả (8 file)
+## 1b. File mới, ảnh hưởng kết quả (9 file, cộng 26 file split ngân sách nhãn)
 
-| File | Hàm chính | Lý do |
-|---|---|---|
-| `clustering/kmeans.py` | `KMeansCluster` (`fit`, `_pre_predict`), tham số `n_init` | Paper C.3 nói k-means, code chỉ có GMM (D5). Cùng interface với `GMMCluster` |
-| `feature_extractor/ft_data.py` | `labeled_subset(idx_path, fold)`, `hf_to_npy_row(n, extract_bs)`, hằng `FOLDS` | Tách logic chọn dữ liệu ra khỏi `__main__` để kiểm tra trên CPU. Định nghĩa fold F1–F5 và ánh xạ hàng `.npy` ↔ chỉ số HF (D17) |
-| `splits/c100_labeled_hf_idx.npy` | dữ liệu, int64 (20000,) | 20000 chỉ số HF mà phase 2 coi là có nhãn; đầu vào cho việc sửa D9 |
-| `feature_extractor/dino-neudet.py` | `build`, `to_dataset`, `extract`, `main` | Phase 1 cho mọi file split (NEU: tên ảnh; GC10: `thư_mục/tên`, `n_base`/`n_use` từ file split). Fine-tune chỉ trên ảnh có nhãn (không rò rỉ D9 theo thiết kế); `--no_finetune` = DINO đóng băng, token CLS; `--resize crop|full`; `--img_size H W` (interpolate_pos_encoding); ghi thẳng 4 `.npy`, không shard (tránh D17) |
-| `dataloaders/neudet.py` | `NEUDETLoader.makeT1Loader` | b3t1: base 3, increment 3, 576 có nhãn, 192 mới/lớp, 12 cũ/lớp/phiên; `assert` khớp `--base/--increment/--num_classes` và `num_dim < 192` (D21) |
-| `splits/neu_split.json` | dữ liệu, sha256 `49c23576…` | Giao thức NEU cố định: lớp theo chữ cái, xáo seed 0, 80/20 mỗi lớp; `validation` làm test |
-| `dataloaders/gc10.py` | `SplitCountIncrementalLoader`, `GC10Loader.makeT1Loader` | Số ảnh theo từng lớp từ file split; nhãn dựng theo số hàng thực lấy (sửa D22); `assert` base/increment, `num_dim` < 130 (D21), số hàng khớp file split |
-| `splits/gc10_split.json` | dữ liệu, sha256 `a8a454f8…` | Giao thức GC10: thư mục 1–10 → id 0–9, cơ sở 0–4; test ≈20% mỗi lớp **chia theo cuộn thép**; bỏ 24 file trùng; kèm danh sách chẩn đoán |
+- `clustering/kmeans.py`: Paper C.3 nói k-means, code chỉ có GMM (D5). Cùng interface với `GMMCluster`.
+  Hàm chính: `KMeansCluster` (`fit`, `_pre_predict`), tham số `n_init`.
+- `feature_extractor/ft_data.py`: Tách logic chọn dữ liệu ra khỏi `__main__` để kiểm tra trên CPU. Định nghĩa fold F1–F5 và ánh xạ hàng `.npy` ↔ chỉ số HF (D17).
+  Hàm chính: `labeled_subset(idx_path, fold)`, `hf_to_npy_row(n, extract_bs)`, hằng `FOLDS`.
+- `splits/c100_labeled_hf_idx.npy`: 20000 chỉ số HF mà phase 2 coi là có nhãn; đầu vào cho việc sửa D9.
+  Hàm chính: dữ liệu, int64 (20000,).
+- `feature_extractor/dino-neudet.py`: Phase 1 cho mọi file split (NEU: tên ảnh; GC10: `thư_mục/tên`, `n_base`/`n_use` từ file split). Fine-tune chỉ trên ảnh có nhãn (không rò rỉ D9 theo thiết kế); `--no_finetune` = DINO đóng băng, token CLS; `--resize crop|full`; `--img_size H W` (interpolate_pos_encoding); ghi thẳng 4 `.npy`, không shard (tránh D17).
+  Hàm chính: `build`, `to_dataset`, `extract`, `main`.
+- `dataloaders/neudet.py`: b3t1: base 3, increment 3, 576 có nhãn, 192 mới/lớp, 12 cũ/lớp/phiên; `assert` khớp `--base/--increment/--num_classes` và `num_dim < 192` (D21). Từ 1/10, bỏ qua `assert num_dim` khi `--cov_prior_kappa` > 0 hoặc `--estimator closed` (`f6d7841`, `3e45d55`).
+  Hàm chính: `NEUDETLoader.makeT1Loader`.
+- `splits/neu_split.json`: Giao thức NEU cố định: lớp theo chữ cái, xáo seed 0, 80/20 mỗi lớp; `validation` làm test.
+  Hàm chính: dữ liệu, sha256 `49c23576…`.
+- `dataloaders/gc10.py`: Số ảnh theo từng lớp từ file split; nhãn dựng theo số hàng thực lấy (sửa D22); `assert` base/increment, `num_dim` < 130 (D21), số hàng khớp file split. Từ 1/10, bỏ qua `assert num_dim` khi `--cov_prior_kappa` > 0 hoặc `--estimator closed`.
+  Hàm chính: `SplitCountIncrementalLoader`, `GC10Loader.makeT1Loader`.
+- `splits/gc10_split.json`: Giao thức GC10: thư mục 1–10 → id 0–9, cơ sở 0–4; test ≈20% mỗi lớp **chia theo cuộn thép**; bỏ 24 file trùng; kèm danh sách chẩn đoán.
+  Hàm chính: dữ liệu, sha256 `a8a454f8…`.
+- `classifier/closed_form.py`: ước lượng dạng đóng cho `--estimator closed`: trung bình mẫu + hiệp phương sai co Ledoit–Wolf; ca biên chốt trước (n_k = 1, n_k = 0, lớp cũ chép nguyên) (E06.03, `c016f29`).
+  Hàm chính: `closed_form_params(X, y, classes, prev, num_classes)`.
+- `splits/<ds>_cls<m><sel>_img<k>[_r<r>].json` (26 file, 5/10): biến thể ngân sách nhãn cho phase 1: số lớp có nhãn và cách chọn (`first`, `top`, `rand`), số ảnh mỗi lớp (10, 25, 50, 80pct), lần rút r (E02.06, `97c57ee`).
+  Hàm chính: dữ liệu, sinh bởi `scripts/make_label_splits.py`.
 
 ---
 
@@ -86,45 +132,80 @@ Không sửa thuật toán, nhưng **hai file ảnh hưởng số liệu hoặc 
 
 **Tạo 14–16/09:**
 
-| File | Vai trò | Sửa từ 17/9 |
-|---|---|---|
-| `.gitattributes` | quy tắc xuống dòng LF | — |
-| `requirements-lock.txt` | môi trường pip. Commit đầu `fd8316b` là bản hỏng; bản dùng được tạo lại 16/9 (Part D) | — |
-| `scripts/exp.py` | chạy mọi run, ghi `config.json`, `INDEX.txt`, entry LOG; `agg` tổng hợp seed | `cmd_agg`: cảnh báo khi `commit`/`env`/`inputs` khác nhau, có run dirty, trùng seed, hoặc có run bị bỏ qua. 29/9: `--inputs PATH…` hoặc `--inputs -`, trường `inputs_source` (`c4088a1`); `append_log` ghi `(no metrics.json)` và dùng mọi khoá khi không trùng `columns.txt` (`e66e0bd`). Lưu ý: `hash_path` băm cả tên file + nội dung, nên khác sha256 của file (vd. `splits/…npy`: `0a50cc0b…` so với `a11f243b…`) |
-| `scripts/extract_vbcgcd.py` | trích chỉ số từ log phase 2; M_f là proxy trên tập test S0 (D15) | — |
-| `scripts/probe.py` | xem đặc trưng, loader, checkpoint | đọc đường dẫn từ `runs/inputs.txt`; `ckpt` đọc `runs/<run>/artifacts/saved_models`; thêm repo root vào `sys.path` |
-| `scripts/vram_probe.py` | đo VRAM theo batch size | chỉ đề xuất mốc `OK`, và chọn ước của 128 |
-| `scripts/check_phase1.py` | 16 kiểm tra sau phase 1 | — |
-| `scripts/run_phase1_extract.sh` | wrapper phase 1. **Ảnh hưởng số:** đặt 32×4 (PATCH 2), cố định `--batch-size 128` (D17) | thêm `FT_LAMBDA`, `FT_TAU`, `FT_EPOCHS`, `FT_SEED`, `FT_AUG`, `FT_LABELED_IDX`, `FT_FOLD`; in tất cả ra log; 2 lớp bảo vệ đặt trước `mkdir`; `--seed` lấy từ `FT_SEED`. 29/9: comment ví dụ dùng `--inputs -` (`ad7314f`) |
-| `scripts/run_phase2_cl.sh` | wrapper phase 2; mọi tham số trùng mặc định `main.py` (kiểm 29/9) | — (tham số mới truyền qua `"$@"`) |
+- `.gitattributes`: quy tắc xuống dòng LF.
+- `requirements-lock.txt`: môi trường pip. Commit đầu `fd8316b` là bản hỏng; bản dùng được tạo lại 16/9 (Part D).
+- `scripts/exp.py`: chạy mọi run, ghi `config.json`, `INDEX.txt`, entry LOG; `agg` tổng hợp seed.
+  Sửa từ 17/9: `cmd_agg`: cảnh báo khi `commit`/`env`/`inputs` khác nhau, có run dirty, trùng seed, hoặc có run bị bỏ qua. 29/9: `--inputs PATH…` hoặc `--inputs -`, trường `inputs_source` (`c4088a1`); `append_log` ghi `(no metrics.json)` và dùng mọi khoá khi không trùng `columns.txt` (`e66e0bd`). Lưu ý: `hash_path` băm cả tên file + nội dung, nên khác sha256 của file (vd. `splits/…npy`: `0a50cc0b…` so với `a11f243b…`).
+- `scripts/extract_vbcgcd.py`: trích chỉ số từ log phase 2; M_f là proxy trên tập test S0 (D15).
+- `scripts/probe.py`: xem đặc trưng, loader, checkpoint.
+  Sửa từ 17/9: đọc đường dẫn từ `runs/inputs.txt`; `ckpt` đọc `runs/<run>/artifacts/saved_models`; thêm repo root vào `sys.path`.
+- `scripts/vram_probe.py`: đo VRAM theo batch size.
+  Sửa từ 17/9: chỉ đề xuất mốc `OK`, và chọn ước của 128.
+- `scripts/check_phase1.py`: 16 kiểm tra sau phase 1.
+- `scripts/run_phase1_extract.sh`: wrapper phase 1. **Ảnh hưởng số:** đặt 32×4 (PATCH 2), cố định `--batch-size 128` (D17).
+  Sửa từ 17/9: thêm `FT_LAMBDA`, `FT_TAU`, `FT_EPOCHS`, `FT_SEED`, `FT_AUG`, `FT_LABELED_IDX`, `FT_FOLD`; in tất cả ra log; 2 lớp bảo vệ đặt trước `mkdir`; `--seed` lấy từ `FT_SEED`. 29/9: comment ví dụ dùng `--inputs -` (`ad7314f`).
+- `scripts/run_phase2_cl.sh`: wrapper phase 2; mọi tham số trùng mặc định `main.py` (kiểm 29/9).
+  Sửa từ 17/9: không (tham số mới truyền qua `"$@"`).
 
 **Tạo 17–22/09:**
 
-| File | Hàm chính | Lý do |
-|---|---|---|
-| `scripts/make_labeled_idx.py` (17/9) | `main()` | Sinh file chỉ số, tự kiểm chứng P là hoán vị và `hf[P]` khớp nhãn trước khi ghi |
-| `scripts/eval_fold.py` (18/9) | `cluster_acc()`, `main()` | Tiêu chí validation trên fold: PCA 384 + k-means/GMM + Hungarian trên lớp mới giả, cộng acc head CE trên tập val |
-| `scripts/pick_lambda.py` (19/9) | `acc()`, `main()` | Bản rút gọn, chỉ k-means `n_init=10`, xếp hạng nhanh lưới (λ, τ) |
-| `scripts/queue_eq3.sh` (21/9) | `finished()` + hàng đợi | Thiết kế 8 so với 8 (đã bỏ, thay bằng lưới 3 seed). **Ngừng dùng**: dòng gọi phase 1 chưa có `--inputs -`, đừng chạy lại |
-| `scripts/queue_grid.sh` (22/9) | `finished()` + vòng lặp `CELLS` × `SEEDS` | Hàng đợi lưới (λ, τ); tự bỏ qua bước đã xong; `trap` khôi phục `runs/inputs.txt`. 29/9: gọi phase 1 với `--inputs -` (`ad7314f`) |
+- `scripts/make_labeled_idx.py` (17/9): Sinh file chỉ số, tự kiểm chứng P là hoán vị và `hf[P]` khớp nhãn trước khi ghi.
+  Hàm chính: `main()`.
+- `scripts/eval_fold.py` (18/9): Tiêu chí validation trên fold: PCA 384 + k-means/GMM + Hungarian trên lớp mới giả, cộng acc head CE trên tập val.
+  Hàm chính: `cluster_acc()`, `main()`.
+- `scripts/pick_lambda.py` (19/9): Bản rút gọn, chỉ k-means `n_init=10`, xếp hạng nhanh lưới (λ, τ).
+  Hàm chính: `acc()`, `main()`.
+- `scripts/queue_eq3.sh` (21/9): Thiết kế 8 so với 8 (đã bỏ, thay bằng lưới 3 seed). **Ngừng dùng**: dòng gọi phase 1 chưa có `--inputs -`, đừng chạy lại.
+  Hàm chính: `finished()` + hàng đợi.
+- `scripts/queue_grid.sh` (22/9): Hàng đợi lưới (λ, τ); tự bỏ qua bước đã xong; `trap` khôi phục `runs/inputs.txt`. 29/9: gọi phase 1 với `--inputs -` (`ad7314f`).
+  Hàm chính: `finished()` + vòng lặp `CELLS` × `SEEDS`.
+
+Bốn file `eval_fold.py`, `pick_lambda.py`, `queue_eq3.sh`, `queue_grid.sh` đã xoá ngày 4/10 (`831386c`); đọc lại bằng `git show 831386c~1:scripts/<tên>`.
 
 **Tạo 30/09 (NEU-DET):**
 
-| File | Hàm chính | Lý do |
-|---|---|---|
-| `scripts/make_neu_split.py` | `num()`, `main()` | Sinh `splits/neu_split.json`, tất định (chạy lại in `unchanged`, cùng sha256) |
-| `scripts/run_phase1_neu.sh` | wrapper | Phase 1 qua `exp.py` (NEU; GC10 truyền `--split`): kiểm GPU, đặt `FT_*` (32×4, seed 42), `HF_HUB_OFFLINE=1` mặc định, gọi `dino-neudet.py` |
+- `scripts/make_neu_split.py`: Sinh `splits/neu_split.json`, tất định (chạy lại in `unchanged`, cùng sha256).
+  Hàm chính: `num()`, `main()`.
+- `scripts/run_phase1_neu.sh`: Phase 1 qua `exp.py` (NEU; GC10 truyền `--split`): kiểm GPU, đặt `FT_*` (32×4, seed 42), `HF_HUB_OFFLINE=1` mặc định, gọi `dino-neudet.py`.
+  Hàm chính: wrapper.
 
 **Tạo 30/09–01/10 (GC10-DET):**
 
-| File | Hàm chính | Lý do |
-|---|---|---|
-| `scripts/make_gc10_split.py` | `main()` | Sinh `splits/gc10_split.json`, tất định; gán cuộn thép cho train/test ở mức toàn cục |
-| `scripts/cm_summary.py` | `main()` | Tóm tắt dòng `confusion stage N` của một nhóm run: balanced accuracy, recall từng lớp, nhầm lẫn lớn nhất |
-| `scripts/feat_probe.py` | `cacc`, `main()` | Chẩn đoán một bộ đặc trưng: k-means (biết k), silhouette, probe tuyến tính (cận trên) |
+- `scripts/make_gc10_split.py`: Sinh `splits/gc10_split.json`, tất định; gán cuộn thép cho train/test ở mức toàn cục.
+  Hàm chính: `main()`.
+- `scripts/cm_summary.py`: Tóm tắt dòng `confusion stage N` của một nhóm run: balanced accuracy, recall từng lớp, nhầm lẫn lớn nhất.
+  Hàm chính: `main()`.
+- `scripts/feat_probe.py`: Chẩn đoán một bộ đặc trưng: k-means (biết k), silhouette, probe tuyến tính (cận trên).
+  Hàm chính: `cacc`, `main()`.
+
+**Tạo 01–02/10 (CT1, CT2):**
+
+- `scripts/test_closed_form.py` (2/10, `c016f29`): unit test cho `classifier/closed_form.py` trên dữ liệu tổng hợp: công thức Σ, trung bình, ca n = 1, xác định dương, khe chưa gặp giữ (0, I), lớp cũ chép nguyên, lớp không có mẫu giữ giá trị cũ.
+  Hàm chính: không có hàm; chạy thẳng.
+- `scripts/ckpt_vs_data.py` (2/10, `b7cb407`): so tham số S0 đã học với dữ liệu trong cùng không gian PCA (D23).
+  Hàm chính: chạy thẳng theo tag.
+
+**Tạo 05/10:**
+
+- `scripts/make_label_splits.py` (`97c57ee`): sinh 26 file split ngân sách nhãn (E02.06); `variant.ft_epochs` giữ số bước fine-tune của cấu hình gốc.
+  Hàm chính: `main()`.
+
+**Tạo 06–18/10 (`lab/`, QD20, QD21):**
+
+- `lab/replay.py`: bàn mổ. v1 (6/10, `d912e76`): chạy lại `main.py` từng giai đoạn cho một seed, đúng thứ tự RNG. v2 (16–18/10, `737e8c4`, `a5c9545`, `86ed44d`): bước 04–14 là hàm `sNN(st)`, ảnh chụp theo bước, RNG chung, chuỗi băm; lệnh `run`, `check`, `check-resume`, `check-crn`, `check-hash`. Không sửa code gốc. Chưa dùng số của v2 khi QD21/C1–C3 chưa đạt.
+  Hàm chính: `replay()` (v1); `chain()`, `cmd_run()`, các bước `s04_*`…`s14_*` (v2).
+- `lab/pl_cluster.py` (7/10, `614d12b`, `89e94d4`): bộ đo tầng 1 của bước 09 và phần chạy của E09.04, E09.05; chụp trạng thái RNG ở lối vào `KMeansCluster.fit`.
+  Hàm chính: `score()`, `main()`.
+- `lab/README.vi.md`: mục lục và quy tắc của `lab/` (QD20).
+- `replay.py` và `pl_cluster.py` nằm ở `scripts/` tới ngày 15/10 (dời ở `dd7a954`); bản cũ ở tag `nb-v1`.
+
+**Sửa file hạ tầng từ 01/10:**
+
+- `scripts/exp.py` (15/10, `dd7a954`): notebook và `.md` trong `lab/` không làm run bị dirty; `lab/*.py` vẫn bị kiểm.
+- `requirements-lock.txt` (15/10, `e75889f`): xoá mã escape của terminal ở dòng 1 (pip install từng lỗi ở dòng này).
 
 Ghi chú tiếng Việt: `notes/code-changes.vi.md` (file này), `notes/plan.vi.md`.
-Không có file `q6-q8-giai-thich.md` (được nhắc nhưng chưa từng tạo); lý do chọn Q6–Q8 nằm ở D19.
+Không có file `q6-q8-giai-thich.md` (được nhắc nhưng chưa từng tạo); lý do chọn QD06–QD08 nằm ở D19.
 
 ---
 
@@ -137,26 +218,31 @@ Không có file `q6-q8-giai-thich.md` (được nhắc nhưng chưa từng tạo
 
 ---
 
-## 3. Bảng tra nhanh các cờ
+## 3. Tra nhanh các cờ
 
-| Tên | Mặc định trong Python | Wrapper đặt | Tác dụng |
-|---|---|---|---|
-| `FT_LAMBDA` | 0 | 0 | λ trong Eq. 3; > 0 bật NT-Xent và augmentation 2 view |
-| `FT_TAU` | 0.2 | 0.2 | τ của NT-Xent, chỉ dùng khi λ > 0 |
-| `FT_AUG` | rỗng | rỗng | rỗng = theo `FT_LAMBDA`; 1 = bật; 0 = tắt |
-| `FT_EPOCHS` | 10 | 10 | số epoch fine-tune |
-| `FT_SEED` | 42 | 42 | seed phase 1 |
-| `FT_BATCH_SIZE` | **128** | **32** | batch fine-tune |
-| `FT_ACCUM` | **1** | **4** | gradient accumulation |
-| `FT_LABELED_IDX` | rỗng | rỗng | rỗng = `filter(labels < 50)` (upstream); có = `select(idx)`, sửa D9 |
-| `FT_FOLD` | rỗng | rỗng | rỗng = đủ 50 lớp cơ sở; F1–F5 = giữ 10 lớp làm lớp mới giả |
-| `--clustering_alg` | gmm | — | `gmm` hoặc `kmeans` |
-| `--kmeans_n_init` | 10 | — | số lần khởi tạo k-means |
-| `--gmm_n_init` | 1 | — | số lần khởi tạo GMM (1 = upstream) |
-| `--hungarian_on` | train | — | D13: `train` = upstream (nhãn thật đặt tên cụm); `eval` = thứ tự cụm khi huấn luyện, Hungarian trên tập test khi đánh giá |
-| `--print_confusion` | tắt | — | chẩn đoán: in ma trận nhầm lẫn test_all (id thật) sau mỗi phiên online |
-| `--dataset neudet --load_mode t1` | — | — | NEU-DET b3t1; phải kèm `--base 3 --increment 3 --num_classes 6 --num_dim 128` |
-| `--dataset gc10 --load_mode t1` | — | — | GC10 b5t1; phải kèm `--base 5 --increment 5 --num_classes 10 --num_dim 64`; đặc trưng đóng băng thêm `--pretrained_model_name dino-vitb16` |
+- `FT_LAMBDA` — mặc định 0, wrapper 0: λ trong Eq. 3; > 0 bật NT-Xent và augmentation 2 view.
+- `FT_TAU` — mặc định 0.2, wrapper 0.2: τ của NT-Xent, chỉ dùng khi λ > 0.
+- `FT_AUG` — mặc định rỗng, wrapper rỗng: rỗng = theo `FT_LAMBDA`; 1 = bật; 0 = tắt.
+- `FT_EPOCHS` — mặc định 10, wrapper 10: số epoch fine-tune.
+- `FT_SEED` — mặc định 42, wrapper 42: seed phase 1.
+- `FT_BATCH_SIZE` — mặc định **128**, wrapper **32**: batch fine-tune.
+- `FT_ACCUM` — mặc định **1**, wrapper **4**: gradient accumulation.
+- `FT_LABELED_IDX` — mặc định rỗng, wrapper rỗng: rỗng = `filter(labels < 50)` (upstream); có = `select(idx)`, sửa D9.
+- `FT_FOLD` — mặc định rỗng, wrapper rỗng: rỗng = đủ 50 lớp cơ sở; F1–F5 = giữ 10 lớp làm lớp mới giả.
+- `--clustering_alg` — mặc định gmm: `gmm` hoặc `kmeans`.
+- `--kmeans_n_init` — mặc định 10: số lần khởi tạo k-means.
+- `--gmm_n_init` — mặc định 1: số lần khởi tạo GMM (1 = upstream).
+- `--hungarian_on` — mặc định train: D13: `train` = upstream (nhãn thật đặt tên cụm); `eval` = thứ tự cụm khi huấn luyện, Hungarian trên tập test khi đánh giá.
+- `--print_confusion` — mặc định tắt: chẩn đoán: in ma trận nhầm lẫn test_all (id thật) sau mỗi phiên online.
+- `--s0_labels` — mặc định true: `none` = S0 không nhãn (E04.01); bắt buộc kèm `--hungarian_on eval`.
+- `--cov_prior_kappa` — mặc định 0: > 0 bật tiên nghiệm co Inverse-Wishart trong SVI (E06.01); 0 = MLE như upstream.
+- `--cov_prior_target` — mặc định pooled: đích co của `--cov_prior_kappa`: `pooled` hoặc `sphere` = (tr/d) I.
+- `--estimator` — mặc định svi: `closed` = trung bình mẫu + Ledoit–Wolf, không SVI (E06.03).
+- `--mask_unseen` — mặc định tắt: chẩn đoán D24: argmax chỉ trên các lớp đã gặp.
+- `--oracle_filter` — mặc định tắt: CHỈ CHẨN ĐOÁN, dùng nhãn thật: tách cũ/mới theo nhãn thật trước lượt S.
+- `--print_cluster_xtab` — mặc định tắt: chẩn đoán, dùng nhãn thật: in bảng chéo cụm × lớp thật và inertia sau bảng kết quả (E09.03).
+- `--dataset neudet --load_mode t1`: NEU-DET b3t1; phải kèm `--base 3 --increment 3 --num_classes 6 --num_dim 128`.
+- `--dataset gc10 --load_mode t1`: GC10 b5t1; phải kèm `--base 5 --increment 5 --num_classes 10 --num_dim 64`; đặc trưng đóng băng thêm `--pretrained_model_name dino-vitb16`.
 
 Các run Eq. 3 dùng `FT_BATCH_SIZE=16 FT_ACCUM=8`, vì 32 × 2 view = 7.68 GB > 6.93 GB khả dụng.
 
@@ -170,22 +256,30 @@ Các run Eq. 3 dùng `FT_BATCH_SIZE=16 FT_ACCUM=8`, vì 32 × 2 view = 7.68 GB >
 
 ## 4. Các phép kiểm tra hồi quy đã chạy
 
-| Thay đổi | Cách kiểm | Kết quả |
-|---|---|---|
-| `--gmm_n_init` | `c100_regress_s0` so với `c100_base_s0` | trùng khít 43 chỉ số |
-| `FT_SEED` | `c100_seedcheck` so với `c100_con0_probe` | CE 1.1756 trùng, đặc trưng lệch 1.15e-5 (nhiễu GPU) |
-| `FT_AUG` | `c100_augcheck` so với `c100_con0_probe` | `augmentation OFF`, CE trùng, lệch 1.15e-5 |
-| `KMeansCluster` *(sanity check, không phải hồi quy: upstream không có k-means)* | `c100_km1` so với `c100_base` (5 seed mỗi bên) | trùng 43 chỉ số. *Việc S0_All trùng nhau ở smoke test không phải bằng chứng: S0 vốn không dùng clustering* |
-| `exp.py --inputs` (29/9) | `t_regress_old/new/none/cli1/cli2/bad` | không cờ = hành vi cũ (`ac9fb477…`); `-` = `{}`; hash lặp lại được; sai cú pháp in usage, không tạo run |
-| `exp.py append_log` (29/9) | 3 run thử: không metrics / metrics trùng cột / metrics lạ | `(no metrics.json)`, `S0_All 91.50`, `acc 0.5000` |
-| `predict_raw` + `hungarian_map` (29/9) | 3 cụm tổng hợp, offset 50 | acc 1.0, trùng đường cũ `predict(..., with_known=True)` |
-| `--hungarian_on train` (29/9) | `c100_km_hungtrain_s0` so với `c100_km_s0` | trùng khít 46 chỉ số |
-| `--print_confusion` (30/9) | `neu_km_evhung_d128_cm_s0` so với `neu_km_evhung_d128_s0` | trùng khít mọi chỉ số |
-| `make_neu_split.py` (30/9) | chạy 2 lần | `unchanged`, cùng sha256 |
-| `SplitCountIncrementalLoader` (30/9) | so với lớp cha trên đặc trưng NEU, cùng seed | mọi mảng trùng khít |
-| `dino-neudet.py` tổng quát (30/9) | NEU đóng băng chạy lại | max abs diff = 0 |
-| `make_gc10_split.py` (30/9) | chạy 2 lần | `unchanged`, cùng sha256 |
-| `feat_probe.py` (1/10) | đặc trưng GC10 đóng băng 224 | trùng số với phép thử viết tay trước đó |
+- `--gmm_n_init`: `c100_regress_s0` so với `c100_base_s0` → trùng khít 43 chỉ số.
+- `FT_SEED`: `c100_seedcheck` so với `c100_con0_probe` → CE 1.1756 trùng, đặc trưng lệch 1.15e-5 (nhiễu GPU).
+- `FT_AUG`: `c100_augcheck` so với `c100_con0_probe` → `augmentation OFF`, CE trùng, lệch 1.15e-5.
+- `KMeansCluster` *(sanity check, không phải hồi quy: upstream không có k-means)*: `c100_km1` so với `c100_base` (5 seed mỗi bên) → trùng 43 chỉ số. *Việc S0_All trùng nhau ở smoke test không phải bằng chứng: S0 vốn không dùng clustering*.
+- `exp.py --inputs` (29/9): `t_regress_old/new/none/cli1/cli2/bad` → không cờ = hành vi cũ (`ac9fb477…`); `-` = `{}`; hash lặp lại được; sai cú pháp in usage, không tạo run.
+- `exp.py append_log` (29/9): 3 run thử: không metrics / metrics trùng cột / metrics lạ → `(no metrics.json)`, `S0_All 91.50`, `acc 0.5000`.
+- `predict_raw` + `hungarian_map` (29/9): 3 cụm tổng hợp, offset 50 → acc 1.0, trùng đường cũ `predict(..., with_known=True)`.
+- `--hungarian_on train` (29/9): `c100_km_hungtrain_s0` so với `c100_km_s0` → trùng khít 46 chỉ số.
+- `--print_confusion` (30/9): `neu_km_evhung_d128_cm_s0` so với `neu_km_evhung_d128_s0` → trùng khít mọi chỉ số.
+- `make_neu_split.py` (30/9): chạy 2 lần → `unchanged`, cùng sha256.
+- `SplitCountIncrementalLoader` (30/9): so với lớp cha trên đặc trưng NEU, cùng seed → mọi mảng trùng khít.
+- `dino-neudet.py` tổng quát (30/9): NEU đóng băng chạy lại → max abs diff = 0.
+- `make_gc10_split.py` (30/9): chạy 2 lần → `unchanged`, cùng sha256.
+- `feat_probe.py` (1/10): đặc trưng GC10 đóng băng 224 → trùng số với phép thử viết tay trước đó.
+- `--s0_labels` mặc định (1/10): `gc10_frozen_km_evhung_d64_regress_s0` (commit `b080aad`) so với `gc10_frozen_km_evhung_d64_s0` → `metrics.json` trùng mọi khoá; dòng ma trận nhầm lẫn trùng.
+- `--cov_prior_kappa 0` (1/10): `gc10_frozen_km_evhung_d64_regress2_s0` (`f6d7841`) so với cùng run gốc → 5 chỉ số trong LOG trùng (S0_All 77.59, S1_New 52.80, final_All 60.66, M_d 52.80, M_f 9.96).
+- sửa lát cắt `fe95908` (1/10): `gc10_frozen_km_evhung_d64_regress3_s0`, chạy khi thay đổi chưa commit (dirty: `classifier/mngmm.py`) → 5 chỉ số trùng.
+- `--cov_prior_target` (1/10): code `bd70b17` so với run của code `f6d7841` trên NEU, d 384, κ 64 (`neu_km_evhung_d384_k64_regress_s0`) → **không trùng**: loss trùng tới bước 400, lệch từ bước 500, run thoát lỗi. Nghi do GPU không tất định ở vùng gần suy biến; không kiểm lại vì bỏ tiên nghiệm qua SVI (D23). Đường mặc định κ = 0 đã kiểm ở hai dòng trên.
+- `--estimator svi` (2/10): `gc10_frozen_km_evhung_d64_regress4_s0` (`3e45d55`; dirty chỉ vì file chưa track `scripts/ckpt_vs_data.py`) → 5 chỉ số trùng.
+- `--mask_unseen`, `--oracle_filter` tắt (2/10): `gc10_frozen_km_evhung_d64_regress5_s0` (`0ea29f0`) → 5 chỉ số trùng.
+- `--print_cluster_xtab` tắt (2/10): `gc10_frozen_km_evhung_d64_regress6_s0` (`8aa1c53`) → trùng khít run gốc.
+- `classifier/closed_form.py` (2/10): `python scripts/test_closed_form.py` → đạt mọi assert.
+- `lab/replay.py` v1 (6/10): bảng chéo K' = 5 trùng 5 run `gc10_frozen_km_evhung_d64_head_s*`, inertia lệch tương đối < 1e-6 (E09.04/C1).
+- `lab/replay.py` v2 (16–18/10): QD21/C4 đạt; C1–C3 chưa chạy.
 
 ---
 
@@ -195,16 +289,14 @@ Không chép danh sách vào đây (chép tay sẽ lệch, xem lỗi "12 file" c
 
     git diff --name-status upstream-baseline -- . ':(exclude)runs' ':(exclude)notes'
 
-Kiểm 2026-10-01, sau `ab201e2`: **34 dòng = 7 `M` + 27 `A`** (`scripts/` có 17 file; GC10 thêm 5 file `A`).
+Kiểm 2026-10-19, sau `0aa0371`: **64 dòng = 8 `M` + 56 `A`**; trong 56 `A` có 26 file split ngân sách nhãn, `scripts/` có 16 file, `lab/` có 3 file. Lần kiểm trước (2026-10-01, sau `ab201e2`): 34 dòng = 7 `M` + 27 `A`.
 Nếu lệnh cho số khác, tài liệu này đã lệch.
 
 ---
 
 ## 6. Lỗi đã biết
 
-| Lỗi | Vị trí | Trạng thái |
-|---|---|---|
-| Trường `views=` in sai khi dùng `FT_AUG` | `sl_finetuned_model.py`, dòng in cuối epoch | **chưa sửa** (quyết định 29/9: chỉ đổi log, không đáng đụng phase 1), xem mục 3 |
-| `exp.py` hash `runs/inputs.txt` cho cả phase 1 | `exp.py`, `inputs_info` | **đã sửa** 29/9 (`c4088a1`, `ad7314f`). Trường `inputs` của run phase 1 **trước `ad7314f`** là vô nghĩa; không sửa `config.json` cũ vì đó là bản ghi |
-| LOG ghi `(no metrics.json yet; copy from runs/INDEX.txt later)` | `exp.py`, `append_log` | **đã sửa** 29/9 (`e66e0bd`); 38 entry cũ đổi ở `98bb890` |
-| LOG ghi `result:` trống khi metrics không trùng `columns.txt` | `exp.py`, `append_log` | **đã sửa** 29/9 (`e66e0bd`) |
+- Trường `views=` in sai khi dùng `FT_AUG` (`sl_finetuned_model.py`, dòng in cuối epoch): **chưa sửa** (quyết định 29/9: chỉ đổi log, không đáng đụng phase 1), xem mục 3.
+- `exp.py` hash `runs/inputs.txt` cho cả phase 1 (`exp.py`, `inputs_info`): **đã sửa** 29/9 (`c4088a1`, `ad7314f`). Trường `inputs` của run phase 1 **trước `ad7314f`** là vô nghĩa; không sửa `config.json` cũ vì đó là bản ghi.
+- LOG ghi `(no metrics.json yet; copy from runs/INDEX.txt later)` (`exp.py`, `append_log`): **đã sửa** 29/9 (`e66e0bd`); 38 entry cũ đổi ở `98bb890`.
+- LOG ghi `result:` trống khi metrics không trùng `columns.txt` (`exp.py`, `append_log`): **đã sửa** 29/9 (`e66e0bd`).
