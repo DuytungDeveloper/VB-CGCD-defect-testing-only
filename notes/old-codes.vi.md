@@ -1,7 +1,7 @@
 # Tra mã cũ
 
 Hệ mã hiện hành: QD22 (`notes/pl/README.vi.md` §3), từ 2026-10-18. Từ ngày này mọi file `.md` trong repo chỉ dùng mã mới.
-Mã cũ còn ở ba nơi: commit message, chú thích trong code, bản `.md` cũ trong lịch sử git. Gặp mã cũ ở đó thì tra file này.
+Mã cũ còn ở ba nơi: commit message, chú thích trong code (mục 5), bản `.md` cũ trong lịch sử git. Gặp mã cũ ở đó thì tra file này.
 
 - Hai đợt mã cũ:
   - trước 2026-10-15: `PL-Q<n>`, `PL-E<nn>`, `PL-QD<n>`, `M1`–`M13`, `Q1`–`Q10b` của `plan.vi.md`, mã của CT1 và CT2;
@@ -113,7 +113,7 @@ Một chuỗi cho cả repo, theo thời gian. QD01–QD15 ở `notes/plan.vi.md
 - I1–I3 (phép kiểm toàn vẹn) → C1–C3 của thí nghiệm chứa nó: E09.03, E09.04, E09.05.
 - C1–C4 của PL-QD6 → QD21/C1–C4.
 - P1–P4 (dự đoán của E09.03) → E09.03/P1–P4. Giả thuyết A, B của E09.03 → "giả thuyết sức chứa", "giả thuyết chồng lấn". R0, R1 giữ nguyên (tên hai mode phân hoạch trong E09.03).
-- H2: trong LOG là hướng 2 (→ CT2; "H2-Q1" → E09.03); trong `improvement-1.vi.md` là giả thuyết thứ hai (→ Q06.03).
+- H1, H2: trong LOG, H2 là hướng 2 (→ CT2; "H2-Q1" → E09.03). Trong CT1 là hai giả thuyết: H1 = khe lớp chưa gặp (→ D24, Q08.01; chỉ còn ở chú thích `classifier/mngmm.py`, cờ `--mask_unseen`) [suy luận từ chú thích đó và commit `0ea29f0`]; H2 = n ≈ d (`improvement-1.vi.md`, → Q06.03).
 - Tên dòng việc: cải tiến 1 → CT1; cải tiến 2, hướng 2 → CT2; "cải tiến B" → E06.03.
 - "run E1" → các run `gc10_frozen_km_evhung_d64_head_s0`–`s4` (2026-10-04).
 - "nhóm A" → 30 run phase 2 của E02.05.
@@ -123,7 +123,12 @@ Một chuỗi cho cả repo, theo thời gian. QD01–QD15 ở `notes/plan.vi.md
 
 ## 5. Mã cũ còn trong code
 
-QD22 chỉ sửa `.md`; chú thích trong code giữ nguyên:
+QD22 chỉ sửa `.md`; chú thích, docstring và help của cờ trong code giữ nguyên (kiểm bằng grep ngày 2026-10-19):
+- `main.py`: "improvement 1" (= CT1); "(v1)", "(v2)" ở help của `--cov_prior_target` (= hai bản của E06.01); "(B)", "# B" (= E06.03).
+- `classifier/mngmm.py`: "improvement 1" (= CT1); "v1", "v2" (= hai bản của E06.01); "B:" (= E06.03); "diagnostic H1" (= D24).
+- `classifier/closed_form.py`: "improvement 1 redesign, B" (= CT1, E06.03).
+- `scripts/test_closed_form.py`: B1 (= bản 1 của E06.03, bộ ước lượng), cả dòng in cuối "B1 ok".
+- `feature_extractor/dino-cifar100.py`: Q7 (= QD07). `feature_extractor/ft_data.py`: Q1b (= QD11). `feature_extractor/sl_finetuned_model.py`: Q6 (= QD06).
 - `lab/pl_cluster.py`: PL-E01 (= E09.04), PL-E01b (= E09.05), I1, I3 (= C1, C3), M10 (= bước 09). File này nghỉ khi đã có `score.py` và bàn mổ v2 qua QD21/C1–C4.
-- `lab/replay.py`: PL-QD6 (= QD21); "the E1 runs" ở phần v1 (= run `gc10_frozen_km_evhung_d64_head_s*`). Sửa khi đụng tới file này lần tới.
-- Các file khác chỉ dùng D<n>, A<n>, PATCH <n>: không đổi.
+- `lab/replay.py`: PL-QD6 (= QD21); "the E1 runs" ở phần v1 (= run `gc10_frozen_km_evhung_d64_head_s*`). C1–C4 trong docstring đã đúng nghĩa QD21/C1–C4. Sửa khi đụng tới file này lần tới.
+- Các file code khác chỉ dùng D<n>, A<n>, PATCH <n>.
