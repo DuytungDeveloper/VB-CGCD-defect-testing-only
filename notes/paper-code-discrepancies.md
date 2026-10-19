@@ -141,7 +141,7 @@ status: FIXED 2026-09-29 (4aa8ff3, 98d2c55), opt-in --hungarian_on eval; default
         eval: training labels = cluster order; mapping = Hungarian between the CLUSTERING model's
         predictions on the session's novel test set and its true labels (10x10), computed once and
         frozen; COPIES of the test labels are relabelled into cluster space; S0 row untouched.
-        (Q10b in plan.vi.md. Q10 would use the classifier's predictions instead.)
+        (QD15 in plan.vi.md. QD14 would use the classifier's predictions instead.)
 measured: training is permutation-equivariant (loss, train_acc, stop steps identical; dets ~1e-7).
         c100_km_evhung vs c100_km, paired by seed: seeds 1-4 identical on all 46 metrics; seed 0
         differs from S2 on, where the train- and test-derived mappings swap clusters 1/8 (sizes
@@ -383,7 +383,23 @@ impact: [INFERENCE] the classifier is its initialisation plus a sign-gradient-si
         from these perturbations amplified by the feature norm, not from fitted Gaussians. Explains D11 (Sigma ~ I);
         D14 (det(I + E) ~ exp(tr E): det > 1 when feature variance > 1, < 1 when < 1, so the stop rule is in effect a
         step-count rule set by the feature scale); D21 (spectral drift up to ~d x 0.033: 2.1 at d 64, 12.8 at d 384).
-        A covariance prior on this objective is inert: improvement 1 v1 left the learned Sigma unchanged on GC10.
+        A covariance prior on this objective is inert: E06.01 (--cov_prior_kappa) left the learned Sigma unchanged on GC10.
+
+## D24 (CANDIDATE). Prediction takes the argmax over all num_classes slots, untrained ones included
+paper:  Sec 3.2.1, Eq. 4 and 6: the MVN-NCM classifier normalises over the classes k'; which classes take part
+        is not stated. Sec 4.1: the test set of a session holds only the classes encountered so far.
+code:   classifier/mngmm.py _predict: log N(x | mu_i, Sigma_i) for every slot i < class_means.shape[0]
+        (= num_classes), then argmax. Slots of classes not seen yet keep their initialisation from model()
+        (mu 0, Sigma I), so a sample can be assigned to a class that has not appeared yet, which is always wrong.
+measured (seed 0, --estimator closed, 2026-10-02): CIFAR-100 S0_All 84.40 -> 87.60 with --mask_unseen (argmax
+        over the classes seen so far); S1_New, final_All and M_d unchanged; M_f 13.80 -> 17.00 only because S0
+        rises (c100_km_evhung_closed_s0 vs _closed_mask_s0). GC10 frozen, d 64: identical with and without the
+        flag (gc10_frozen_km_evhung_d64_closed_s0 vs _closed_mask_s0).
+impact: [INFERENCE] small with the default SVI estimator: trained slots stay at N(0, I) plus a shift towards
+        their class (D23), so an untouched N(0, I) slot rarely wins. Not measured with SVI; why CIFAR is affected
+        and GC10 is not was not checked.
+status: CANDIDATE until the paper's prediction rule is confirmed. Diagnostic flag --mask_unseen (default off =
+        upstream). Found in CT1 (E06.03, notes/improvement-1.vi.md); open question Q08.01.
 
 ## Additional notes on the fine-tuning implementation
 - BOFT config declared: boft_block_size=4, boft_n_butterfly_factor=2, boft_dropout=0.1,
