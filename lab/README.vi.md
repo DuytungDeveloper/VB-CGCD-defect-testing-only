@@ -2,7 +2,7 @@
 
 Nơi mổ xẻ dữ liệu và mô hình VB-CGCD theo từng bước, cấy thử phương án thay thế, và học các thuật toán trong và ngoài model.
 Số liệu chính thức không nằm ở đây: chúng đến từ các run qua `scripts/exp.py` (`notes/LOG.md`, `notes/pl/experiments.vi.md`); notebook chỉ trỏ tới bằng mã.
-Quyết định về bố cục: PL-QD5 (`notes/pl/README.vi.md`). Bố cục cũ (`notes/nb/`, atlas 00–04, khoang 10–13) nằm ở tag `nb-v1`.
+Quyết định: bố cục QD20, bàn mổ v2 QD21, hệ mã QD22 (`notes/pl/README.vi.md` §5). Bố cục cũ (`notes/nb/`, atlas 00–04, khoang 10–13) nằm ở tag `nb-v1`; đối chiếu ở mục 8.
 
 ## 1. Bố cục
 
@@ -30,27 +30,27 @@ Notebook chỉ được tạo khi bước đó có câu hỏi hoặc thí nghi�
 
 Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14 chạy cho mỗi seed. Mặc định của mọi bước hiện là code gốc với cấu hình đã chốt cho GC10/NEU (k-means `n_init` 10, Hungarian chỉ khi chấm, d = 64/128).
 
-1. `01-preprocess` (= M2) [chưa có]: tiền xử lý ảnh.
-2. `02-finetune` (= M3) [chưa có]: fine-tune backbone.
-3. `03-features` (= M4) [chưa có]: trích đặc trưng, CLS hay pooler.
-4. `04-loader` (= M5) [chưa có]: nạp dữ liệu theo phiên (tập S0, pool S1, các tập test).
-5. `05-pca` (= M6) [chưa có]: giảm chiều bằng PCA, fit ở S0.
-6. `06-gauss-svi` (= M7) [chưa có]: Gaussian theo lớp, học bằng SVI ở S0. Code dùng lại ở 11, 13.
-7. `07-early-stop` (= M8) [chưa có]: luật dừng sớm theo det Σ; chỉ chạy ở phiên online.
-8. `08-classifier` (= M9) [chưa có]: bộ phân lớp, đánh giá S0. Code dùng lại ở 12, 14.
-9. `09-cluster` (= M10) [chưa có]: phân cụm pool S1. Nguồn cũ: `12_cluster`.
-10. `10-naming` (= M11) [chưa có]: đặt tên cụm bằng Hungarian trên tập test, chỉ dùng khi chấm.
-11. `11-gauss-f` (= M7) [chưa có]: lượt F, SVI trên nhãn cụm.
-12. `12-filter` (= M12) [chưa có]: lọc cũ/mới, giữ ảnh bị đoán là lớp mới.
-13. `13-gauss-s` (= M7) [chưa có]: lượt S, SVI lại trên ảnh được giữ, khởi tạo từ tham số S0.
-14. `14-eval` (= M13) [chưa có]: đánh giá S1 (All/Old/New/S0test, M_f, M_d).
+1. `01-preprocess` [chưa có]: tiền xử lý ảnh.
+2. `02-finetune` [chưa có]: fine-tune backbone.
+3. `03-features` [chưa có]: trích đặc trưng, CLS hay pooler.
+4. `04-loader` [chưa có]: nạp dữ liệu theo phiên (tập S0, pool S1, các tập test).
+5. `05-pca` [chưa có]: giảm chiều bằng PCA, fit ở S0.
+6. `06-gauss-svi` [chưa có]: Gaussian theo lớp, học bằng SVI ở S0. Code dùng lại ở 11, 13.
+7. `07-early-stop` [chưa có]: luật dừng sớm theo det Σ; chỉ chạy ở phiên online.
+8. `08-classifier` [chưa có]: bộ phân lớp, đánh giá S0. Code dùng lại ở 12, 14.
+9. `09-cluster` [chưa có]: phân cụm pool S1. Nguồn cũ: `12_cluster`.
+10. `10-naming` [chưa có]: đặt tên cụm bằng Hungarian trên tập test, chỉ dùng khi chấm.
+11. `11-gauss-f` [chưa có]: lượt F, SVI trên nhãn cụm.
+12. `12-filter` [chưa có]: lọc cũ/mới, giữ ảnh bị đoán là lớp mới.
+13. `13-gauss-s` [chưa có]: lượt S, SVI lại trên ảnh được giữ, khởi tạo từ tham số S0.
+14. `14-eval` [chưa có]: đánh giá S1 (All/Old/New/S0test, M_f, M_d).
 
 Biến thể và phần thêm:
-- `06a-closed-form` [có trong code, chưa có notebook]: cải tiến B, `--estimator closed`; đã đóng ngày 2/10.
-- `09a-overcluster` [chưa có]: phân cụm thừa K' = 20; E09.01, E09.02. Nguồn cũ: `12b_cluster`.
-- `09b-overcluster-merge` [chưa có]: gộp cụm con; E09.03, chưa tiền đăng ký. Nguồn cũ: phần Bhattacharyya của `12b_cluster`.
-- `14a-loss-by-step` [chưa có]: phân tích, mất điểm ở khâu nào; Q14.01. Nguồn cũ: `04_s1_discovery`.
-- Dự kiến: `07a-no-early-stop`, `12a-relabel` (Q12.01).
+- `06a-closed-form` [có trong code, chưa có notebook]: E06.03, `--estimator closed`; đã đóng ngày 2/10.
+- `09a-overcluster` [chưa có]: phân cụm thừa K' = 20; E09.04, E09.05. Nguồn cũ: `12b_cluster`.
+- `09b-overcluster-merge` [chưa có]: gộp cụm con; E09.06, chưa tiền đăng ký. Nguồn cũ: phần Bhattacharyya của `12b_cluster`.
+- `14a-loss-by-step` [chưa có]: phân tích, mất điểm ở khâu nào; Q14.04. Nguồn cũ: `04_s1_discovery`.
+- Dự kiến: `07a-no-early-stop` (Q07.03), `12a-relabel` (Q12.03).
 
 `04_s1_discovery` (tag `nb-v1`) đi xuyên các bước 09–14; nội dung chia vào từng bước khi có bàn mổ v2.
 
@@ -65,20 +65,21 @@ Biến thể và phần thêm:
 - Biến thể dựa trên một biến thể khác lấy chữ kế tiếp và ghi nguồn; không lồng chữ (`09c` ghi "dựa trên 09b", không đặt `09b1`).
 - Biến thể được chọn làm mặc định mới vẫn giữ chữ cái của nó; mục lục đánh dấu bản nào đang là mặc định.
 - Code dùng chung (SVI ở 06, 11, 13; bộ phân lớp ở 08, 12, 14): cải tiến một bước là hàm mới của riêng bước đó. Sửa thẳng code chung thì coi như sửa ở bước sớm nhất dùng nó.
-- Khi có bàn mổ v2, mỗi biến thể có hai phần: hàm `vNNx_<tên>` trong `variants.py` để chạy qua `exp.py` (ra số chính thức), và notebook `NNx-<tên>.ipynb` để giải thích và mổ.
+- Mỗi biến thể có hai phần: hàm `vNNx_<tên>` trong `variants.py`, chạy qua `exp.py` bằng `replay.py run --from <run> --start NN --at NN=vNNx_<tên>` (ra số chính thức); và notebook `NNx-<tên>.ipynb` để giải thích và mổ.
 
 ## 5. File `.py`
 
 Hiện có:
-- `replay.py`: bàn mổ v1. Chạy lại `main.py` từng giai đoạn cho một seed, đúng thứ tự rút RNG, giữ mọi kết quả trung gian. Tự kiểm: `python lab/replay.py [--full] <seed…>`.
-- `pl_cluster.py`: bộ đo tầng 1 của bước 09 (`score()`) và phần chạy cho E09.01, E09.02 (`--ref-tag` bắt buộc).
+- `replay.py`: bàn mổ, hai phần.
+  - v2 (QD21; commit `737e8c4`, `a5c9545`, `86ed44d`): mỗi bước 04–14 là một hàm `sNN(st)`; ảnh chụp ở `runs/<run>/snap/NN.pkl`. Chạy qua `exp.py`: `run --features <F> --seed <N>` (chuỗi mặc định), `run --from <run> --start NN --at NN=<hàm>` (biến thể). Phép kiểm QD21/C1–C4: `check` (C1), `check-resume` (C2), `check-crn` (C3), `check-hash` (C4). C4 đạt; C1–C3 chưa chạy, nên chưa dùng số của v2.
+  - v1: hàm `replay()` (notebook và `pl_cluster.py` dùng), tự kiểm `python lab/replay.py [--full] <seed…>`. Bỏ cùng lúc với `pl_cluster.py`; bản gốc ở tag `nb-v1`.
+- `pl_cluster.py`: bộ đo tầng 1 của bước 09 (`score()`) và phần chạy cho E09.04, E09.05 (`--ref-tag` bắt buộc).
 
 Kế hoạch (tạo khi cần):
-- `replay.py` v2, nâng tại chỗ: bước 04–14 thành hàm có đầu vào/đầu ra rõ; ảnh chụp sau mỗi bước kèm commit và trạng thái RNG; lệnh chạy từ bước k với một biến thể (qua `exp.py`); phép kiểm tương đương với run chính thức. Bản v1 giữ ở tag `nb-v1`.
-- `variants.py`: biến thể, mỗi hàm mang mã bước (`v09a_overcluster`, `v09b_merge`…), cùng đầu vào/đầu ra với bước gốc; không nhận nhãn thật của pool.
-- `score.py`: bộ đo tầng 1, mỗi bước một hàm (`score09` = `pl_cluster.score`; sau thêm `score10`, `score12`). Nơi duy nhất trong `lab/` dùng nhãn thật của pool, chỉ để chấm.
+- `variants.py`: biến thể, mỗi hàm mang mã bước (`v09a_overcluster`, `v09b_merge`…), cùng đầu vào/đầu ra với bước gốc; không nhận nhãn thật của pool. `replay.py run --at` tìm hàm ở đây.
+- `score.py`: bộ đo tầng 1, mỗi bước một hàm (`score09` = `pl_cluster.score`; sau thêm `score10`, `score12`). Ngoài các lệnh kiểm của `replay.py`, đây là nơi duy nhất trong `lab/` đọc nhãn thật của pool, chỉ để chấm.
 - `data_io.py`: nạp split, ảnh và hộp XML cho các notebook `00-data-*`, cùng quy tắc với `scripts/make_gc10_split.py`; kiểm bằng mục `diagnostics` của file split. Không đặt tên `datasets.py` (sẽ che gói `datasets` của HuggingFace).
-- `pl_cluster.py` nghỉ khi đã có `score.py` và `replay.py` v2.
+- `pl_cluster.py` nghỉ khi đã có `score.py` và v2 qua QD21/C1–C4.
 
 Quy tắc:
 - Không sửa code gốc (`main.py`, `classifier/`, `clustering/`); các file này chỉ gọi lại hàm của pipeline.
@@ -88,36 +89,17 @@ Quy tắc:
 ## 6. Chạy độc lập (mục tiêu của bàn mổ v2)
 
 - Định nghĩa: sửa bước k thì đầu ra của 01…k−1 giữ nguyên, không chạy lại; chạy lại toàn bộ k+1…14.
-- Hiện trạng: mới đạt cho 01–03 (đặc trưng lưu sẵn trong `features/`) và một phần ở 09 (tầng 1, chụp RNG ở lối vào k-means). Các bước 04–14 còn chạy liền trong `main.py` và `mngmm.train()`.
-- Bàn mổ v2 cần bốn điều: mỗi bước là một hàm có đầu vào/đầu ra rõ; ảnh chụp đầu ra mỗi bước kèm commit; trạng thái RNG ở lối vào mỗi bước; phép kiểm tương đương ở từng ảnh chụp.
+- 01–03: đạt (đặc trưng lưu sẵn trong `features/`).
+- 04–14: bàn mổ v2 đã cài (QD21): mỗi bước là một hàm có đầu vào/đầu ra rõ; ảnh chụp đầu ra mỗi bước kèm commit, trạng thái RNG và mã băm; RNG chung ở lối vào 04, 05, 09; chuỗi băm theo bước báo ảnh chụp nào đã cũ. Chỉ dùng khi QD21/C1–C3 đạt (mục 5).
 - Kết luận ở bước sau gắn với phiên bản các bước phía trên: ghi rõ "đo trên …". Đổi mặc định ở bước k thì tạo lại ảnh chụp từ k và kiểm lại kết luận của các bước sau.
 
 ## 7. Hệ mã
 
-- Câu hỏi `Q<bước>.<nn>`; thí nghiệm `E<bước>.<nn>`; phép kiểm trong một thí nghiệm `C1, C2…`. Bước 00 là dữ liệu.
-- Tag run mới: ví dụ `gc10_e09_03_r0_s3` (E09.03, FT seed r0, seed 3). Tag cũ giữ nguyên; không sửa dòng `why:` cũ trong LOG.
-- Giữ nguyên: mã D (`notes/paper-code-discrepancies.md`), PL-QD1–QD5 (`notes/pl/README.vi.md`).
-- Câu hỏi mở chỉ ghi ở `notes/pl/questions.vi.md`; thí nghiệm ở `notes/pl/experiments.vi.md`.
+- Hệ mã của cả repo (bước, câu hỏi, thí nghiệm, quyết định, mã cục bộ, trạng thái, tag run): QD22, `notes/pl/README.vi.md` §3. Mã cũ, kể cả mã module của bố cục cũ: `notes/old-codes.vi.md`.
+- Trong `lab/`: tên notebook mang số bước (`09-cluster`, `09a-overcluster`); hàm biến thể mang mã bước (`v09a_overcluster`); cell đầu notebook ghi mã Q/E mà nó phục vụ.
+- Câu hỏi chỉ ghi ở `notes/pl/questions.vi.md`, thí nghiệm ở `notes/pl/experiments.vi.md`; notebook chỉ trỏ tới bằng mã.
 
-## 8. Đối chiếu mã cũ (mới = cũ)
-
-Câu hỏi:
-- Q00.01 = PL-Q6: GC10 khó vì mất cân bằng hay vì lỗi nhỏ.
-- Q03.01 = PL-Q5: đặc trưng mức vùng lỗi.
-- Q08.01 = PL-Q8: inclusion bị kéo về lớp cũ.
-- Q09.01 = PL-Q1 [đóng]: phân cụm thừa, lớp hiếm có cụm riêng không.
-- Q09.02 = PL-Q2: OT với biên nới lỏng.
-- Q09.03 = PL-Q4: nhãn tối thiểu cho lớp mới.
-- Q09.04 = PL-Q7: so sánh phương pháp phân cụm.
-- Q12.01 = PL-Q3: re-label đúng như paper (D12).
-- Q14.01 = PL-Q9: tầng 1 và tầng 2 lệch nhau ở khâu nào.
-
-Thí nghiệm:
-- E09.01 = PL-E01 (`fz`, LOẠI).
-- E09.02 = PL-E01b (`ft`, SỐNG).
-- E09.03 = PL-E02 (gộp cụm con, chưa tiền đăng ký).
-
-Module → bước: M1 → 00 · M2 = 01 · M3 = 02 · M4 = 03 · M5 = 04 · M6 = 05 · M7 = 06 (và 11, 13) · M8 = 07 · M9 = 08 (và 12, 14) · M10 = 09 · M11 = 10 · M12 = 12 · M13 = 14.
+## 8. Bố cục cũ (tag `nb-v1`)
 
 Notebook cũ (đọc bằng `git show nb-v1:notes/nb/<tên>`):
 - `01_data` → `00-data-gc10` (mục A–D), `00-data-neu` (mục E).
@@ -128,7 +110,7 @@ Notebook cũ (đọc bằng `git show nb-v1:notes/nb/<tên>`):
 
 Đường dẫn cũ → mới:
 - `scripts/replay.py` → `lab/replay.py`; `scripts/pl_cluster.py` → `lab/pl_cluster.py`; `notes/nb/README.vi.md` → `lab/README.vi.md`.
-- Tiền đăng ký của E09.01, E09.02 trỏ tới đường dẫn cũ: chạy lại đúng lệnh cũ bằng commit `89e94d4` hoặc tag `nb-v1`.
+- Tiền đăng ký của E09.04, E09.05 trỏ tới đường dẫn cũ: chạy lại đúng lệnh cũ bằng commit `89e94d4` hoặc tag `nb-v1`.
 
 Cảnh báo trùng số: `12_cluster` cũ (khoang 12 = phân cụm) khác hẳn `12-filter` mới.
 
@@ -148,7 +130,7 @@ Cảnh báo trùng số: `12_cluster` cũ (khoang 12 = phân cụm) khác hẳn 
 - Không huấn luyện nặng trong notebook: đọc đặc trưng có sẵn; tối đa chạy SVI cho 1 seed.
 - Bộ đo viết một lần trong `.py`, notebook import lại. Xem code trong model: in đúng hàm bằng `inspect.getsource` cạnh đầu vào/đầu ra của nó, không chép code.
 - Đánh giá hai tầng: tầng 1 chấm đầu ra của một bước bằng nhãn thật (chỉ để chấm), để lọc nhanh; tầng 2 chạy cả pipeline qua `exp.py`, ít nhất 5 seed. Thứ hạng ở tầng 1 phải được xác nhận ở tầng 2.
-- Bối cảnh mặc định: cấu hình paper (`ft`); `fz` là bối cảnh phụ (PL-QD4).
+- Bối cảnh mặc định: cấu hình paper (`ft`); `fz` là bối cảnh phụ (QD19).
 - Không nhìn trước dữ liệu: cấu hình thuộc một thí nghiệm sẽ tiền đăng ký không chạy trên pool lớp mới của GC10 trước khi tiền đăng ký; muốn thử thì dùng dữ liệu đồ chơi hoặc mô phỏng khám phá trên lớp cơ sở.
 - Cuối mỗi notebook có "Summary (EN)": 3–5 phát biểu dạng kết quả, mỗi câu kèm số và nguồn (mã E hoặc run trong LOG).
 
@@ -164,6 +146,7 @@ Cảnh báo trùng số: `12_cluster` cũ (khoang 12 = phân cụm) khác hẳn 
 - ngân sách nhãn — label budget; tiền đăng ký — pre-registration
 - bàn mổ — replay harness (`lab/replay.py`); bước gốc — base step; biến thể — variant
 - cấy ghép — graft; ảnh chụp — snapshot; chạy độc lập — independent step runs
+- RNG chung — common random numbers; chuỗi băm — hash chain (báo ảnh chụp cũ)
 - đánh giá tầng 1 / tầng 2 — tier-1 (step output) / tier-2 (full pipeline) evaluation
 
 ## 11. Cell 0 (mẫu)
