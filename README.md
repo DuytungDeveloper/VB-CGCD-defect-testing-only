@@ -33,6 +33,7 @@ Upstream:  https://github.com/daihao42/VB-CGCD (its README declares MIT; the ups
     notes/pl/README.vi.md              current work (pseudo-labels, PL): scope, codes, decisions (Vietnamese)
     notes/pl/questions.vi.md           open questions of the PL work (Vietnamese)
     notes/pl/experiments.vi.md         PL experiments: preregistration, results (Vietnamese)
+    notes/old-codes.vi.md              old codes (before QD22) -> current codes, for old commits and code comments (Vietnamese)
     lab/README.vi.md                   index of lab/: notebooks per pipeline step, helper .py (Vietnamese)
     archive/pre-rerun-20260915/        runs before the clean rerun; removed 2026-10-15, packed in
                                        /mnt/e/AI_Storage/backups/vbcgcd-archive-pre-rerun-20260915.tar
@@ -61,6 +62,8 @@ CIFAR-100 and the DINO weights are downloaded by Hugging Face on first use (~/.c
 - Run everything through scripts/exp.py, inside tmux.
 - Tags: <dataset>_<purpose>[_<variant>][_s<N>], only [a-z0-9_], never "__".
   Examples: c100_extract, c100_base_s0, c100_base_lr1e5_s0. exp agg groups <name>_s<N> exactly.
+  Since QD22 (2026-10-18), runs of an experiment: <dataset>_e<step>_<nn>[_<variant>]_s<N>, e.g. gc10_e09_06_r0_s3;
+  the default chain of lab/replay.py v2: <dataset>_v2_<features>_s<N>, e.g. gc10_v2_ft_r0_s0 (notes/pl/README.vi.md §3).
 - Commit code before a run. exp.py records the commit; uncommitted code shows dirty = yes.
 - Phase 1 takes about 2 h 50 min on the RTX 4060 (about 2 h 35 min with FT_LABELED_IDX, about 5 h 30 min with 2-view augmentation). Before it: pause Windows Update,
   disable sleep, close apps that use the GPU on Windows.
@@ -141,7 +144,7 @@ GC10-DET (b5t1: 5 base + 1 session of 5 novel classes, imbalanced; protocol in s
     python scripts/exp.py table            # prints and writes runs/INDEX.txt
     python scripts/exp.py agg c100_km_evhung   # mean/std over c100_km_evhung_s* -> runs/agg_c100_km_evhung.txt
 
-After each run, fill in "why" and "note" in notes/LOG.md, then:
+After each run, fill in "why" (starting with the experiment or decision code, e.g. "E09.06: ...") and "note" in notes/LOG.md, then:
 
     git add runs notes
     git commit -m "results: <tag>"
