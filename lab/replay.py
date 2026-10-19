@@ -380,6 +380,20 @@ class _Tee(io.TextIOBase):
         self.out.flush()
 
 
+def _check_09(st):
+    """After step 09, whatever functions ran there (QD21, 2026-10-20): the pool ids and the ids the cluster model
+    gives the novel test set must be integers in [0, increment), one per image. Out-of-range ids raise no error
+    later: confusion_matrix drops them at 10 (hungarian_map) and JAX indexing clamps them at 11 and 13."""
+    inc = st["args"].increment
+    for name, x, ids in (("ids", st["pool_x"], st["ids"]),
+                         ("cluster.predict_raw(test1_x)", st["test1_x"], st["cluster"].predict_raw(st["test1_x"]))):
+        ids = np.asarray(ids)
+        ok = ids.ndim == 1 and len(ids) == len(x) and np.issubdtype(ids.dtype, np.integer) \
+            and ids.min() >= 0 and ids.max() < inc
+        assert ok, f"step 09: {name} must be {len(x)} integers in [0, {inc}), got shape {ids.shape}, " \
+                   f"dtype {ids.dtype}, values {np.unique(ids)[:10]}"
+
+
 def chain(st, spec=None, start="04", parent=None, snap=None, meta=None, upto="14"):
     """Run steps start..upto on st, in place (st is also returned).
     spec: {step: [items]}, default DEFAULT. The items of a step run in order: a variant replaces the default
@@ -407,6 +421,8 @@ def chain(st, spec=None, start="04", parent=None, snap=None, meta=None, upto="14
                 new.update(out)
         finally:
             sys.stdout = tee.out
+        if k == "09":
+            _check_09(st)
         if snap is not None:
             blob = dict(step=k, out=new, rng_in=rng_in, log=tee.buf.getvalue(), hash=hashes[k], spec=spec, meta=meta or {})
             (Path(snap) / f"{k}.pkl").write_bytes(pickle.dumps(blob, protocol=pickle.HIGHEST_PROTOCOL))
@@ -751,6 +767,7 @@ def cmd_check_hash(argv):
         ("edit _rel (11, 13, 14)", "replay.py:_rel", "11"),
         ("edit the runner (chain)", "replay.py:chain", "04"),
         ("edit new_state", "replay.py:new_state", "04"),
+        ("edit _check_09 (the runner's check after step 09)", "replay.py:_check_09", "04"),
         ("edit DEFAULT (a constant the runner reads)", "replay.py:=DEFAULT", "04")]
     for label, key, first in cases:
         h2 = step_hashes(spec, base, {key: "edited"})
