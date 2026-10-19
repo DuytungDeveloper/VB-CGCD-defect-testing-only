@@ -1,11 +1,12 @@
-# Cải tiến 2: khám phá lớp mới trên GC10
+# CT2: khám phá lớp mới trên GC10 (E09.03)
 
-Giả thuyết, tiền đăng ký, kết quả và đánh đổi của hướng 2. Câu hỏi mở vẫn nằm ở `plan.vi.md`.
+Giả thuyết, tiền đăng ký, kết quả và đánh đổi của CT2. Câu hỏi mở nằm ở `notes/pl/questions.vi.md`.
+Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit `8aa1c53` (tiền đăng ký), `831386c` (kết quả). Mã cũ: `notes/old-codes.vi.md`.
 
-## Q1: tiền đăng ký (2/10, trước mọi run có `--print_cluster_xtab`)
+## E09.03: tiền đăng ký (2/10, trước mọi run có `--print_cluster_xtab`)
 
-Câu hỏi: balanced novel kẹt quanh 37% vì k-means thiếu sức chứa (A: đặc trưng gom được lớp, nhưng
-5 cụm gần đều cỡ không đủ chỗ) hay vì các lớp chồng lấn trong đặc trưng (B)?
+Câu hỏi: balanced novel kẹt quanh 37% vì k-means thiếu sức chứa (giả thuyết sức chứa: đặc trưng gom được lớp, nhưng
+5 cụm gần đều cỡ không đủ chỗ) hay vì các lớp chồng lấn trong đặc trưng (giả thuyết chồng lấn)?
 
 Dữ liệu: bảng chéo cụm × lớp thật trên pool train S1, 748 ảnh = 698 ảnh lớp mới + 50 ảnh cũ
 (10 ảnh × 5 lớp). Cấu hình `gc10_frozen_km_evhung_d64`, seed 0–4, chạy lại bằng `rerun` + cờ mới.
@@ -25,27 +26,27 @@ Dự đoán (ngưỡng R1 / R0, mức nghiêng):
 - Đối chứng dương, waist tụ: ≥ 45/94 / ≥ 34/94. Phải đúng.
 
 Toàn vẹn (trượt thì dừng, không đọc bảng):
-- I1: tổng cột bảng train = kích thước cụm trong log của run gốc cùng seed.
-- I2: metrics.json của run có cờ trùng khít run gốc ở 5/5 seed.
-- I3: tổng hàng = n_use (silk 420, inclusion 135, waist 94, crease 32, rolled 17), 10 mỗi lớp cũ.
+- C1: tổng cột bảng train = kích thước cụm trong log của run gốc cùng seed.
+- C2: metrics.json của run có cờ trùng khít run gốc ở 5/5 seed.
+- C3: tổng hàng = n_use (silk 420, inclusion 135, waist 94, crease 32, rolled 17), 10 mỗi lớp cũ.
 
 Quy tắc quyết định:
-- P1 đúng: lớp hiếm theo A, thử phân cụm cho phép cụm lệch cỡ (phân cụm thừa + gộp, ...).
-  P1 sai: B, ưu tiên Q3/Q4. Chỉ một trong hai lớp tụ: kết luận riêng từng lớp.
+- P1 đúng: lớp hiếm theo giả thuyết sức chứa, thử phân cụm cho phép cụm lệch cỡ (phân cụm thừa + gộp, ...).
+  P1 sai: giả thuyết chồng lấn, ưu tiên Q03.02/Q05.02. Chỉ một trong hai lớp tụ: kết luận riêng từng lớp.
 - P2 đúng mà recall test của inclusion vẫn thấp: mất ở khâu sau k-means, xem bộ lọc pass F.
-  P2 sai: inclusion chồng lấn silk, Q3.
-- P3 sai: phân hoạch gần như không bám theo lớp, nghiêng mạnh về B.
+  P2 sai: inclusion chồng lấn silk, Q03.02.
+- P3 sai: phân hoạch gần như không bám theo lớp, nghiêng mạnh về giả thuyết chồng lấn.
 - P4 đúng: ảnh cũ chiếm một cụm, lọc ảnh cũ trước khi phân cụm là hướng rẻ (paper §3.2.2,
   nguồn lỗi (1)).
 
-## Q1: kết quả (2/10)
+## E09.03: kết quả (2/10)
 
 - Run: 1 run hồi quy `20261002_172051__…_regress6_s0` (cờ tắt) và 5 run `…_xtab_s0`–`s4` (cờ bật); cấu hình `gc10_frozen_km_evhung_d64`, SVI, S0 có nhãn.
 - Pool S1: 748 ảnh, gồm 698 ảnh lớp mới (silk 420, inclusion 135, waist 94, crease 32, rolled 17) và 50 ảnh cũ. k-means chạy trên đặc trưng thô 768 chiều của toàn pool.
 
 ### Toàn vẹn
 
-- `regress6_s0` trùng khít run gốc; 5 run bật cờ trùng 5 run gốc (I2). I1, I2, I3 đạt 5/5 seed.
+- `regress6_s0` trùng khít run gốc; 5 run bật cờ trùng 5 run gốc (C2). C1, C2, C3 đạt 5/5 seed.
 - Đối chứng dương đạt: 92/94 ảnh waist nằm trong một cụm.
 
 ### Kích thước cụm
@@ -69,12 +70,12 @@ Quy tắc quyết định:
 - Cụm 123: silk 121 (98%) → tên rolled_pit. Cụm 105: silk 104 (99%) → tên crease.
 - Cụm 163: waist 92, ảnh cũ 24, crease 22, rolled 14, inclusion 10 → tên waist_folding. Trên test, 5/6 ảnh rolled rơi vào cụm này.
 - Cụm 90: inclusion 49, silk 19, ảnh cũ 12, crease 7 → tên inclusion.
-- Silk chiếm 3/5 cụm (s0: 4/5). Hai cụm silk thừa lấy tên rolled và crease, nên recall hai lớp này bằng 0. Đổi tên không cứu được, vì một cụm chỉ mang một tên (Q1c đóng).
+- Silk chiếm 3/5 cụm (s0: 4/5). Hai cụm silk thừa lấy tên rolled và crease, nên recall hai lớp này bằng 0. Đổi tên không cứu được, vì một cụm chỉ mang một tên (Q10.01 đóng).
 - Ảnh cũ rải theo độ giống, không tụ: punching/welding vào cụm waist, water/oil vào cụm silk chính, crescent vào cụm inclusion.
 - s0 so với R1: inertia 792 076 so với 788 922–790 486; New 52.80 so với 56.07. Địa hình hàm mục tiêu rất phẳng (hạn chế "nhạy với khởi tạo" mà paper tự nêu).
 
 ### Kết luận
 
-- Lớp hiếm bị nuốt vì không sở hữu được cụm nào. Đòn bẩy có thể là thêm sức chứa (phân cụm thừa rồi gộp) hoặc đổi hình học; Q1 không phân biệt được hai đòn bẩy này.
+- Lớp hiếm bị nuốt vì không sở hữu được cụm nào. Đòn bẩy có thể là thêm sức chứa (phân cụm thừa rồi gộp) hoặc đổi hình học; E09.03 không phân biệt được hai đòn bẩy này.
 - Lọc ảnh cũ trước khi phân cụm không phải đòn bẩy chính (P4 sai).
-- Câu tiếp theo chuyển sang dòng PL: PL-Q1 trong `notes/pl/questions.vi.md`.
+- Câu tiếp theo chuyển sang dòng PL: Q09.11 trong `notes/pl/questions.vi.md`.
