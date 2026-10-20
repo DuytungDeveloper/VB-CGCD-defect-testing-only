@@ -66,12 +66,13 @@ Biến thể và phần thêm:
 - Biến thể được chọn làm mặc định mới vẫn giữ chữ cái của nó; mục lục đánh dấu bản nào đang là mặc định.
 - Code dùng chung (SVI ở 06, 11, 13; bộ phân lớp ở 08, 12, 14): cải tiến một bước là hàm mới của riêng bước đó. Sửa thẳng code chung thì coi như sửa ở bước sớm nhất dùng nó.
 - Mỗi biến thể có hai phần: hàm `vNNx_<tên>` trong `variants.py`, chạy qua `exp.py` bằng `replay.py run --from <run> --start NN --at NN=vNNx_<tên>` (ra số chính thức); và notebook `NNx-<tên>.ipynb` để giải thích và mổ.
+- Biến thể ở bước 09: sau mọi hàm của bước, `ids` (pool) và `cluster.predict_raw(test1_x)` phải là số nguyên trong [0, increment), mỗi ảnh một id; bộ chạy kiểm điều này và dừng nếu sai (`_check_09`, QD21). Kết quả trung gian có số cụm khác, như cụm con của `09a`, ghi vào khoá riêng; hàm chạy cuối cùng của bước mới ghi `ids` và `cluster`.
 
 ## 5. File `.py`
 
 Hiện có:
 - `replay.py`: bàn mổ, hai phần.
-  - v2 (QD21; commit `737e8c4`, `a5c9545`, `86ed44d`): mỗi bước 04–14 là một hàm `sNN(st)`; ảnh chụp ở `runs/<run>/snap/NN.pkl`. Chạy qua `exp.py`: `run --features <F> --seed <N>` (chuỗi mặc định), `run --from <run> --start NN --at NN=<hàm>` (biến thể). Phép kiểm QD21/C1–C4: `check` (C1), `check-resume` (C2), `check-crn` (C3), `check-hash` (C4). C4 đạt; C1–C3 chưa chạy, nên chưa dùng số của v2.
+  - v2 (QD21; commit `737e8c4`, `a5c9545`, `86ed44d`, `3525e86`): mỗi bước 04–14 là một hàm `sNN(st)`; ảnh chụp ở `runs/<run>/snap/NN.pkl`. Chạy qua `exp.py`: `run --features <F> --seed <N>` (chuỗi mặc định), `run --from <run> --start NN --at NN=<hàm>` (biến thể). Phép kiểm QD21/C1–C4: `check` (C1), `check-resume` (C2), `check-crn` (C3), `check-hash` (C4). Cả bốn đạt ngày 2026-10-20, nên được dùng số của v2; ảnh chụp gốc cho biến thể là 15 run `gc10_v2_ft_r<r>_s<N>` (chỉ có trên laptop).
   - v1: hàm `replay()` (notebook và `pl_cluster.py` dùng), tự kiểm `python lab/replay.py [--full] <seed…>`. Bỏ cùng lúc với `pl_cluster.py`; bản gốc ở tag `nb-v1`.
 - `pl_cluster.py`: bộ đo tầng 1 của bước 09 (`score()`) và phần chạy cho E09.04, E09.05 (`--ref-tag` bắt buộc).
 
@@ -85,12 +86,13 @@ Quy tắc:
 - Không sửa code gốc (`main.py`, `classifier/`, `clustering/`); các file này chỉ gọi lại hàm của pipeline.
 - Notebook import từ `.py`, không có chiều ngược lại.
 - Mọi `.py` trong `lab/` bị kiểm dirty: sửa xong phải commit trước khi chạy run. Notebook và `.md` trong `lab/` không bị kiểm.
+- Từ khi có 15 ảnh chụp gốc (2026-10-20), không sửa phần bộ chạy nằm trong chuỗi băm: `chain`, `new_state` và mọi thứ chúng gọi tới (`_check_out`, `_fn`, `_base`, `step_hashes`, `_closure`, `_check_09`, các hằng như `STEPS`, `OWNS`, `PROTOCOL`). Sửa phần này làm cũ mọi ảnh chụp từ 04, phải chạy lại 15 run. Các lệnh `cmd_*`, `_fresh`, `load`, `snapshots`, `_confusion`, `_same` và phần v1 nằm ngoài chuỗi băm (đã kiểm bằng `step_hashes` ngày 2026-10-20): sửa chúng không làm cũ ảnh chụp.
 
 ## 6. Chạy độc lập (mục tiêu của bàn mổ v2)
 
 - Định nghĩa: sửa bước k thì đầu ra của 01…k−1 giữ nguyên, không chạy lại; chạy lại toàn bộ k+1…14.
 - 01–03: đạt (đặc trưng lưu sẵn trong `features/`).
-- 04–14: bàn mổ v2 đã cài (QD21): mỗi bước là một hàm có đầu vào/đầu ra rõ; ảnh chụp đầu ra mỗi bước kèm commit, trạng thái RNG và mã băm; RNG chung ở lối vào 04, 05, 09; chuỗi băm theo bước báo ảnh chụp nào đã cũ. Chỉ dùng khi QD21/C1–C3 đạt (mục 5).
+- 04–14: bàn mổ v2 đã cài (QD21): mỗi bước là một hàm có đầu vào/đầu ra rõ; ảnh chụp đầu ra mỗi bước kèm commit, trạng thái RNG và mã băm; RNG chung ở lối vào 04, 05, 09; chuỗi băm theo bước báo ảnh chụp nào đã cũ. QD21/C1–C4 đạt ngày 2026-10-20 (mục 5).
 - Kết luận ở bước sau gắn với phiên bản các bước phía trên: ghi rõ "đo trên …". Đổi mặc định ở bước k thì tạo lại ảnh chụp từ k và kiểm lại kết luận của các bước sau.
 
 ## 7. Hệ mã
