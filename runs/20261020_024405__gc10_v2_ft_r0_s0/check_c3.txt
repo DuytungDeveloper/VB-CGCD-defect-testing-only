@@ -1,0 +1,6 @@
+  OK   PCA changed by the extra draws
+  OK   ids unchanged
+  OK   inertia unchanged
+  OK   pi_test unchanged
+  OK   control: k-means with the RNG shifted gives another result
+C3 OK: gc10_v2_ft_r0_s0

@@ -1,0 +1,12 @@
+  OK   input: seed, features
+  OK   params0 class_means (max|diff| <= 1e-6 max|value|)
+  OK   params0 class_covs (max|diff| <= 1e-6 max|value|)
+  OK   params1 class_means (max|diff| <= 1e-6 max|value|)
+  OK   params1 class_covs (max|diff| <= 1e-6 max|value|)
+  OK   metrics.json (tables S0, S1; cluster sizes; kept; early stop)
+  OK   partition (contingency table)
+  OK   inertia (relative < 1e-6)
+  OK   pi_test
+  OK   kept
+  OK   confusion S1
+C1 OK: 20261020_085643__gc10_v2_ft_r1_s3 = 20261005_204126__gc10_ft_cls5first_img80pct_r1_km_evhung_d64_s3

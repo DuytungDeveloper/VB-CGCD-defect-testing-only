@@ -2254,3 +2254,78 @@ note: see the gc10_pl01b_r2_s9 note
 why: E09.05: same as E09.04 on the paper setting (fine-tuned features, FT seed 2); pre-registered (commit 885e2dc)
 result: seed 9 | I2_ok 1 | k5_K 5 | k5_ami 0.3939 | k5_size_cv 0.5038 | k5_purity_mean 0.7348 | k5_old_in_novel_owned 50 | k5_bal_acc_hungarian 0.3491 | k5_owned_silk 3 | k5_best_silk 0.4214 | k5_recall_owned_silk 0.95 | k5_purity_best_silk 0.6390 | k5_owned_inclusion 1 | k5_best_inclusion 0.3037 | k5_recall_owned_inclusion 0.3037 | k5_purity_best_inclusion 0.4607 | k5_owned_rolled 0 | k5_best_rolled 0.0000 | k5_recall_owned_rolled 0.0000 | k5_purity_best_rolled 0.0000 | k5_owned_crease 0 | k5_best_crease 0.0000 | k5_recall_owned_crease 0.0000 | k5_purity_best_crease 0.0000 | k5_owned_waist 1 | k5_best_waist 0.99 | k5_recall_owned_waist 0.99 | k5_purity_best_waist 0.6000 | k5_inertia 92861.46 | I1_internal_ok 1 | I1_has_ref 0 | I1_ok 1 | I3_ok 1 | k10_K 10 | k10_ami 0.4260 | k10_size_cv 0.5663 | k10_purity_mean 0.8007 | k10_old_in_novel_owned 50 | k10_bal_acc_hungarian 0.3682 | k10_owned_silk 5 | k10_best_silk 0.3262 | k10_recall_owned_silk 0.9548 | k10_purity_best_silk 0.76 | k10_owned_inclusion 2 | k10_best_inclusion 0.3704 | k10_recall_owned_inclusion 0.6593 | k10_purity_best_inclusion 0.7246 | k10_owned_rolled 0 | k10_best_rolled 0.0000 | k10_recall_owned_rolled 0.0000 | k10_purity_best_rolled 0.0000 | k10_owned_crease 1 | k10_best_crease 0.4688 | k10_recall_owned_crease 0.4688 | k10_purity_best_crease 0.3000 | k10_owned_waist 2 | k10_best_waist 0.6170 | k10_recall_owned_waist 0.9894 | k10_purity_best_waist 0.8056 | k10_inertia 77176.24 | k15_K 15 | k15_ami 0.4283 | k15_size_cv 0.4870 | k15_purity_mean 0.8057 | k15_old_in_novel_owned 38 | k15_bal_acc_hungarian 0.3560 | k15_owned_silk 7 | k15_best_silk 0.2452 | k15_recall_owned_silk 0.9071 | k15_purity_best_silk 1.00 | k15_owned_inclusion 3 | k15_best_inclusion 0.3185 | k15_recall_owned_inclusion 0.8593 | k15_purity_best_inclusion 0.6232 | k15_owned_rolled 0 | k15_best_rolled 0.0000 | k15_recall_owned_rolled 0.0000 | k15_purity_best_rolled 0.0000 | k15_owned_crease 1 | k15_best_crease 0.4062 | k15_recall_owned_crease 0.4062 | k15_purity_best_crease 0.3333 | k15_owned_waist 3 | k15_best_waist 0.5745 | k15_recall_owned_waist 0.9681 | k15_purity_best_waist 0.87 | k15_inertia 67751.86 | k20_K 20 | k20_ami 0.4353 | k20_size_cv 0.4983 | k20_purity_mean 0.8266 | k20_old_in_novel_owned 24 | k20_bal_acc_hungarian 0.4652 | k20_owned_silk 9 | k20_best_silk 0.2000 | k20_recall_owned_silk 0.94 | k20_purity_best_silk 1.00 | k20_owned_inclusion 4 | k20_best_inclusion 0.2519 | k20_recall_owned_inclusion 0.7630 | k20_purity_best_inclusion 0.77 | k20_owned_rolled 1 | k20_best_rolled 0.8235 | k20_recall_owned_rolled 0.8235 | k20_purity_best_rolled 0.5185 | k20_owned_crease 1 | k20_best_crease 0.6250 | k20_recall_owned_crease 0.6250 | k20_purity_best_crease 0.62 | k20_owned_waist 3 | k20_best_waist 0.4255 | k20_recall_owned_waist 0.8830 | k20_purity_best_waist 0.95 | k20_inertia 62195.71 | k30_K 30 | k30_ami 0.4309 | k30_size_cv 0.6823 | k30_purity_mean 0.8467 | k30_old_in_novel_owned 17 | k30_bal_acc_hungarian 0.3649 | k30_owned_silk 14 | k30_best_silk 0.2000 | k30_recall_owned_silk 0.98 | k30_purity_best_silk 1.00 | k30_owned_inclusion 5 | k30_best_inclusion 0.2370 | k30_recall_owned_inclusion 0.7630 | k30_purity_best_inclusion 0.91 | k30_owned_rolled 1 | k30_best_rolled 0.7059 | k30_recall_owned_rolled 0.7059 | k30_purity_best_rolled 0.75 | k30_owned_crease 1 | k30_best_crease 0.4688 | k30_recall_owned_crease 0.4688 | k30_purity_best_crease 0.94 | k30_owned_waist 6 | k30_best_waist 0.2128 | k30_recall_owned_waist 0.9681 | k30_purity_best_waist 0.95 | k30_inertia 54267.00 | checks_ok 1
 note: E09.05 verdict LIVE at K'=20: rolled_pit 6/8/5, crease 8/1/6 seeds (r0/r1/r2), each class passes 2/3 FT seeds; C1-C3 pass 30/30. Details: notes/pl/experiments.vi.md
+
+## 20261020_024405__gc10_v2_ft_r0_s0
+why: QD21/C1-C3: default chain of lab/replay.py v2, gc10 ft r0, seed 0; C1 against gc10_ft_cls5first_img80pct_r0_km_evhung_d64_s0; check outputs in runs/20261020_024405__gc10_v2_ft_r0_s0/check_c*.txt
+result: S0_All 85.48 | S1_New 57.48 | final_All 69.89 | M_d 57.48 | M_f 4.56
+note: C1 OK; C2 OK; C3 OK
+
+## 20261020_083928__gc10_v2_ft_r0_s1
+why: QD21/C1: default chain of lab/replay.py v2, gc10 ft r0, seed 1; C1 against gc10_ft_cls5first_img80pct_r0_km_evhung_d64_s1; output in runs/20261020_083928__gc10_v2_ft_r0_s1/check_c1.txt
+result: S0_All 85.48 | S1_New 57.48 | final_All 69.89 | M_d 57.48 | M_f 4.56
+note: C1 OK
+
+## 20261020_084204__gc10_v2_ft_r0_s2
+why: QD21/C1: default chain of lab/replay.py v2, gc10 ft r0, seed 2; C1 against gc10_ft_cls5first_img80pct_r0_km_evhung_d64_s2; output in runs/20261020_084204__gc10_v2_ft_r0_s2/check_c1.txt
+result: S0_All 84.65 | S1_New 49.07 | final_All 66.37 | M_d 49.07 | M_f 2.90
+note: C1 OK
+
+## 20261020_084432__gc10_v2_ft_r0_s3
+why: QD21/C1: default chain of lab/replay.py v2, gc10 ft r0, seed 3; C1 against gc10_ft_cls5first_img80pct_r0_km_evhung_d64_s3; output in runs/20261020_084432__gc10_v2_ft_r0_s3/check_c1.txt
+result: S0_All 85.06 | S1_New 56.54 | final_All 69.67 | M_d 56.54 | M_f 3.73
+note: C1 OK
+
+## 20261020_084658__gc10_v2_ft_r0_s4
+why: QD21/C1: default chain of lab/replay.py v2, gc10 ft r0, seed 4; C1 against gc10_ft_cls5first_img80pct_r0_km_evhung_d64_s4; output in runs/20261020_084658__gc10_v2_ft_r0_s4/check_c1.txt
+result: S0_All 85.48 | S1_New 57.01 | final_All 70.11 | M_d 57.01 | M_f 3.73
+note: C1 OK
+
+## 20261020_084925__gc10_v2_ft_r1_s0
+why: QD21/C1: default chain of lab/replay.py v2, gc10 ft r1, seed 0; C1 against gc10_ft_cls5first_img80pct_r1_km_evhung_d64_s0; output in runs/20261020_084925__gc10_v2_ft_r1_s0/check_c1.txt
+result: S0_All 85.06 | S1_New 39.25 | final_All 62.20 | M_d 39.25 | M_f 2.49
+note: C1 OK
+
+## 20261020_085149__gc10_v2_ft_r1_s1
+why: QD21/C1: default chain of lab/replay.py v2, gc10 ft r1, seed 1; C1 against gc10_ft_cls5first_img80pct_r1_km_evhung_d64_s1; output in runs/20261020_085149__gc10_v2_ft_r1_s1/check_c1.txt
+result: S0_All 85.06 | S1_New 39.72 | final_All 62.20 | M_d 39.72 | M_f 2.90
+note: C1 OK
+
+## 20261020_085418__gc10_v2_ft_r1_s2
+why: QD21/C1: default chain of lab/replay.py v2, gc10 ft r1, seed 2; C1 against gc10_ft_cls5first_img80pct_r1_km_evhung_d64_s2; output in runs/20261020_085418__gc10_v2_ft_r1_s2/check_c1.txt
+result: S0_All 85.06 | S1_New 40.19 | final_All 62.64 | M_d 40.19 | M_f 2.49
+note: C1 OK
+
+## 20261020_085643__gc10_v2_ft_r1_s3
+why: QD21/C1: default chain of lab/replay.py v2, gc10 ft r1, seed 3; C1 against gc10_ft_cls5first_img80pct_r1_km_evhung_d64_s3; output in runs/20261020_085643__gc10_v2_ft_r1_s3/check_c1.txt
+result: S0_All 84.23 | S1_New 41.12 | final_All 63.08 | M_d 41.12 | M_f 1.66
+note: C1 OK
+
+## 20261020_085907__gc10_v2_ft_r1_s4
+why: QD21/C1: default chain of lab/replay.py v2, gc10 ft r1, seed 4; C1 against gc10_ft_cls5first_img80pct_r1_km_evhung_d64_s4; output in runs/20261020_085907__gc10_v2_ft_r1_s4/check_c1.txt
+result: S0_All 85.48 | S1_New 36.92 | final_All 61.76 | M_d 36.92 | M_f 1.66
+note: C1 OK
+
+## 20261020_090130__gc10_v2_ft_r2_s0
+why: QD21/C1: default chain of lab/replay.py v2, gc10 ft r2, seed 0; C1 against gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s0; output in runs/20261020_090130__gc10_v2_ft_r2_s0/check_c1.txt
+result: S0_All 85.06 | S1_New 48.13 | final_All 64.84 | M_d 48.13 | M_f 5.39
+note: C1 OK
+
+## 20261020_090354__gc10_v2_ft_r2_s1
+why: QD21/C1: default chain of lab/replay.py v2, gc10 ft r2, seed 1; C1 against gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s1; output in runs/20261020_090354__gc10_v2_ft_r2_s1/check_c1.txt
+result: S0_All 86.31 | S1_New 56.07 | final_All 68.79 | M_d 56.07 | M_f 6.22
+note: C1 OK
+
+## 20261020_090622__gc10_v2_ft_r2_s2
+why: QD21/C1: default chain of lab/replay.py v2, gc10 ft r2, seed 2; C1 against gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s2; output in runs/20261020_090622__gc10_v2_ft_r2_s2/check_c1.txt
+result: S0_All 86.31 | S1_New 60.28 | final_All 71.21 | M_d 60.28 | M_f 5.39
+note: C1 OK
+
+## 20261020_090846__gc10_v2_ft_r2_s3
+why: QD21/C1: default chain of lab/replay.py v2, gc10 ft r2, seed 3; C1 against gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s3; output in runs/20261020_090846__gc10_v2_ft_r2_s3/check_c1.txt
+result: S0_All 85.89 | S1_New 46.73 | final_All 65.05 | M_d 46.73 | M_f 4.56
+note: C1 OK
+
+## 20261020_091107__gc10_v2_ft_r2_s4
+why: QD21/C1: default chain of lab/replay.py v2, gc10 ft r2, seed 4; C1 against gc10_ft_cls5first_img80pct_r2_km_evhung_d64_s4; output in runs/20261020_091107__gc10_v2_ft_r2_s4/check_c1.txt
+result: S0_All 85.89 | S1_New 58.88 | final_All 70.77 | M_d 58.88 | M_f 4.56
+note: C1 OK
