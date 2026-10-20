@@ -624,11 +624,19 @@ def cmd_run(argv):
         over = {k: ast.literal_eval(v) if v[:1].isdigit() or v[:1] in "-[{(" or v in ("True", "False") else v
                 for k, v in (x.split("=", 1) for x in o.set)}
         spec, st = None, new_state(make_args(o.features, o.seed, PRESETS[o.dataset], **over))
+    import jax                                                       # loaded by new_state, after XLA_FLAGS
+    device = jax.default_backend()
+    if device != "gpu" and os.environ.get("REPLAY_ALLOW_CPU") != "1":
+        sys.exit(f"replay run: JAX runs on {device}, not on the GPU (A1); REPLAY_ALLOW_CPU=1 is for tests only")
+    if parent is not None:                   # snapshots made before 2026-10-21 have no device field: all ran on the GPU
+        seen = {b["meta"].get("device", "gpu") for b in parent.values()}
+        if seen != {device}:
+            sys.exit(f"replay run: parent snapshots ran on {sorted(seen)}, this run on {device}: numbers would mix")
     meta = dict(git, run_id=run_dir.name, parent=_run_dir(o.parent).name if o.parent else None, start=o.start,
-                args=vars(st["args"]))
+                device=device, args=vars(st["args"]))
     changed = {k: v for k, v in (spec or {}).items() if v != [DEFAULT[k]]}
     print(f"replay v2: {run_dir.name} | commit {git['commit'][:7]} | parent {meta['parent']} | start {o.start} | "
-          f"changed {changed}")
+          f"device {device} | changed {changed}")
     for k in STEPS[:STEPS.index(o.start)]:                           # log lines of the steps taken from the parent
         sys.stdout.write(parent[k]["log"])
     (run_dir / "snap").mkdir()
