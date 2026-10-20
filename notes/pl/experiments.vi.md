@@ -132,3 +132,9 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 
 - SỐNG theo quy tắc, ràng buộc cho cấu hình paper (QD19): với K' = 20, sức chứa đủ để rolled_pit và crease có cụm riêng ở 2/3 FT seed. Đây chỉ là điều kiện cần.
 - Bước tiếp: E09.06 (gộp cụm con), tiền đăng ký riêng. K' và ngưỡng gộp phải chốt trước hoặc hiệu chỉnh trên lớp cơ sở; không chọn theo các số mô tả ở trên.
+
+### Ghi chú (2026-10-20)
+
+- So trên cùng tập seed: dòng balanced accuracy ở mục Kết quả lấy tầng 1 trên seed 0–9 nhưng tầng 2 trên seed 0–4. Tầng 1 tính lại trên seed 0–4 (khoá `k5_bal_acc_hungarian` trong `metrics.json` của `gc10_pl01b_r<r>_s<N>` và `gc10_pl01_s<N>`): r0/r1/r2 0.469/0.469/0.399, `fz` 0.374. Số trên seed 0–9 ở mục Kết quả giữ nguyên.
+- Trên cùng 5 seed, r0 và r1 bằng nhau ở tầng 1 (0.469) nhưng cách nhau 10.2 điểm ở tầng 2 (39.4 so với 29.2). [suy luận] Phần r1 mất nằm sau phân hoạch pool: chuyển từ pool sang test, đặt tên cụm, hoặc các bước 11–14 (Q14.04). Điều này củng cố quy tắc của QD18: thứ hạng ở tầng 1 phải được xác nhận ở tầng 2.
+- Bước tiếp, cập nhật mục Kết luận: E09.06 gộp cụm con tới đúng k = 5 cụm vì k đã biết, không dùng ngưỡng gộp; quy tắc quyết định đặt ở tầng 2. K' vẫn phải chốt trước khi chạy.
