@@ -30,6 +30,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 ### 04 Nạp dữ liệu theo phiên
 
 - Q04.01 [tạm dừng] Confirmation bias qua nhiều phiên: GC10 và NEU chỉ có một phiên online nên chưa quan sát được.
+- Q04.03 [mở] Nhãn thật tối thiểu ở phase 2 (QD16): loader GC10 lấy nhãn S0 theo `n_use` của `splits/gc10_split.json`, bất kể phase 1 fine-tune trên file split ngân sách nhãn nào, và bàn mổ v2 khoá `s0_labels=true`; nên hiện nay "nhãn tối thiểu" chỉ tác động lúc fine-tune. Nếu chạy phase 2 cho E02.06 như hiện tại, số đo chỉ phản ánh ngân sách nhãn lúc fine-tune. Phase 2 có cần dùng cùng tập nhãn với phase 1 không, và cài thế nào (cờ ở loader hay biến thể bước 04)? Chưa làm (quyết định 2026-10-20). Nguồn: E02.06, QD16.
 
 ### 05 PCA
 
@@ -52,6 +53,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 ### 08 Bộ phân lớp
 
 - Q08.01 [mở] D24: paper có chỉ dự đoán trên các lớp đã gặp không? Code lấy argmax trên cả các khe chưa huấn luyện. Nguồn: E06.03.
+  - 2026-10-20: ưu tiên thấp cho dòng PL. Ở phiên S1 của GC10 và NEU (t1), mọi khe đều đã gặp (`n_seen` = `num_classes`, `classifier/mngmm.py` dòng 216), nên `--mask_unseen` không đổi gì ở S1, kể cả bộ lọc ở bước 12; cờ này chỉ chạm bảng S0 và M_f proxy.
 - Q08.02 [mở] Vì sao bộ phân lớp 10 slot đẩy nhiều ảnh inclusion sang lớp cũ, và bộ lọc cũng loại một phần ảnh inclusion của pool? Giả thuyết: nhiễu nhãn và đồng xuất hiện với water_spot (`01_data`, mục C1), lỗi nhỏ (Q03.03), hay tham số Gaussian gần khởi tạo (D23). Nguồn: `04_s1_discovery` (cell 7, 9; một seed).
 
 ### 09 Phân cụm
@@ -74,7 +76,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q14.01 [mở] `exp.py agg`: cột `paper` cần tra theo bộ dữ liệu (hiện luôn là số CIFAR).
 - Q14.02 [mở] Đưa balanced accuracy vào chỉ số chính (hiện chỉ có qua `cm_summary`).
 - Q14.03 [mở] S4_New ổn định, S5_New không: có đánh đổi giữa hai phiên? (r = −0.55, n = 5, không có ý nghĩa; E09.01)
-- Q14.04 [mở] Trên cấu hình paper, vì sao balanced accuracy của phân hoạch pool (tầng 1) cao hơn nhiều so với balanced novel cuối pipeline trên test (tầng 2), nhất là ở FT seed r1, trong khi trên `fz` hai con số gần nhau? Mất ở khâu nào: chuyển từ pool sang test, đặt tên cụm, hay bộ phân lớp 10 slot? Ảnh hưởng: tầng 1 có dùng được để sàng lọc phương pháp không (QD18). Nguồn: E09.05, mục Kết quả.
+- Q14.04 [mở] Trên cấu hình paper, vì sao balanced accuracy của phân hoạch pool (tầng 1) cao hơn nhiều so với balanced novel cuối pipeline trên test (tầng 2), nhất là ở FT seed r1, trong khi trên `fz` hai con số gần nhau? Mất ở khâu nào: chuyển từ pool sang test, đặt tên cụm, hay bộ phân lớp 10 slot? Ảnh hưởng: tầng 1 có dùng được để sàng lọc phương pháp không (QD18). Nguồn: E09.05, mục Kết quả và Ghi chú (2026-10-20): so trên cùng seed 0–4, r0 và r1 bằng nhau ở tầng 1 nhưng cách xa nhau ở tầng 2.
 
 ## Đã xong hoặc bỏ
 
@@ -117,3 +119,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-10-07: E09.04 LOẠI (`fz`), E09.05 SỐNG (`ft`); đóng Q09.11; thêm Q14.04.
 - 2026-10-15: đổi sang mã theo bước (QD20); xếp lại theo thứ tự bước; nguồn notebook trỏ tới tag `nb-v1`.
 - 2026-10-18: hệ mã mới (QD22): chuyển vào mọi câu còn mở của `plan.vi.md` §5 và `improvement-1.vi.md` §7, cùng ba câu của CT2; đánh số lại một lần, câu còn mở lên trước.
+- 2026-10-20: thêm Q04.03 (nhãn tối thiểu ở phase 2, chưa làm); Q08.01 hạ ưu tiên cho dòng PL; Q14.04 thêm nguồn (E09.05, Ghi chú 2026-10-20).
