@@ -117,18 +117,21 @@ Một chuỗi cho cả repo, theo thời gian. QD01–QD15 ở `notes/plan.vi.md
 - Tên dòng việc: cải tiến 1 → CT1; cải tiến 2, hướng 2 → CT2; "cải tiến B" → E06.03.
 - "run E1" → các run `gc10_frozen_km_evhung_d64_head_s0`–`s4` (2026-10-04).
 - "nhóm A" → 30 run phase 2 của E02.05.
+- "bàn mổ v2", "replay v2", "v2 run" → bàn mổ (`lab/replay.py`, QD21; cài 2026-10-16 → 2026-10-18) và run của nó. "bàn mổ v1", "replay v1", phần v1 → bản đầu, hàm `replay()` (2026-10-06, `d912e76`), xoá ngày 2026-10-21 (`370cf86`), bản gốc ở tag `nb-v1` (`scripts/replay.py`). Từ 2026-10-21 chỉ còn một bàn mổ, không gọi v1, v2 (QD21, sửa ngày 2026-10-21); chữ "v2" còn ở tag run cũ (dòng dưới), ở bản ghi viết trước ngày này và trong code (mục 5).
+- Tag chuỗi mặc định `<dataset>_v2_<đặc trưng>_s<N>` (15 run gốc `gc10_v2_ft_r<r>_s<N>`, 2026-10-20) → `<dataset>_chain_<đặc trưng>_s<N>` (QD22, sửa ngày 2026-10-21). Tag cũ giữ nguyên, cả 15 run tầng 1 `gc10_e09_05_v2_r<r>_s<N>` (2026-10-21); tag mới không có `v2`.
 - "phương án C" (QD01) và "phương án B" (2026-09-30, không lặp lại D9) → bỏ chữ cái, ghi bằng lời.
 - Bước kế hoạch của `plan.vi.md` §3: 2a → E02.01; 2b → bỏ (thay bằng E02.02); 2c → Q02.03; 3a → E02.03; 3b, 4 → E02.02; B → E10.01; N1 → E05.01; N2 → Q00.01; G2 → E09.02, E01.01, E03.01; G3 → E02.04; G4 → E04.01. Các bước 0, 0b, 0c, 1, G1 là việc chuẩn bị, không có mã.
 - Mã module M1–M13 → bước: M1 → 00 · M2 = 01 · M3 = 02 · M4 = 03 · M5 = 04 · M6 = 05 · M7 = 06 (và 11, 13) · M8 = 07 · M9 = 08 (và 12, 14) · M10 = 09 · M11 = 10 · M12 = 12 · M13 = 14.
 
 ## 5. Mã cũ còn trong code
 
-QD22 chỉ sửa `.md`; chú thích, docstring và help của cờ trong code giữ nguyên (kiểm bằng grep ngày 2026-10-19):
+QD22 chỉ sửa `.md`; chú thích, docstring và help của cờ trong code giữ nguyên (kiểm bằng grep ngày 2026-10-19; `lab/` kiểm lại ngày 2026-10-21):
 - `main.py`: "improvement 1" (= CT1); "(v1)", "(v2)" ở help của `--cov_prior_target` (= hai bản của E06.01); "(B)", "# B" (= E06.03).
 - `classifier/mngmm.py`: "improvement 1" (= CT1); "v1", "v2" (= hai bản của E06.01); "B:" (= E06.03); "diagnostic H1" (= D24).
 - `classifier/closed_form.py`: "improvement 1 redesign, B" (= CT1, E06.03).
 - `scripts/test_closed_form.py`: B1 (= bản 1 của E06.03, bộ ước lượng), cả dòng in cuối "B1 ok".
 - `feature_extractor/dino-cifar100.py`: Q7 (= QD07). `feature_extractor/ft_data.py`: Q1b (= QD11). `feature_extractor/sl_finetuned_model.py`: Q6 (= QD06).
-- `lab/pl_cluster.py`: PL-E01 (= E09.04), PL-E01b (= E09.05), I1, I3 (= C1, C3), M10 (= bước 09). File này nghỉ khi đã có `score.py` và bàn mổ v2 qua QD21/C1–C4.
-- `lab/replay.py`: PL-QD6 (= QD21); "the E1 runs" ở phần v1 (= run `gc10_frozen_km_evhung_d64_head_s*`). C1–C4 trong docstring đã đúng nghĩa QD21/C1–C4. Sửa khi đụng tới file này lần tới.
+- `lab/pl_cluster.py`: xoá ngày 2026-10-21 (`71dab1f`), thay bằng `lab/score.py`. Bản ở commit `89e94d4` và tag `nb-v1` (`scripts/pl_cluster.py`) còn PL-E01 (= E09.04), PL-E01b (= E09.05), I1, I3 (= C1, C3), M10 (= bước 09).
+- `lab/replay.py`: mã cũ và phần v1 (có "the E1 runs" = run `gc10_frozen_km_evhung_d64_head_s*`) bỏ ngày 2026-10-21 (`370cf86`). Còn một chữ "v2" trong thông báo lỗi của `new_state` ("replay v2 runs the default protocol only…"; v2 = bàn mổ): chuỗi này nằm trong h(04), sửa thì mọi ảnh chụp đã có thành cũ, nên giữ; chú thích ngay trên nó ghi lý do.
+- `lab/score.py` (docstring, chú thích, help): "v2 run", "replay v2", "replay v1"; `lab/variants.py` (docstring đầu file): "lab/replay.py v2". Viết ngày 2026-10-21, trước khi bỏ tên v1, v2 (v2 = bàn mổ, v1 = bản đầu). Sửa khi đụng tới các file này lần tới.
 - Các file code khác chỉ dùng D<n>, A<n>, PATCH <n>.
