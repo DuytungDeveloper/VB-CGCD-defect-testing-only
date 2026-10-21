@@ -142,3 +142,14 @@ QD01–QD15 (các dòng cũ) ở `notes/plan.vi.md` §4.
 - Lý do: một chữ đang mang nhiều nghĩa (Q, I, C, A, B, E1, H2); có mã treo (D24 chưa có trong danh sách D); một thứ có hai tên (cải tiến 2 = hướng 2); dòng tra mã cũ trong ngoặc làm rối các file chính.
 - Hệ quả: commit message và chú thích trong code giữ mã cũ, tra ở `notes/old-codes.vi.md`. Từ nay mã không đánh lại, không dùng lại.
 - Sửa ngày 2026-10-21: tag chuỗi mặc định của bàn mổ đổi thành `<dataset>_chain_<đặc trưng>_s<N>` (mục 3), vì không còn v1, v2 (QD21, sửa ngày 2026-10-21). Tag cũ `<dataset>_v2_<đặc trưng>_s<N>` giữ nguyên.
+
+### QD23 — Dựng nền `lab/` trước cải tiến (2026-10-22)
+
+- Nội dung:
+  - Dựng đủ notebook nền theo thứ tự pipeline, xong notebook này mới sang notebook sau: `lab/data_io.py`, `00-data-gc10`, `00-data-neu`; rồi `01`–`03` (đọc đặc trưng và file của phase 1, không chạy lại); rồi `04`–`14` trên ảnh chụp `gc10_v2_ft_r0_s4` (r0 seed 4, như QD19).
+  - Code dùng chung giải thích một lần ở bước đầu dùng nó (SVI ở 06, bộ phân lớp ở 08); các bước dùng lại (11, 13; 12, 14) trỏ về đó.
+  - Mỗi notebook đối chiếu số với một nguồn đã kiểm: notebook dữ liệu với file split (số ảnh từng lớp, mục `diagnostics`) và với đầu vào bước 04 (pool 748 ảnh, test lớp mới 214 ảnh); `01`–`03` với mã băm đặc trưng mà các run đã ghi (`config.json`, mục `inputs`); `04`–`14` chạy lại bước đó từ ảnh chụp của bước trước và phải trùng ảnh chụp (ảnh chụp đã trùng run `main.py`, QD21/C1).
+  - Cải tiến (14a, E09.06 và các biến thể khác) làm sau khi xong nền.
+- Thay cho: thứ tự chốt ngày 2026-10-20 (14a trên 15 ảnh chụp gốc → tiền đăng ký E09.06 → notebook 14a, 09b); quy tắc "notebook chỉ được tạo khi bước đó có câu hỏi hoặc thí nghiệm đang làm" ở `lab/README.vi.md` §1, nay chỉ áp cho notebook chữ cái.
+- Lý do: `lab/` là chỗ mổ xẻ model để hiểu toán và thử cải tiến; cần hiểu đủ từng bước, trên số đã đối chiếu, trước khi sửa bước nào.
+- Hệ quả: bàn mổ đã chốt cho bước 04–14 trên GC10 `ft` (QD21); còn thiếu `lab/data_io.py` cho bước 00; NEU và `fz` ở bước 04–14 chưa có ảnh chụp, làm khi một notebook cần. E09.06 vẫn là thí nghiệm kế tiếp của dòng PL, làm sau khi xong nền.
