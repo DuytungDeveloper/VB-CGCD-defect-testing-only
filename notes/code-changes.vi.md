@@ -1,6 +1,6 @@
 # Thay đổi code so với upstream — VB-CGCD fork
 
-Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-10-19: thêm các thay đổi từ 1/10 tới 18/10; mã theo QD22 (mã cũ: `notes/old-codes.vi.md`); bảng đổi thành danh sách. Cập nhật 2026-10-20: `_check_09` của `lab/replay.py` và kết quả QD21/C1–C4 (§1c, §4); sửa ghi chú về các phép kiểm hồi quy của CT1 (§4).
+Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-10-19: thêm các thay đổi từ 1/10 tới 18/10; mã theo QD22 (mã cũ: `notes/old-codes.vi.md`); bảng đổi thành danh sách. Cập nhật 2026-10-20: `_check_09` của `lab/replay.py` và kết quả QD21/C1–C4 (§1c, §4); sửa ghi chú về các phép kiểm hồi quy của CT1 (§4). Cập nhật 2026-10-21: `lab/variants.py`, `lab/score.py`; xoá `lab/pl_cluster.py` và bản đầu của bàn mổ; phép kiểm GPU trong `replay.py run` (§1c, §4, §5).
 
 Nguyên tắc: **mặc định trong code Python = hành vi upstream**. Wrapper phase 1 đặt
 `FT_BATCH_SIZE=32 FT_ACCUM=4` vì giới hạn 8 GB; cấu hình này đổi số ở mức nhỏ (PATCH 2).
@@ -193,11 +193,17 @@ Bốn file `eval_fold.py`, `pick_lambda.py`, `queue_eq3.sh`, `queue_grid.sh` đ�
 **Tạo 06–18/10 (`lab/`, QD20, QD21):**
 
 - `lab/replay.py`: bàn mổ. v1 (6/10, `d912e76`): chạy lại `main.py` từng giai đoạn cho một seed, đúng thứ tự RNG. v2 (16–18/10, `737e8c4`, `a5c9545`, `86ed44d`): bước 04–14 là hàm `sNN(st)`, ảnh chụp theo bước, RNG chung, chuỗi băm; lệnh `run`, `check`, `check-resume`, `check-crn`, `check-hash`. Không sửa code gốc. Chưa dùng số của v2 khi QD21/C1–C3 chưa đạt.
-  Hàm chính: `replay()` (v1); `chain()`, `cmd_run()`, các bước `s04_*`…`s14_*` (v2).
+  Hàm chính: `chain()`, `cmd_run()`, các bước `s04_*`…`s14_*`; `replay()` của bản đầu đã xoá 21/10.
   Sửa 20/10 (`3525e86`): `_check_09`, sau mọi hàm của bước 09 kiểm `ids` và `cluster.predict_raw(test1_x)` là số nguyên trong [0, increment), mỗi ảnh một id (id ngoài khoảng không báo lỗi ở các bước 10–13); C4 thêm một trường hợp. QD21/C1–C4 đạt ngày 20/10, nên được dùng số của v2.
+  Sửa 21/10: lệnh `run` dừng khi JAX không chạy trên GPU (A1; `REPLAY_ALLOW_CPU=1` chỉ để thử) hoặc khi chạy tiếp ảnh chụp tạo trên thiết bị khác, và ghi thiết bị vào meta của ảnh chụp (`1253ce6`). Bản đầu (`replay()`, `_reference()`, khối tự kiểm) đã xoá; chữ v2 và mã cũ bỏ khỏi chú thích, docstring, help và dòng log (`replay: …`), trừ một thông báo lỗi trong `new_state` nằm trong chuỗi băm, giữ nguyên để 15 ảnh chụp gốc không cũ (`370cf86`). Từ nay chỉ một bàn mổ (QD21, sửa ngày 2026-10-21).
 - `lab/pl_cluster.py` (7/10, `614d12b`, `89e94d4`): bộ đo tầng 1 của bước 09 và phần chạy của E09.04, E09.05; chụp trạng thái RNG ở lối vào `KMeansCluster.fit`.
   Hàm chính: `score()`, `main()`.
+  Xoá 21/10 (`71dab1f`), thay bằng `lab/score.py` sau phép hồi quy 15/15 (§4); bản gốc ở commit `89e94d4` và tag `nb-v1`.
 - `lab/README.vi.md`: mục lục và quy tắc của `lab/` (QD20).
+- `lab/variants.py` (21/10, `092ae8f`): biến thể của các bước của bàn mổ, kèm quy tắc viết ở docstring đầu file; `v09a_overcluster`: k-means với K' > increment cụm trên pool (E09.04, E09.05), ghi `sub_ids`, `sub_cluster`, `sub_inertia`, không ghi `ids`.
+  Hàm chính: `v09a_overcluster(st, k)`.
+- `lab/score.py` (21/10, `81678ec`): đánh giá tầng 1 (QD18). `score09` cùng code với `pl_cluster.score`; `tier1_09` chạy `v09a_overcluster` với K' cụm từ trạng thái RNG ở lối vào bước 09 trong ảnh chụp của một run, chấm bằng nhãn thật của pool, kèm phép kiểm C1–C3 của E09.04, E09.05; lệnh `python lab/score.py 09 --from <run>`.
+  Hàm chính: `score09()`, `tier1_09()`, `main()`.
 - `replay.py` và `pl_cluster.py` nằm ở `scripts/` tới ngày 15/10 (dời ở `dd7a954`); bản cũ ở tag `nb-v1`.
 
 **Sửa file hạ tầng từ 01/10:**
@@ -283,6 +289,8 @@ Các run Eq. 3 dùng `FT_BATCH_SIZE=16 FT_ACCUM=8`, vì 32 × 2 view = 7.68 GB >
 - `lab/replay.py` v1 (6/10): bảng chéo K' = 5 trùng 5 run `gc10_frozen_km_evhung_d64_head_s*`, inertia lệch tương đối < 1e-6 (E09.04/C1).
 - `lab/replay.py` v2 (16–18/10): QD21/C4 đạt; C1–C3 chưa chạy.
 - `lab/replay.py` v2 sau `_check_09` (20/10, `3525e86`): C4 đạt. QD21/C1 đạt 15/15: chuỗi mặc định trên 15 run `gc10_v2_ft_r{0,1,2}_s{0–4}` trùng run `main.py` của E02.05 (mọi kết quả rời rạc trùng, tham số lệch dưới 1e-6 × max|giá trị|); C2, C3 đạt trên `gc10_v2_ft_r0_s0`. Output ở `runs/<run>/check_c*.txt` (commit `d62d059`).
+- `lab/score.py`, `lab/variants.py` (21/10): `score09` trùng `pl_cluster.score` trên 200 phân hoạch ngẫu nhiên; tầng 1 của E09.05 chạy lại qua bàn mổ (15 run `gc10_e09_05_v2_r{0,1,2}_s{0–4}`, commit `b81b78d`) trùng run `gc10_pl01b_*` ngày 7/10 ở mọi khoá `k*_` (135 khoá mỗi run; inertia lệch tương đối < 1e-6), C1–C3 đạt: 15/15.
+- `lab/replay.py` sau phép kiểm GPU và sau khi bỏ bản đầu (21/10, `1253ce6`, `370cf86`): C4 đạt; 15 ảnh chụp gốc vẫn hợp lệ (`_fresh`), tức chuỗi băm không đổi.
 
 ---
 
@@ -292,7 +300,7 @@ Không chép danh sách vào đây (chép tay sẽ lệch, xem lỗi "12 file" c
 
     git diff --name-status upstream-baseline -- . ':(exclude)runs' ':(exclude)notes'
 
-Kiểm 2026-10-19, sau `0aa0371`: **64 dòng = 8 `M` + 56 `A`**; trong 56 `A` có 26 file split ngân sách nhãn, `scripts/` có 16 file, `lab/` có 3 file. Lần kiểm trước (2026-10-01, sau `ab201e2`): 34 dòng = 7 `M` + 27 `A`.
+Kiểm 2026-10-21, sau khi xoá `lab/pl_cluster.py`: **65 dòng = 8 `M` + 57 `A`**; trong 57 `A` có 26 file split ngân sách nhãn, `scripts/` có 16 file, `lab/` có 4 file. Lần kiểm trước (2026-10-19, sau `0aa0371`): 64 dòng = 8 `M` + 56 `A`.
 Nếu lệnh cho số khác, tài liệu này đã lệch.
 
 ---
