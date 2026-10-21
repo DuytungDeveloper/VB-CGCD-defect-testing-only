@@ -30,7 +30,7 @@ Trạng thái câu hỏi không ghi ở đây: xem `questions.vi.md`.
 - Trạng thái câu hỏi: mở · đang làm · chờ <việc> · tạm dừng · xong · bỏ. Thí nghiệm: chưa tiền đăng ký · đã tiền đăng ký · đang chạy · xong (kèm SỐNG hoặc LOẠI khi có quy tắc quyết định) · bỏ.
 - Tag run mới:
   - thí nghiệm: `<dataset>_e<bước>_<nn>[_<biến thể>]_s<N>`, ví dụ `gc10_e09_06_r0_s3`, để `exp.py agg gc10_e09_06_r0` gom đúng các seed;
-  - chuỗi mặc định của bàn mổ v2: `<dataset>_v2_<đặc trưng>_s<N>`, ví dụ `gc10_v2_ft_r0_s0`.
+  - chuỗi mặc định của bàn mổ: `<dataset>_chain_<đặc trưng>_s<N>`, ví dụ `gc10_chain_ft_r0_s0` (từ 2026-10-21; trước đó `<dataset>_v2_<đặc trưng>_s<N>`, như 15 run gốc `gc10_v2_ft_r<r>_s<N>`).
   Tag cũ giữ nguyên.
 - Trong `notes/LOG.md`, dòng `why:` bắt đầu bằng mã thí nghiệm hoặc quyết định, ví dụ `E09.06: ...`, `QD21/C1: ...`.
 
@@ -128,8 +128,9 @@ QD01–QD15 (các dòng cũ) ở `notes/plan.vi.md` §4.
     - 06–08 và 11–14 phụ thuộc SVI trên GPU. Tham số lệch quá ngưỡng của C1: lỗi bàn mổ. Tham số trong ngưỡng mà kết quả rời rạc lệch (bảng S0 và S1, số ảnh giữ, bước dừng, ma trận nhầm lẫn): chạy lại run tham chiếu của cặp đó một lần bằng `main.py` ở chế độ tất định (`XLA_FLAGS=--xla_gpu_deterministic_ops=true`, cùng chế độ với v2), rồi chạy `check` giữa run v2 và run mới này. Trùng mọi mục: bàn mổ đúng, chênh lệch ban đầu là nhiễu A6, cặp đó tính là đạt và ghi lại. Khác: lỗi bàn mổ.
     - Không dùng "chạy lại `main.py` hai lần ở chế độ thường": v2 cộng theo thứ tự của chế độ tất định, khác mọi lần chạy thường [suy luận từ A6], nên việc `main.py` không tự lật không chứng minh v2 sai; hai lần không lật cũng ít thông tin (nếu xác suất lật mỗi lần là 0.3 thì xác suất không lật cả hai lần là 0.49).
   - Kiểm trước khi chạy: môi trường `893900df6375` chỉ khác môi trường của 15 run tham chiếu (`f70b1aeb7805`) ở 21 gói Jupyter; đủ log và tham số của 15 run tham chiếu; mã băm 3 bộ đặc trưng trùng ngày 2026-10-05; JAX chạy trên GPU; driver 617.42 (run tham chiếu: 616.92; A6: với 617.42, mọi kết quả in ra của r0 seed 0 vẫn trùng).
-- Hiện trạng (2026-10-20): đã cài ở các commit `737e8c4`, `a5c9545`, `86ed44d`, `3525e86`; C1–C4 đạt, nên được dùng số của v2. C1: cả 15 run `gc10_v2_ft_r<r>_s<N>` (r = 0–2, N = 0–4) trùng run của E02.05 ở mọi mục, không phải dùng tới quy tắc khi C1 trượt; trong 15 cặp, nhiễu GPU của `main.py` (A6) không làm lật kết quả rời rạc nào. C2 và C3 chạy trên `gc10_v2_ft_r0_s0`. Output ở `runs/<run>/check_c*.txt` (commit `d62d059`). Ảnh chụp của 15 run này là ảnh chụp gốc cho các biến thể; chúng chỉ có trên laptop, vì `*.pkl` không vào git.
+- Hiện trạng (2026-10-20): đã cài ở các commit `737e8c4`, `a5c9545`, `86ed44d`, `3525e86`; C1–C4 đạt, nên được dùng số của bàn mổ. C1: cả 15 run `gc10_v2_ft_r<r>_s<N>` (r = 0–2, N = 0–4) trùng run của E02.05 ở mọi mục, không phải dùng tới quy tắc khi C1 trượt; trong 15 cặp, nhiễu GPU của `main.py` (A6) không làm lật kết quả rời rạc nào. C2 và C3 chạy trên `gc10_v2_ft_r0_s0`. Output ở `runs/<run>/check_c*.txt` (commit `d62d059`). Ảnh chụp của 15 run này là ảnh chụp gốc cho các biến thể; chúng chỉ có trên laptop, vì `*.pkl` không vào git.
 - Lịch sử git (2026-10-20): trước khi push, message của 4 commit sau `6bbf204` được viết lại để bỏ hai dòng ghi công tự động ở cuối; cây thư mục của từng commit không đổi, chỉ hash đổi (hash mới = hash cũ): `3525e86` = `7a6291b`, `9a07e5b` = `67b927d`, `d62d059` = `02f9c9c`, `8ea7e40` = `2f033b5`. `config.json` của 15 run và ảnh chụp vẫn ghi hash cũ `67b927d` (bản ghi, không sửa), tức commit `9a07e5b`.
+- Sửa ngày 2026-10-21: chỉ còn một bàn mổ. Bản đầu (`replay()`, gọi là v1) đã xoá khỏi `lab/replay.py` (commit `370cf86`), cùng `lab/pl_cluster.py` (`71dab1f`), sau khi `lab/score.py` tái lập tầng 1 của E09.05 ở 15/15 cặp (`b81b78d`); bản gốc ở tag `nb-v1`. Từ nay gọi là "bàn mổ", không gọi v1, v2. Chữ "v2" chỉ còn ở tag của các run cũ (`gc10_v2_ft_*`, `gc10_e09_05_v2_*`), ở bản ghi viết trước ngày này, và ở một thông báo lỗi trong `new_state`: chuỗi đó nằm trong chuỗi băm, sửa thì 15 ảnh chụp gốc thành cũ, nên giữ nguyên. Lệnh `run` dừng khi JAX không chạy trên GPU và ghi thiết bị vào meta của ảnh chụp (`1253ce6`).
 
 ### QD22 — Hệ mã thống nhất cho cả repo (2026-10-18)
 
@@ -140,3 +141,4 @@ QD01–QD15 (các dòng cũ) ở `notes/plan.vi.md` §4.
 - Thay cho: phần mã của QD20 (mã cũ ghi trong ngoặc ở mọi file); quy tắc không sửa dòng `why:` cũ trong LOG.
 - Lý do: một chữ đang mang nhiều nghĩa (Q, I, C, A, B, E1, H2); có mã treo (D24 chưa có trong danh sách D); một thứ có hai tên (cải tiến 2 = hướng 2); dòng tra mã cũ trong ngoặc làm rối các file chính.
 - Hệ quả: commit message và chú thích trong code giữ mã cũ, tra ở `notes/old-codes.vi.md`. Từ nay mã không đánh lại, không dùng lại.
+- Sửa ngày 2026-10-21: tag chuỗi mặc định của bàn mổ đổi thành `<dataset>_chain_<đặc trưng>_s<N>` (mục 3), vì không còn v1, v2 (QD21, sửa ngày 2026-10-21). Tag cũ `<dataset>_v2_<đặc trưng>_s<N>` giữ nguyên.
