@@ -2,7 +2,7 @@
 
 Nơi mổ xẻ dữ liệu và mô hình VB-CGCD theo từng bước, cấy thử phương án thay thế, và học các thuật toán trong và ngoài model.
 Số liệu chính thức không nằm ở đây: chúng đến từ các run qua `scripts/exp.py` (`notes/LOG.md`, `notes/pl/experiments.vi.md`); notebook chỉ trỏ tới bằng mã.
-Quyết định: bố cục QD20, bàn mổ QD21, hệ mã QD22 (`notes/pl/README.vi.md` §5). Bố cục cũ (`notes/nb/`, atlas 00–04, khoang 10–13) nằm ở tag `nb-v1`; đối chiếu ở mục 8.
+Quyết định: bố cục QD20, bàn mổ QD21, hệ mã QD22, dựng nền QD23 (`notes/pl/README.vi.md` §5). Bố cục cũ (`notes/nb/`, atlas 00–04, khoang 10–13) nằm ở tag `nb-v1`; đối chiếu ở mục 8.
 
 ## 1. Bố cục
 
@@ -14,7 +14,7 @@ Mọi file nằm thẳng trong `lab/`, không có thư mục con. Số ở đầ
 - `*.py`: bàn mổ và các hàm dùng chung (mục 5).
 - `README.vi.md`: file này.
 
-Notebook chỉ được tạo khi bước đó có câu hỏi hoặc thí nghiệm đang làm.
+Notebook nền 00–14 dựng đủ trước, theo thứ tự (QD23); notebook chữ cái chỉ tạo khi có câu hỏi hoặc thí nghiệm đang làm.
 
 ## 2. Mục lục: dữ liệu (bước 00)
 
@@ -116,7 +116,7 @@ Cảnh báo trùng số: `12_cluster` cũ (khoang 12 = phân cụm) khác hẳn 
 ## 9. Quy tắc notebook
 
 - Khung mỗi notebook:
-  - Cell đầu (Markdown, trước cell 0): tiêu đề trùng tên file, ví dụ `# 09a-overcluster — Phân cụm thừa K' = 20`, rồi bốn dòng: **Câu hỏi** (kèm mã Q/E); **Vị trí** (bước nào; loại: gốc, thay thế, chèn, phân tích; dựa trên notebook nào); **Bối cảnh** (bộ đặc trưng, seed); **Kết luận** (1–2 câu kèm số, điền khi xong).
+  - Cell đầu (Markdown, trước cell 0): tiêu đề trùng tên file, ví dụ `# 09a-overcluster — Phân cụm thừa K' = 20`, rồi bốn dòng: **Câu hỏi** (kèm mã Q/E nếu có); **Vị trí** (bước nào; loại: gốc, thay thế, chèn, phân tích; dựa trên notebook nào); **Bối cảnh** (bộ đặc trưng, seed); **Kết luận** (1–2 câu kèm số, điền khi xong).
   - Mỗi cell code kẹp giữa hai cell Markdown có nhãn cố định:
     - Trước, tối đa 3 dòng: **Mục đích** (câu hỏi, mã Q/E); **Vào → Ra** (tên biến, shape); **Đọc kết quả** (nhìn vào đâu, giá trị nào nghĩa là gì). Cell có công thức hay thuật toán mới thêm dòng **Cách làm** (công thức kèm nguồn).
     - Sau, tối đa 3 gạch: **Kết quả** (số chính, chép đúng từ output); **Ý nghĩa** (nói gì cho câu hỏi, khớp hay trái dự đoán; phần diễn giải ghi [SUY LUẬN]); **Tiếp** (hệ quả cho bước sau, bỏ nếu không có).
