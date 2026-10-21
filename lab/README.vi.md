@@ -2,7 +2,7 @@
 
 Nơi mổ xẻ dữ liệu và mô hình VB-CGCD theo từng bước, cấy thử phương án thay thế, và học các thuật toán trong và ngoài model.
 Số liệu chính thức không nằm ở đây: chúng đến từ các run qua `scripts/exp.py` (`notes/LOG.md`, `notes/pl/experiments.vi.md`); notebook chỉ trỏ tới bằng mã.
-Quyết định: bố cục QD20, bàn mổ v2 QD21, hệ mã QD22 (`notes/pl/README.vi.md` §5). Bố cục cũ (`notes/nb/`, atlas 00–04, khoang 10–13) nằm ở tag `nb-v1`; đối chiếu ở mục 8.
+Quyết định: bố cục QD20, bàn mổ QD21, hệ mã QD22 (`notes/pl/README.vi.md` §5). Bố cục cũ (`notes/nb/`, atlas 00–04, khoang 10–13) nằm ở tag `nb-v1`; đối chiếu ở mục 8.
 
 ## 1. Bố cục
 
@@ -47,12 +47,12 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
 
 Biến thể và phần thêm:
 - `06a-closed-form` [có trong code, chưa có notebook]: E06.03, `--estimator closed`; đã đóng ngày 2/10.
-- `09a-overcluster` [chưa có]: phân cụm thừa K' = 20; E09.04, E09.05. Nguồn cũ: `12b_cluster`.
+- `09a-overcluster` [có hàm `v09a_overcluster`, chưa có notebook]: phân cụm thừa K' = 20; E09.04, E09.05. Nguồn cũ: `12b_cluster`.
 - `09b-overcluster-merge` [chưa có]: gộp cụm con; E09.06, chưa tiền đăng ký. Nguồn cũ: phần Bhattacharyya của `12b_cluster`.
 - `14a-loss-by-step` [chưa có]: phân tích, mất điểm ở khâu nào; Q14.04. Nguồn cũ: `04_s1_discovery`.
 - Dự kiến: `07a-no-early-stop` (Q07.03), `12a-relabel` (Q12.03).
 
-`04_s1_discovery` (tag `nb-v1`) đi xuyên các bước 09–14; nội dung chia vào từng bước khi có bàn mổ v2.
+`04_s1_discovery` (tag `nb-v1`) đi xuyên các bước 09–14; nội dung chia vào notebook của từng bước khi làm tới bước đó.
 
 ## 4. Quy tắc biến thể
 
@@ -67,32 +67,29 @@ Biến thể và phần thêm:
 - Code dùng chung (SVI ở 06, 11, 13; bộ phân lớp ở 08, 12, 14): cải tiến một bước là hàm mới của riêng bước đó. Sửa thẳng code chung thì coi như sửa ở bước sớm nhất dùng nó.
 - Mỗi biến thể có hai phần: hàm `vNNx_<tên>` trong `variants.py`, chạy qua `exp.py` bằng `replay.py run --from <run> --start NN --at NN=vNNx_<tên>` (ra số chính thức); và notebook `NNx-<tên>.ipynb` để giải thích và mổ.
 - Biến thể ở bước 09: sau mọi hàm của bước, `ids` (pool) và `cluster.predict_raw(test1_x)` phải là số nguyên trong [0, increment), mỗi ảnh một id; bộ chạy kiểm điều này và dừng nếu sai (`_check_09`, QD21). Kết quả trung gian có số cụm khác, như cụm con của `09a`, ghi vào khoá riêng; hàm chạy cuối cùng của bước mới ghi `ids` và `cluster`.
+- Biến thể gọi hàm của `lab/` bằng tên đã import (`from replay import fit_svi`), không qua module (`replay.fit_svi`); thành phần (component) nêu bằng `f.__name__`, không bằng chuỗi gõ tay. Lý do: chuỗi băm chỉ lần theo tên, nên code gọi theo cách khác có thể đổi mà ảnh chụp không bị báo cũ (đã kiểm ngày 2026-10-20).
 
 ## 5. File `.py`
 
 Hiện có:
-- `replay.py`: bàn mổ, hai phần.
-  - v2 (QD21; commit `737e8c4`, `a5c9545`, `86ed44d`, `3525e86`): mỗi bước 04–14 là một hàm `sNN(st)`; ảnh chụp ở `runs/<run>/snap/NN.pkl`. Chạy qua `exp.py`: `run --features <F> --seed <N>` (chuỗi mặc định), `run --from <run> --start NN --at NN=<hàm>` (biến thể). Phép kiểm QD21/C1–C4: `check` (C1), `check-resume` (C2), `check-crn` (C3), `check-hash` (C4). Cả bốn đạt ngày 2026-10-20, nên được dùng số của v2; ảnh chụp gốc cho biến thể là 15 run `gc10_v2_ft_r<r>_s<N>` (chỉ có trên laptop).
-  - v1: hàm `replay()` (notebook và `pl_cluster.py` dùng), tự kiểm `python lab/replay.py [--full] <seed…>`. Bỏ cùng lúc với `pl_cluster.py`; bản gốc ở tag `nb-v1`.
-- `pl_cluster.py`: bộ đo tầng 1 của bước 09 (`score()`) và phần chạy cho E09.04, E09.05 (`--ref-tag` bắt buộc).
+- `replay.py`: bàn mổ (QD21; commit `737e8c4`, `a5c9545`, `86ed44d`, `3525e86`, `1253ce6`, `370cf86`). Mỗi bước 04–14 là một hàm `sNN(st)`; ảnh chụp ở `runs/<run>/snap/NN.pkl`. Chạy qua `exp.py`: `run --features <F> --seed <N>` (chuỗi mặc định), `run --from <run> --start NN --at NN=<hàm>` (biến thể). Phép kiểm QD21/C1–C4: `check` (C1), `check-resume` (C2), `check-crn` (C3), `check-hash` (C4); cả bốn đạt ngày 2026-10-20. Ảnh chụp gốc cho biến thể: 15 run `gc10_v2_ft_r<r>_s<N>` (chỉ có trên laptop). Lệnh `run` dừng nếu JAX không chạy trên GPU và ghi thiết bị vào meta của ảnh chụp. Bản đầu (hàm `replay()` cho notebook) đã xoá ngày 2026-10-21; bản gốc ở tag `nb-v1`.
+- `variants.py`: biến thể, mỗi hàm mang mã bước (`v09a_overcluster`; sau thêm `v09b_merge`…), cùng đầu vào/đầu ra với bước gốc; không nhận nhãn thật của pool. `replay.py run --at` tìm hàm ở đây. Quy tắc viết biến thể: docstring đầu file và mục 4.
+- `score.py`: bộ đo tầng 1, mỗi bước một hàm (`score09`; sau thêm `score10`, `score12`); `tier1_09` chạy K' cụm từ ảnh chụp của một run, lệnh `python lab/score.py 09 --from <run>` qua `exp.py`. Ngoài các lệnh kiểm của `replay.py`, đây là nơi duy nhất trong `lab/` đọc nhãn thật của pool, chỉ để chấm. Thay `pl_cluster.py` (xoá ngày 2026-10-21) sau khi tái lập tầng 1 của E09.05 ở 15/15 cặp (run `gc10_e09_05_v2_*`, commit `b81b78d`).
 
 Kế hoạch (tạo khi cần):
-- `variants.py`: biến thể, mỗi hàm mang mã bước (`v09a_overcluster`, `v09b_merge`…), cùng đầu vào/đầu ra với bước gốc; không nhận nhãn thật của pool. `replay.py run --at` tìm hàm ở đây.
-- `score.py`: bộ đo tầng 1, mỗi bước một hàm (`score09` = `pl_cluster.score`; sau thêm `score10`, `score12`). Ngoài các lệnh kiểm của `replay.py`, đây là nơi duy nhất trong `lab/` đọc nhãn thật của pool, chỉ để chấm.
 - `data_io.py`: nạp split, ảnh và hộp XML cho các notebook `00-data-*`, cùng quy tắc với `scripts/make_gc10_split.py`; kiểm bằng mục `diagnostics` của file split. Không đặt tên `datasets.py` (sẽ che gói `datasets` của HuggingFace).
-- `pl_cluster.py` nghỉ khi đã có `score.py` và v2 qua QD21/C1–C4.
 
 Quy tắc:
 - Không sửa code gốc (`main.py`, `classifier/`, `clustering/`); các file này chỉ gọi lại hàm của pipeline.
 - Notebook import từ `.py`, không có chiều ngược lại.
 - Mọi `.py` trong `lab/` bị kiểm dirty: sửa xong phải commit trước khi chạy run. Notebook và `.md` trong `lab/` không bị kiểm.
-- Từ khi có 15 ảnh chụp gốc (2026-10-20), không sửa phần bộ chạy nằm trong chuỗi băm: `chain`, `new_state` và mọi thứ chúng gọi tới (`_check_out`, `_fn`, `_base`, `step_hashes`, `_closure`, `_check_09`, các hằng như `STEPS`, `OWNS`, `PROTOCOL`). Sửa phần này làm cũ mọi ảnh chụp từ 04, phải chạy lại 15 run. Các lệnh `cmd_*`, `_fresh`, `load`, `snapshots`, `_confusion`, `_same` và phần v1 nằm ngoài chuỗi băm (đã kiểm bằng `step_hashes` ngày 2026-10-20): sửa chúng không làm cũ ảnh chụp.
+- Từ khi có 15 ảnh chụp gốc (2026-10-20), không sửa phần bộ chạy nằm trong chuỗi băm: `chain`, `new_state` và mọi thứ chúng gọi tới (`_check_out`, `_fn`, `_base`, `step_hashes`, `_closure`, `_check_09`, các hằng như `STEPS`, `OWNS`, `PROTOCOL`). Sửa phần này làm cũ mọi ảnh chụp từ 04, phải chạy lại 15 run. Các lệnh `cmd_*`, `_fresh`, `load`, `snapshots`, `_confusion`, `_same` nằm ngoài chuỗi băm (đã kiểm bằng `step_hashes` ngày 2026-10-20): sửa chúng không làm cũ ảnh chụp.
 
-## 6. Chạy độc lập (mục tiêu của bàn mổ v2)
+## 6. Chạy độc lập (mục tiêu của bàn mổ)
 
 - Định nghĩa: sửa bước k thì đầu ra của 01…k−1 giữ nguyên, không chạy lại; chạy lại toàn bộ k+1…14.
 - 01–03: đạt (đặc trưng lưu sẵn trong `features/`).
-- 04–14: bàn mổ v2 đã cài (QD21): mỗi bước là một hàm có đầu vào/đầu ra rõ; ảnh chụp đầu ra mỗi bước kèm commit, trạng thái RNG và mã băm; RNG chung ở lối vào 04, 05, 09; chuỗi băm theo bước báo ảnh chụp nào đã cũ. QD21/C1–C4 đạt ngày 2026-10-20 (mục 5).
+- 04–14: bàn mổ đã cài (QD21): mỗi bước là một hàm có đầu vào/đầu ra rõ; ảnh chụp đầu ra mỗi bước kèm commit, trạng thái RNG và mã băm; RNG chung ở lối vào 04, 05, 09; chuỗi băm theo bước báo ảnh chụp nào đã cũ. QD21/C1–C4 đạt ngày 2026-10-20 (mục 5).
 - Kết luận ở bước sau gắn với phiên bản các bước phía trên: ghi rõ "đo trên …". Đổi mặc định ở bước k thì tạo lại ảnh chụp từ k và kiểm lại kết luận của các bước sau.
 
 ## 7. Hệ mã
@@ -111,7 +108,7 @@ Notebook cũ (đọc bằng `git show nb-v1:notes/nb/<tên>`):
 - Notebook tổng quan 00 của bố cục cũ: không làm.
 
 Đường dẫn cũ → mới:
-- `scripts/replay.py` → `lab/replay.py`; `scripts/pl_cluster.py` → `lab/pl_cluster.py`; `notes/nb/README.vi.md` → `lab/README.vi.md`.
+- `scripts/replay.py` → `lab/replay.py`; `scripts/pl_cluster.py` → `lab/pl_cluster.py` (xoá 2026-10-21, thay bằng `lab/score.py`); `notes/nb/README.vi.md` → `lab/README.vi.md`.
 - Tiền đăng ký của E09.04, E09.05 trỏ tới đường dẫn cũ: chạy lại đúng lệnh cũ bằng commit `89e94d4` hoặc tag `nb-v1`.
 
 Cảnh báo trùng số: `12_cluster` cũ (khoang 12 = phân cụm) khác hẳn `12-filter` mới.
