@@ -125,7 +125,7 @@ Cảnh báo trùng số: `12_cluster` cũ (khoang 12 = phân cụm) khác hẳn 
 - Cách viết Markdown: cho người chưa đọc code; dùng số cụ thể, không diễn giải lại code; thuật ngữ lần đầu kèm tiếng Anh (mục 10). Mỗi cell code làm một việc: phần Trước cần quá 3 dòng thì tách cell. Cell thiết lập (cell 0, import) cũng có Sau, một dòng kiểm tra, ví dụ "dirty phải là False". Chạy lại mà số đổi thì sửa Sau.
 - Code, chú thích code, tên biến, nhãn trục, tiêu đề và chú giải hình: tiếng Anh. Markdown: tiếng Việt, kèm thuật ngữ tiếng Anh.
 - Notebook mô hình ngắn, một câu hỏi chính, Restart & Run All không quá 5 phút; dài thì tách thành chữ cái mới. Notebook dữ liệu được phép dài.
-- Cell code đầu tiên (cell 0) in commit, trạng thái dirty, đường dẫn đặc trưng (mẫu ở mục 11). Trước khi commit: Restart & Run All; commit kèm output, hình nhỏ.
+- Cell code đầu tiên (cell 0) in commit và trạng thái dirty, rồi đặt `XLA_FLAGS` ở chế độ GPU tất định (deterministic) trước mọi lần import jax, vì `new_state` của bàn mổ dừng nếu jax đã được import mà thiếu cờ này (mẫu ở mục 11). Cell nạp dữ liệu đầu tiên in đầu vào thật của notebook: run và đường dẫn đặc trưng trong ảnh chụp, hoặc file split kèm sha256. Trước khi commit: Restart & Run All; commit kèm output, hình nhỏ.
 - Không huấn luyện nặng trong notebook: đọc đặc trưng có sẵn; tối đa chạy SVI cho 1 seed.
 - Bộ đo viết một lần trong `.py`, notebook import lại. Xem code trong model: in đúng hàm bằng `inspect.getsource` cạnh đầu vào/đầu ra của nó, không chép code.
 - Đánh giá hai tầng: tầng 1 chấm đầu ra của một bước bằng nhãn thật (chỉ để chấm), để lọc nhanh; tầng 2 chạy cả pipeline qua `exp.py`, ít nhất 5 seed. Thứ hạng ở tầng 1 phải được xác nhận ở tầng 2.
@@ -159,8 +159,9 @@ Chép nguyên khối dưới vào cell code đầu tiên của mỗi notebook:
     while not (ROOT / "main.py").exists() and ROOT != ROOT.parent:
         ROOT = ROOT.parent
     os.chdir(ROOT); sys.path[:0] = [str(ROOT), str(ROOT / "lab")]
+    import replay; os.environ["XLA_FLAGS"] = replay._xla_flags()   # GPU deterministic mode before any jax import
     git = lambda *a: subprocess.run(["git", *a], capture_output=True, text=True).stdout.strip()
     print("commit", git("rev-parse", "--short", "HEAD"),
           "| code dirty", bool(git("status", "--porcelain", "--", ".", ":(exclude)runs", ":(exclude)notes",
                                    ":(exclude)lab/*.ipynb", ":(exclude)lab/*.md")),
-          "| features", Path("runs/inputs.txt").read_text().strip())
+          "| XLA_FLAGS", os.environ["XLA_FLAGS"])
