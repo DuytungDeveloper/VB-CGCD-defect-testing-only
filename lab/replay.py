@@ -1,17 +1,14 @@
 #!/usr/bin/env python
-"""Replay main.py stage by stage for one seed (t1 protocol, --hungarian_on eval, labeled S0) and keep the
-intermediate objects, for the notebooks in lab/ and offline experiments of the PL line.
-
-Same calls in the same order as main.py, so the global numpy RNG (loader permutations, the S0 PCA with the
-randomized solver, k-means) is consumed identically. main.py itself is not changed.
-  r = replay(seed)                   # full: S0 + S1 classifier, about 2 min on the laptop
-  r = replay(seed, stop="cluster")   # stop right after the S1 clustering (the S0 SVI still runs)
-  r["stages"][i]: train, test, test_old, test_all (DataPoint ._x ._y); for i >= 1 also cluster, raw (cluster ids),
-                  inertia, pi_test (cluster -> novel offset), lut, offset, acc (full mode only)
-  r["svi"]: (log_prefix, params) of every SVI pass (S0, then F and S of each session); r["clf"]: the classifier
-Check against runs of the pipeline (default: the E1 runs gc10_frozen_km_evhung_d64_head_s*):
-  python lab/replay.py 0 1 2 3 4      # stop="cluster": contingency table equal, inertia rel < 1e-6
-  python lab/replay.py --full 0       # full: S1 accuracies must equal the run's metrics.json
+"""Replay harness (QD21; lab/README.vi.md sections 5 and 6): the default chain of main.py (t1, --hungarian_on eval,
+labeled S0) as one function per step 04-14, a snapshot after each step (runs/<run>/snap/NN.pkl), common random
+numbers at the entries of 04, 05 and 09, and a hash chain per step that tells which snapshots are stale.
+Commands (run goes through scripts/exp.py):
+  run            default chain (--features F --seed S) or a variant (--from <run> --start NN --at NN=f1+f2)
+  check          C1: a default chain against the main.py run of the same input
+  check-resume   C2: continuing from the snapshot before each step gives the same snapshots
+  check-crn      C3: extra RNG draws at 05 leave the partition at 09 unchanged
+  check-hash     C4: editing step k makes h(k)..h(14) stale; comments and docstrings do not count
+The first version, one function replay() for the notebooks (tag nb-v1, commit 89e94d4), was removed on 2026-10-21.
 """
 import argparse, ast, contextlib, functools, hashlib, inspect, io, json, os, pickle, re, subprocess, sys, tempfile, textwrap, time, types
 from pathlib import Path
@@ -37,79 +34,9 @@ def make_args(features, seed, preset=GC10, **over):
                                     "pretrained_model_name": f.name, "seed": seed, **over})
 
 
-def replay(seed=0, features=None, preset=GC10, stop=None, **over):
-    assert Path("main.py").exists(), "run from the repo root (relative paths: runs/, features/, splits/)"
-    os.environ.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")   # memory only, results unchanged
-    import torch, jax                             # same import order as main.py
-    import main                                     # the pipeline's own functions and classes
-    from clustering.clustering_base import hungarian_map
-    args = make_args(features or Path("runs/inputs.txt").read_text().strip(), seed, preset, **over)
-    assert (args.load_mode, args.hungarian_on, args.s0_labels) == ("t1", "eval", "true"), "only the protocol in use"
-    torch.manual_seed(args.seed); np.random.seed(args.seed); jax.random.PRNGKey(args.seed)   # main.py order
-    Clustering = functools.partial(main.Clustering_alg(args.clustering_alg),
-                                   n_init=args.kmeans_n_init if args.clustering_alg == "kmeans" else args.gmm_n_init)
-    loaders = main.Dataloader(args)
-    tmp = tempfile.mkdtemp(prefix="replay_"); Path(f"{tmp}/saved_models").mkdir()
-    clf = main.Classifier_alg(args.classifier_alg)(num_classes=args.num_classes, num_dim=args.num_dim,
-                                                   with_early_stop=args.with_early_stop)
-    for k in ("cov_prior_kappa", "cov_prior_target", "estimator", "mask_unseen", "oracle_filter"):
-        setattr(clf, k, getattr(args, k))
-    clf.init_parameters(n_epochs=args.n_epochs, lr=args.lr, log_dir=f"{tmp}/log/stage0",
-                        save_dir=f"{tmp}/saved_models/stage0", batch_size=args.batch_size, increment=args.increment,
-                        base=args.base, scaling_factor=args.scaling_factor,
-                        use_correct_scaling_factor=args.use_correct_scaling_factor, early_stop_ratio=args.early_stop_ratio)
-    svi, inner = [], clf.run_inference              # record every SVI pass; the numbers are not touched
-    def rec(*a, **k):
-        p = inner(*a, **k); svi.append((k.get("log_prefix"), {n: np.asarray(v) for n, v in p.items()})); return p
-    clf.run_inference = rec
-    out, to_cluster, known = {"args": args, "stages": [], "svi": svi, "clf": clf}, {}, None
-    for i, (tr, te, te_old, te_all) in enumerate(zip(*loaders)):
-        st = dict(train=tr, test=te, test_old=te_old, test_all=te_all)
-        out["stages"].append(st)
-        if i == 0:
-            clf.run(tr._x, tr._y, te._x, te._y, current_stage=0,
-                    testing_set={"test_old": te, "test_all": te, "known_test": te})
-            known = te
-            continue
-        off = args.base + (i - 1) * args.increment
-        cl = Clustering(num_classes=args.increment, label_offset=off)
-        cl.fit(tr._x)
-        raw = cl.predict_raw(tr._x)
-        pi = hungarian_map(cl.predict_raw(te._x), np.asarray(te._y).astype(int) - off, args.increment)
-        to_cluster.update({off + t: off + c for c, t in pi.items()})
-        lut = np.arange(args.num_classes)
-        for t, c in to_cluster.items():
-            lut[t] = c
-        st.update(cluster=cl, raw=raw, pi_test=pi, inertia=getattr(cl.model, "inertia_", None), lut=lut, offset=off)
-        if stop == "cluster":
-            break
-        rel = lambda d: types.SimpleNamespace(_x=d._x, _y=lut[np.asarray(d._y).astype(int)])
-        clf._set_label_offset(off)
-        clf.update_dir_infos(log_dir=f"{tmp}/log/stage{i}", save_dir=f"{tmp}/saved_models/stage{i}")
-        clf.oracle_novel = np.asarray(tr._y).astype(int) >= off
-        tn = rel(te)
-        clf.run(tr._x, raw + off, tn._x, tn._y, current_stage=i,
-                testing_set={"test_old": rel(te_old), "test_all": rel(te_all), "known_test": known})
-        st["acc"] = {k: clf.test(d._x, d._y)[2] for k, d in
-                     (("All", rel(te_all)), ("Old", rel(te_old)), ("New", tn), ("S0test", known))}
-    return out
-
-
-def _reference(seed, tag="gc10_frozen_km_evhung_d64_head"):
-    import ast
-    rd = sorted(Path("runs").glob(f"*__{tag}_s{seed}"))
-    assert len(rd) == 1, (tag, seed, rd)
-    log = (rd[0] / "console.log").read_text(errors="replace")
-    m = re.search(r"xtab stage 1 objective: inertia=(\S+)", log)
-    x = re.search(r"xtab stage 1 train: rows=\[[^\]]*\] cols=\[[^\]]*\] (\[\[.*\]\])", log)
-    return (float(m.group(1)) if m else None), (ast.literal_eval(x.group(1)) if x else None), \
-        json.loads((rd[0] / "metrics.json").read_text())
-
-
-# ====================================================================================================== v2
-# Replay harness v2 (PL-QD6, notes/pl/README.vi.md). The default chain of main.py (t1, --hungarian_on eval,
-# labeled S0) as one function per step 04-14 (lab/README.vi.md section 3). A step sNN(st) reads the state dict
-# st and returns only the keys it adds (OWNS). True labels of the pool and of the test sets live in true_* keys.
+# ======================================================================================================
+# Steps 04-14 (QD21; lab/README.vi.md section 3). A step sNN(st) reads the state dict st and returns only the
+# keys it adds (OWNS). True labels of the pool and of the test sets live in true_* keys.
 
 STEPS = ("04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14")
 DEFAULT = {"04": "s04_loader", "05": "s05_pca", "06": "s06_gauss_svi", "07": "s07_early_stop",
@@ -136,6 +63,7 @@ def new_state(args):
     The GPU runs in deterministic mode, so two runs on the same input agree to the bit; main.py on the GPU
     does not (notes/reproducibility-issues.md A6)."""
     bad = {k: getattr(args, k) for k, v in PROTOCOL.items() if getattr(args, k) != v}
+    # the string below is part of h(04): keep its "v2", or every snapshot made so far goes stale
     assert not bad, f"replay v2 runs the default protocol only, not {bad}"
     assert Path("main.py").exists(), "run from the repo root (relative paths: splits/, features/)"
     if os.environ.get("XLA_FLAGS") != _xla_flags():
@@ -342,7 +270,7 @@ def s14_eval(st):
 
 
 
-# ---------------------------------------------------------------- runner, snapshots, hash chain (PL-QD6)
+# ---------------------------------------------------------------- runner, snapshots, hash chain (QD21)
 RNG_STEPS = ("04", "05", "09")                     # the only steps that draw the global numpy RNG
 FILES = {"04": ("main.py", "dataloaders", "utils"), "05": ("classifier",), "09": ("clustering",)}
 PACKAGES = ("numpy", "scipy", "scikit-learn", "jax", "jaxlib", "numpyro", "optax", "continuum")
@@ -533,7 +461,7 @@ def _run_dir(run):
 
 
 def snapshots(run):
-    """{step: snapshot} of a v2 run; the steps it did not run come from its parent run."""
+    """{step: snapshot} of a run; the steps it did not run come from its parent run."""
     d = _run_dir(run) / "snap"
     blobs = {p.stem: pickle.loads(p.read_bytes()) for p in sorted(d.glob("*.pkl"))}
     assert blobs, f"no snapshots in {d}"
@@ -554,7 +482,7 @@ def _fresh(blobs, upto="14"):
 
 
 def load(run, upto="14", check=True):
-    """State after step `upto` of a v2 run (runs/<run>/snap), with a fresh workbench (new_state)."""
+    """State after step `upto` of a run (runs/<run>/snap), with a fresh workbench (new_state)."""
     blobs = snapshots(run)
     if check:
         _fresh(blobs, upto)
@@ -575,10 +503,10 @@ def _git():
 def _metrics(run_dir):
     """metrics.json from console.log with scripts/extract_vbcgcd.py: one definition of the metrics."""
     import importlib.util
-    print("replay v2: done", flush=True)
+    print("replay: done", flush=True)
     log = run_dir / "console.log"
     for _ in range(100):                                             # exp.py copies our output as it comes
-        if log.exists() and "replay v2: done" in log.read_text(errors="replace"):
+        if log.exists() and "replay: done" in log.read_text(errors="replace"):
             break
         time.sleep(0.1)
     spec = importlib.util.spec_from_file_location("extract_vbcgcd", ROOT / "scripts" / "extract_vbcgcd.py")
@@ -599,7 +527,7 @@ def cmd_run(argv):
     p.add_argument("--seed", type=int)
     p.add_argument("--dataset", default="gc10", choices=sorted(PRESETS))
     p.add_argument("--set", action="append", default=[], help="key=value: change one setting (default chain only)")
-    p.add_argument("--from", dest="parent", help="run id or tag of a v2 run: steps before --start come from it")
+    p.add_argument("--from", dest="parent", help="run id or tag of a run with snapshots: steps before --start come from it")
     p.add_argument("--start", default="04", choices=STEPS)
     p.add_argument("--at", action="append", default=[], help="NN=f1+f2: the functions of step NN, in order")
     o = p.parse_args(argv)
@@ -635,7 +563,7 @@ def cmd_run(argv):
     meta = dict(git, run_id=run_dir.name, parent=_run_dir(o.parent).name if o.parent else None, start=o.start,
                 device=device, args=vars(st["args"]))
     changed = {k: v for k, v in (spec or {}).items() if v != [DEFAULT[k]]}
-    print(f"replay v2: {run_dir.name} | commit {git['commit'][:7]} | parent {meta['parent']} | start {o.start} | "
+    print(f"replay: {run_dir.name} | commit {git['commit'][:7]} | parent {meta['parent']} | start {o.start} | "
           f"device {device} | changed {changed}")
     for k in STEPS[:STEPS.index(o.start)]:                           # log lines of the steps taken from the parent
         sys.stdout.write(parent[k]["log"])
@@ -657,7 +585,7 @@ def _confusion(st):
 
 
 def cmd_check(argv):
-    """C1: python lab/replay.py check <v2 run> <main.py run>: equal at every snapshot (PL-QD6)."""
+    """C1: python lab/replay.py check <run> <main.py run>: equal at every snapshot (QD21)."""
     from sklearn.metrics.cluster import contingency_matrix
     rd, fd = _run_dir(argv[0]), _run_dir(argv[1])
     blobs = snapshots(rd.name)
@@ -714,7 +642,7 @@ def _same(a, b):
 
 
 def cmd_check_resume(argv):
-    """C2: python lab/replay.py check-resume <v2 run> [05,06,...]: continuing from the snapshot before step k, in a
+    """C2: python lab/replay.py check-resume <run> [05,06,...]: continuing from the snapshot before step k, in a
     new process as a variant run does, gives the same snapshots k..14 as the run itself."""
     run, ks = argv[0], argv[1].split(",") if len(argv) > 1 else list(STEPS[1:])
     assert all(k in STEPS[1:] for k in ks), f"steps 05..14 only: {ks}"
@@ -741,7 +669,7 @@ def _burn05(st):
 
 
 def cmd_check_crn(argv):
-    """C3: python lab/replay.py check-crn <v2 run>: a variant at 05 that draws extra RNG changes the PCA but not
+    """C3: python lab/replay.py check-crn <run>: a variant at 05 that draws extra RNG changes the PCA but not
     the k-means at 09, which reads the raw pool features (common random numbers). Control: the same k-means with
     the RNG shifted gives another result, so this check can fail."""
     run = argv[0]
@@ -795,27 +723,7 @@ COMMANDS = {"run": cmd_run, "check": cmd_check, "check-resume": cmd_check_resume
             "check-hash": cmd_check_hash}
 
 
-if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] in COMMANDS:
+if __name__ == "__main__":
+    if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
+        sys.exit(f"usage: python lab/replay.py {{{'|'.join(COMMANDS)}}} ...  (see the module docstring)")
     COMMANDS[sys.argv[1]](sys.argv[2:])
-elif __name__ == "__main__":                                 # v1 self-check (tag nb-v1)
-    from sklearn.metrics.cluster import contingency_matrix
-    full = "--full" in sys.argv
-    seeds = [int(a) for a in sys.argv[1:] if a != "--full"] or [0]
-    ok = True
-    for s in seeds:
-        r = replay(s, stop=None if full else "cluster")
-        ref_inertia, ref_table, ref = _reference(s)
-        st = r["stages"][1]
-        table = contingency_matrix(np.asarray(st["train"]._y).astype(int), st["raw"]).tolist()
-        same = table == ref_table                          # the partition: what the method actually uses
-        rel = abs(float(st["inertia"]) - ref_inertia) / ref_inertia
-        msg = f"seed {s}: partition {'SAME' if same else 'DIFF'} | inertia {st['inertia']} vs run {ref_inertia} (rel {rel:.1e})"
-        same = same and rel < 1e-6                         # float32 summation order: 1 ULP ~ 8e-8 here
-        if full:
-            pairs = [(st["acc"][k], ref[f"S1_{k}"]) for k in ("All", "Old", "New", "S0test")]
-            same_acc = all(a == b for a, b in pairs)
-            msg += f" | S1 All/Old/New/S0test {[round(a, 2) for a, _ in pairs]} -> {'SAME' if same_acc else 'DIFF'}"
-            same = same and same_acc
-        ok = ok and same
-        print(msg)
-    print("REPLAY OK" if ok else "REPLAY MISMATCH")
