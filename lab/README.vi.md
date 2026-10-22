@@ -33,12 +33,12 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
 1. `01-preprocess` [chưa có]: tiền xử lý ảnh.
 2. `02-finetune` [chưa có]: fine-tune backbone.
 3. `03-features` [chưa có]: trích đặc trưng, CLS hay pooler.
-4. `04-loader` [chưa có]: nạp dữ liệu theo phiên (tập S0, pool S1, các tập test).
+4. `04-loader` [chưa có]: nạp dữ liệu theo phiên (tập S0, pool, các tập test).
 5. `05-pca` [chưa có]: giảm chiều bằng PCA, fit ở S0.
 6. `06-gauss-svi` [chưa có]: Gaussian theo lớp, học bằng SVI ở S0. Code dùng lại ở 11, 13.
 7. `07-early-stop` [chưa có]: luật dừng sớm theo det Σ; chỉ chạy ở phiên online.
 8. `08-classifier` [chưa có]: bộ phân lớp, đánh giá S0. Code dùng lại ở 12, 14.
-9. `09-cluster` [chưa có]: phân cụm pool S1. Nguồn cũ: `12_cluster`.
+9. `09-cluster` [chưa có]: phân cụm pool. Nguồn cũ: `12_cluster`.
 10. `10-naming` [chưa có]: đặt tên cụm bằng Hungarian trên tập test, chỉ dùng khi chấm.
 11. `11-gauss-f` [chưa có]: lượt F, SVI trên nhãn cụm.
 12. `12-filter` [chưa có]: lọc cũ/mới, giữ ảnh bị đoán là lớp mới.
@@ -75,9 +75,7 @@ Hiện có:
 - `replay.py`: bàn mổ (QD21; commit `737e8c4`, `a5c9545`, `86ed44d`, `3525e86`, `1253ce6`, `370cf86`). Mỗi bước 04–14 là một hàm `sNN(st)`; ảnh chụp ở `runs/<run>/snap/NN.pkl`. Chạy qua `exp.py`: `run --features <F> --seed <N>` (chuỗi mặc định), `run --from <run> --start NN --at NN=<hàm>` (biến thể). Phép kiểm QD21/C1–C4: `check` (C1), `check-resume` (C2), `check-crn` (C3), `check-hash` (C4); cả bốn đạt ngày 2026-10-20. Ảnh chụp gốc cho biến thể: 15 run `gc10_v2_ft_r<r>_s<N>` (chỉ có trên laptop). Lệnh `run` dừng nếu JAX không chạy trên GPU và ghi thiết bị vào meta của ảnh chụp. Bản đầu (hàm `replay()` cho notebook) đã xoá ngày 2026-10-21; bản gốc ở tag `nb-v1`.
 - `variants.py`: biến thể, mỗi hàm mang mã bước (`v09a_overcluster`; sau thêm `v09b_merge`…), cùng đầu vào/đầu ra với bước gốc; không nhận nhãn thật của pool. `replay.py run --at` tìm hàm ở đây. Quy tắc viết biến thể: docstring đầu file và mục 4.
 - `score.py`: bộ đo tầng 1, mỗi bước một hàm (`score09`; sau thêm `score10`, `score12`); `tier1_09` chạy K' cụm từ ảnh chụp của một run, lệnh `python lab/score.py 09 --from <run>` qua `exp.py`. Ngoài các lệnh kiểm của `replay.py`, đây là nơi duy nhất trong `lab/` đọc nhãn thật của pool, chỉ để chấm. Thay `pl_cluster.py` (xoá ngày 2026-10-21) sau khi tái lập tầng 1 của E09.05 ở 15/15 cặp (run `gc10_e09_05_v2_*`, commit `b81b78d`).
-
-Kế hoạch (tạo khi cần):
-- `data_io.py`: nạp split, ảnh và hộp XML cho các notebook `00-data-*`, cùng quy tắc với `scripts/make_gc10_split.py`; kiểm bằng mục `diagnostics` của file split. Không đặt tên `datasets.py` (sẽ che gói `datasets` của HuggingFace).
+- `data_io.py`: dữ liệu thô cho các notebook `00-data-*` (QD23; commit `8910925`, `2f6f1e5`). `images(dataset)`: bảng ảnh của file split, mỗi ảnh một dòng, theo thứ tự hàng của file đặc trưng; vai trò S0, reserve, S1, unused, test (mục 10). `objects(dataset, path)`: hộp lỗi trong XML của một ảnh, cùng quy tắc với `scripts/make_gc10_split.py`. `diagnostics(dataset)`: tính lại mục `diagnostics` của file split, trùng 466/75/6; đọc 2282 file XML trong khoảng 1 s nên không cần bộ nhớ đệm. Chỉ đọc file split và XML, không cần torch, jax. Hiện chỉ có GC10; NEU thêm cùng `00-data-neu`. Không đặt tên `datasets.py` (sẽ che gói `datasets` của HuggingFace).
 
 Quy tắc:
 - Không sửa code gốc (`main.py`, `classifier/`, `clustering/`); các file này chỉ gọi lại hàm của pipeline.
@@ -147,6 +145,8 @@ Cảnh báo trùng số: `12_cluster` cũ (khoang 12 = phân cụm) khác hẳn 
 - cấy ghép — graft; ảnh chụp — snapshot; chạy độc lập — independent step runs
 - RNG chung — common random numbers; chuỗi băm — hash chain (báo ảnh chụp cũ)
 - đánh giá tầng 1 / tầng 2 — tier-1 (step output) / tier-2 (full pipeline) evaluation
+- pool (`pool_x`) — 748 ảnh huấn luyện của phiên S1 = vai trò S1 (698) + 50 ảnh bốc từ reserve; bản ghi cũ viết "pool S1"; khác `pool_x` trong `dataloaders/gc10.py` (= reserve lúc bốc)
+- vai trò ảnh — image role (cột `role` của `data_io.images`): S0, S1 = phiên mà file split đưa ảnh vào; reserve = phần còn lại của lớp cơ sở, mỗi seed bốc `NUM_KNOWN` ảnh mỗi lớp (GC10: 10) vào phiên S1; unused = phần còn lại của lớp mới; test
 
 ## 11. Cell 0 (mẫu)
 
