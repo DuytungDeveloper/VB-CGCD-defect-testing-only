@@ -114,13 +114,13 @@ Cảnh báo trùng số: `12_cluster` cũ (khoang 12 = phân cụm) khác hẳn 
 ## 9. Quy tắc notebook
 
 - Khung mỗi notebook:
-  - Cell đầu (Markdown, trước cell 0): tiêu đề trùng tên file, ví dụ `# 09a-overcluster — Phân cụm thừa K' = 20`, rồi bốn dòng: **Câu hỏi** (kèm mã Q/E nếu có); **Vị trí** (bước nào; loại: gốc, thay thế, chèn, phân tích; dựa trên notebook nào); **Bối cảnh** (bộ đặc trưng, seed); **Kết luận** (1–2 câu kèm số, điền khi xong).
-  - Mỗi cell code kẹp giữa hai cell Markdown có nhãn cố định:
-    - Trước, tối đa 3 dòng: **Mục đích** (câu hỏi, mã Q/E); **Vào → Ra** (tên biến, shape); **Đọc kết quả** (nhìn vào đâu, giá trị nào nghĩa là gì). Cell có công thức hay thuật toán mới thêm dòng **Cách làm** (công thức kèm nguồn).
+  - Cell đầu (Markdown, trước cell 0): tiêu đề trùng tên file, ví dụ `# 09a-overcluster — Phân cụm thừa K' = 20`, rồi một dòng **Câu hỏi** (kèm mã Q/E nếu có). Notebook chữ cái thêm dòng **Vị trí** (mục 4). Đầu vào do cell in ra (cell 0 và cell nạp dữ liệu đầu tiên); kết luận nằm ở Summary (EN) cuối notebook.
+  - Mỗi cell code kẹp giữa hai cell Markdown:
+    - Trước: một tiêu đề đánh số, ví dụ `### 1.2 Dựng lại file split`; thêm tối đa một câu khi tiêu đề chưa nói được vì sao cần bước này. Cell có công thức hay thuật toán mới thêm dòng **Cách làm** (công thức kèm nguồn). Vào, ra, shape ghi ở chú thích code. Nguồn: Rule et al. 2019, PLOS Comput Biol 15: e1007007, quy tắc 1 và 3.
     - Sau, tối đa 3 gạch: **Kết quả** (số chính, chép đúng từ output); **Ý nghĩa** (nói gì cho câu hỏi, khớp hay trái dự đoán; phần diễn giải ghi [SUY LUẬN]); **Tiếp** (hệ quả cho bước sau, bỏ nếu không có).
   - Notebook dữ liệu: tiêu đề mục `## 1. Giao thức`, `## 2. Ảnh`, `## 3. Nhãn`.
   - Cuối notebook: "Summary (EN)".
-- Cách viết Markdown: cho người chưa đọc code; dùng số cụ thể, không diễn giải lại code; thuật ngữ lần đầu kèm tiếng Anh (mục 10). Mỗi cell code làm một việc: phần Trước cần quá 3 dòng thì tách cell. Cell thiết lập (cell 0, import) cũng có Sau, một dòng kiểm tra, ví dụ "dirty phải là False". Chạy lại mà số đổi thì sửa Sau.
+- Cách viết Markdown: cho người chưa đọc code; dùng số cụ thể, không diễn giải lại code; thuật ngữ lần đầu kèm tiếng Anh (mục 10). Mỗi cell code làm một việc: tiêu đề không gói được việc của cell thì tách cell. Cell thiết lập (cell 0, import) cũng có Sau, một dòng kiểm tra, ví dụ "dirty phải là False". Chạy lại mà số đổi thì sửa Sau.
 - Code, chú thích code, tên biến, nhãn trục, tiêu đề và chú giải hình: tiếng Anh. Markdown: tiếng Việt, kèm thuật ngữ tiếng Anh.
 - Notebook mô hình ngắn, một câu hỏi chính, Restart & Run All không quá 5 phút; dài thì tách thành chữ cái mới. Notebook dữ liệu được phép dài.
 - Cell code đầu tiên (cell 0) in commit và trạng thái dirty, rồi đặt `XLA_FLAGS` ở chế độ GPU tất định (deterministic) trước mọi lần import jax, vì `new_state` của bàn mổ dừng nếu jax đã được import mà thiếu cờ này (mẫu ở mục 11). Cell nạp dữ liệu đầu tiên in đầu vào thật của notebook: run và đường dẫn đặc trưng trong ảnh chụp, hoặc file split kèm sha256. Trước khi commit: Restart & Run All; commit kèm output, hình nhỏ.
