@@ -13,7 +13,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 ### 00 Dữ liệu
 
 - Q00.01 [mở] NEU: ablation đồng xuất hiện (oracle), và vì sao patches → pitted_surface không gây quên?
-- Q00.02 [mở] GC10 khó hơn NEU vì mất cân bằng hay vì lỗi nhỏ? Kiểm bằng pool S1 của NEU dựng theo tỉ lệ lớp mới của GC10. Nguồn: `01_data`, mục B1 và E1.
+- Q00.02 [mở] GC10 khó hơn NEU vì mất cân bằng hay vì lỗi nhỏ? Kiểm bằng pool S1 của NEU dựng theo tỉ lệ lớp mới của GC10. Nguồn: `00-data-gc10` §1.3 và §3.5 cho phía GC10; phía NEU chờ `00-data-neu` (cũ: `01_data`, mục B1 và E1).
 
 ### 02 Fine-tune
 
@@ -25,7 +25,8 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 - Q03.01 [mở] Tách yếu tố trộn pooler/CLS (D8): trích CLS từ mô hình đã fine-tune.
 - Q03.02 [mở] crease và rolled_pit có tách được khỏi waist_folding trong đặc trưng không? Kiểm bằng probe cân trọng số lớp trên ba lớp này. Nguồn: CT2.
-- Q03.03 [mở] Đặc trưng mức vùng lỗi, không dùng nhãn (patch token, bản đồ bất thường), có giúp khám phá các lớp lỗi nhỏ (inclusion, rolled_pit, crease) không? Hộp XML của lớp mới chỉ được dùng làm cận trên (oracle). Nguồn: `01_data`, mục C2 và D.
+- Q03.03 [mở] Đặc trưng mức vùng lỗi, không dùng nhãn (patch token, bản đồ bất thường), có giúp khám phá các lớp lỗi nhỏ (inclusion, rolled_pit, crease) không? Hộp XML của lớp mới chỉ được dùng làm cận trên (oracle). Nguồn: `00-data-gc10` §2.5 và §3.5 (cũ: `01_data`, mục C2 và D).
+  - 2026-10-24: tính theo ảnh, chỉ inclusion thật sự nhỏ; rolled_pit và crease to ngang các lớp cũ water_spot, crescent_gap, nhưng là hai lớp hiếm nhất của S1 (`00-data-gc10` §3.5). [SUY LUẬN] Câu này có thể thu hẹp về inclusion; với rolled_pit và crease, số ảnh ít là một ứng viên khác (xem cả Q03.02).
 
 ### 04 Nạp dữ liệu theo phiên
 
@@ -54,7 +55,9 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 - Q08.01 [mở] D24: paper có chỉ dự đoán trên các lớp đã gặp không? Code lấy argmax trên cả các khe chưa huấn luyện. Nguồn: E06.03.
   - 2026-10-20: ưu tiên thấp cho dòng PL. Ở phiên S1 của GC10 và NEU (t1), mọi khe đều đã gặp (`n_seen` = `num_classes`, `classifier/mngmm.py` dòng 216), nên `--mask_unseen` không đổi gì ở S1, kể cả bộ lọc ở bước 12; cờ này chỉ chạm bảng S0 và M_f proxy.
-- Q08.02 [mở] Vì sao bộ phân lớp 10 slot đẩy nhiều ảnh inclusion sang lớp cũ, và bộ lọc cũng loại một phần ảnh inclusion của pool? Giả thuyết: nhiễu nhãn và đồng xuất hiện với water_spot (`01_data`, mục C1), lỗi nhỏ (Q03.03), hay tham số Gaussian gần khởi tạo (D23). Nguồn: `04_s1_discovery` (cell 7, 9; một seed).
+- Q08.02 [mở] Vì sao bộ phân lớp 10 slot đẩy nhiều ảnh inclusion sang lớp cũ, và bộ lọc cũng loại một phần ảnh inclusion của pool? Giả thuyết: nhiễu nhãn và đồng xuất hiện với water_spot (`00-data-gc10` §3.2 và §3.4; cũ: `01_data`, mục C1), lỗi nhỏ (Q03.03), hay tham số Gaussian gần khởi tạo (D23). Nguồn: `04_s1_discovery` (cell 7, 9; một seed).
+  - 2026-10-24: inclusion là nhãn lớp mới kém tin cậy nhất, và một phần ảnh inclusion có hộp water_spot, một lớp cũ (`00-data-gc10` §3.2, §3.4). [SUY LUẬN] Một phần ảnh bị đẩy sang water_spot có thể đúng theo nội dung ảnh; chưa đối chiếu với chính các ảnh bị đẩy.
+- Q08.03 [mở] Nhãn mơ hồ ở ba lớp cũ quanh mối hàn (punching_hole, welding_line, crescent_gap): độ chính xác trên ảnh test chỉ có một loại lỗi khác bao nhiêu so với trên ảnh nhiều loại lỗi, và trong các ảnh nhiều lỗi bị đoán sai, bao nhiêu ảnh được gán cho một lớp có hộp trong chính ảnh đó? So trong từng lớp, vì ảnh nhiều lỗi dồn ở ba lớp này; water_spot và oil_spot có quá ít ảnh test nhiều lỗi. Nguồn: `00-data-gc10` §3.2, §3.4, §3.6.
 
 ### 09 Phân cụm
 
@@ -120,3 +123,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-10-15: đổi sang mã theo bước (QD20); xếp lại theo thứ tự bước; nguồn notebook trỏ tới tag `nb-v1`.
 - 2026-10-18: hệ mã mới (QD22): chuyển vào mọi câu còn mở của `plan.vi.md` §5 và `improvement-1.vi.md` §7, cùng ba câu của CT2; đánh số lại một lần, câu còn mở lên trước.
 - 2026-10-20: thêm Q04.03 (nhãn tối thiểu ở phase 2, chưa làm); Q08.01 hạ ưu tiên cho dòng PL; Q14.04 thêm nguồn (E09.05, Ghi chú 2026-10-20).
+- 2026-10-24: `00-data-gc10` (`1e46674`) thay `01_data` làm nguồn của Q00.02, Q03.03, Q08.02, kèm phát hiện mới; thêm Q08.03 (nhãn mơ hồ quanh mối hàn).
