@@ -1,6 +1,6 @@
 # Thay đổi code so với upstream — VB-CGCD fork
 
-Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-10-19: thêm các thay đổi từ 1/10 tới 18/10; mã theo QD22 (mã cũ: `notes/old-codes.vi.md`); bảng đổi thành danh sách. Cập nhật 2026-10-20: `_check_09` của `lab/replay.py` và kết quả QD21/C1–C4 (§1c, §4); sửa ghi chú về các phép kiểm hồi quy của CT1 (§4). Cập nhật 2026-10-21: `lab/variants.py`, `lab/score.py`; xoá `lab/pl_cluster.py` và bản đầu của bàn mổ; phép kiểm GPU trong `replay.py run` (§1c, §4, §5). Cập nhật 2026-10-22: `lab/data_io.py` (§1c, §4, §5).
+Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-10-19: thêm các thay đổi từ 1/10 tới 18/10; mã theo QD22 (mã cũ: `notes/old-codes.vi.md`); bảng đổi thành danh sách. Cập nhật 2026-10-20: `_check_09` của `lab/replay.py` và kết quả QD21/C1–C4 (§1c, §4); sửa ghi chú về các phép kiểm hồi quy của CT1 (§4). Cập nhật 2026-10-21: `lab/variants.py`, `lab/score.py`; xoá `lab/pl_cluster.py` và bản đầu của bàn mổ; phép kiểm GPU trong `replay.py run` (§1c, §4, §5). Cập nhật 2026-10-22: `lab/data_io.py` (§1c, §4, §5). Cập nhật 2026-10-24: `lab/00-data-gc10.ipynb` (§1c, §5).
 
 Nguyên tắc: **mặc định trong code Python = hành vi upstream**. Wrapper phase 1 đặt
 `FT_BATCH_SIZE=32 FT_ACCUM=4` vì giới hạn 8 GB; cấu hình này đổi số ở mức nhỏ (PATCH 2).
@@ -190,7 +190,7 @@ Bốn file `eval_fold.py`, `pick_lambda.py`, `queue_eq3.sh`, `queue_grid.sh` đ�
 - `scripts/make_label_splits.py` (`97c57ee`): sinh 26 file split ngân sách nhãn (E02.06); `variant.ft_epochs` giữ số bước fine-tune của cấu hình gốc.
   Hàm chính: `main()`.
 
-**Tạo 06–22/10 (`lab/`, QD20, QD21, QD23):**
+**Tạo 06–24/10 (`lab/`, QD20, QD21, QD23):**
 
 - `lab/replay.py`: bàn mổ. v1 (6/10, `d912e76`): chạy lại `main.py` từng giai đoạn cho một seed, đúng thứ tự RNG. v2 (16–18/10, `737e8c4`, `a5c9545`, `86ed44d`): bước 04–14 là hàm `sNN(st)`, ảnh chụp theo bước, RNG chung, chuỗi băm; lệnh `run`, `check`, `check-resume`, `check-crn`, `check-hash`. Không sửa code gốc. Chưa dùng số của v2 khi QD21/C1–C3 chưa đạt.
   Hàm chính: `chain()`, `cmd_run()`, các bước `s04_*`…`s14_*`; `replay()` của bản đầu đã xoá 21/10.
@@ -206,6 +206,7 @@ Bốn file `eval_fold.py`, `pick_lambda.py`, `queue_eq3.sh`, `queue_grid.sh` đ�
   Hàm chính: `score09()`, `tier1_09()`, `main()`.
 - `lab/data_io.py` (22/10, `8910925`, `2f6f1e5`): dữ liệu thô cho các notebook `00-data-*` (QD23): bảng ảnh của file split theo thứ tự hàng của file đặc trưng, với vai trò S0, reserve, S1, unused, test (`lab/README.vi.md` §10); hộp lỗi trong XML của một ảnh, cùng quy tắc với `scripts/make_gc10_split.py`; tính lại mục `diagnostics` của file split. Chỉ đọc file split và XML, không cần torch, jax; không run nào dùng file này. Hiện chỉ có GC10.
   Hàm chính: `images(dataset)`, `objects(dataset, path)`, `diagnostics(dataset)`.
+- `lab/00-data-gc10.ipynb` (24/10, `1e46674`): notebook dữ liệu GC10-DET (QD23 bước 2), ba mục giao thức, ảnh, nhãn. Đọc file split và XML qua `data_io.py`, và ảnh chụp bước 04 của run `gc10_v2_ft_r0_s4`. Không run nào dùng file này; notebook trong `lab/` không làm run bị dirty (`scripts/exp.py`, 15/10).
 - `replay.py` và `pl_cluster.py` nằm ở `scripts/` tới ngày 15/10 (dời ở `dd7a954`); bản cũ ở tag `nb-v1`.
 
 **Sửa file hạ tầng từ 01/10:**
@@ -303,7 +304,7 @@ Không chép danh sách vào đây (chép tay sẽ lệch, xem lỗi "12 file" c
 
     git diff --name-status upstream-baseline -- . ':(exclude)runs' ':(exclude)notes'
 
-Kiểm 2026-10-22, sau khi thêm `lab/data_io.py`: **66 dòng = 8 `M` + 58 `A`**; trong 58 `A` có 26 file split ngân sách nhãn, `scripts/` có 16 file, `lab/` có 5 file. Lần kiểm trước (2026-10-21, sau khi xoá `lab/pl_cluster.py`): 65 dòng = 8 `M` + 57 `A`.
+Kiểm 2026-10-24, sau khi thêm `lab/00-data-gc10.ipynb`: **67 dòng = 8 `M` + 59 `A`**; trong 59 `A` có 26 file split ngân sách nhãn, `scripts/` có 16 file, `lab/` có 6 file. Lần kiểm trước (2026-10-22, sau khi thêm `lab/data_io.py`): 66 dòng = 8 `M` + 58 `A`.
 Nếu lệnh cho số khác, tài liệu này đã lệch.
 
 ---
