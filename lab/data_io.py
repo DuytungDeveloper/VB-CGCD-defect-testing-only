@@ -1,7 +1,7 @@
 """Raw data for the lab/ notebooks 00-data-* (QD23; lab/README.vi.md section 5): images() gives one table of the
-images of a split file, objects() the defect boxes of one image from its XML file, diagnostics() the checks of the
-split file computed again. Reads the split file and the XML files only: no torch, no jax, no file written. Paths are
-relative to the repo root (ROOT), as in the split files."""
+images of a split file, objects() the defect boxes of one image from its XML file, diagnostics() the label checks of
+scripts/make_gc10_split.py (GC10: equal to its split file). Datasets: gc10, neudet. Reads the split file and the XML
+files only: no torch, no jax, no file written. Paths are relative to the repo root (ROOT), as in the split files."""
 import functools, json
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -13,6 +13,8 @@ SPLITS = {"gc10": "splits/gc10_split.json",                 # = SPLIT in dataloa
 NUM_KNOWN = {"gc10": 10, "neudet": 12}                      # old images per base class drawn into session S1:
                                                             # num_known_inc in dataloaders/gc10.py and neudet.py
 NORM = {"10_yaozhed": "10_yaozhe"}                          # misspelled XML name: NORM in scripts/make_gc10_split.py
+NEU = {"n_base": 3, "n_use": 192}                           # not in splits/neu_split.json: base and num_labeled // base
+                                                            # = num_novel_inc in dataloaders/neudet.py (192 = 0.8 * 240)
 
 
 @functools.lru_cache(maxsize=None)
@@ -30,25 +32,27 @@ def images(dataset):
       rank              position in the file list of its class and part
       row               row in the feature files of its part (features-* for train, test_features-* for test)
       role              S0, reserve, S1, unused or test (below)
-      cam, coil, frame  fields of img_<cam>_<coil>_<frame>.jpg; the coil decides train or test (make_gc10_split.py)
-    Roles, from n_use of the split file as _take in dataloaders/gc10.py uses it; S0 and S1 name the session the
-    split file puts the image in:
+      cam, coil, frame  GC10 only: fields of img_<cam>_<coil>_<frame>.jpg; the coil decides train or test
+                        (make_gc10_split.py)
+    Roles, from n_base and n_use (GC10: its split file, as _take in dataloaders/gc10.py uses it; NEU: NEU above, as
+    dataloaders/neudet.py); S0 and S1 name the session the split file puts the image in:
       S0       base class, rank < n_use: labeled data of session S0
-      reserve  base class, the rest (pool_x of dataloaders/gc10.py at the draw of session S1): each seed draws
-               NUM_KNOWN images per class into session S1 and never removes them (D16)
+      reserve  base class, the rest: the loader's pool at the draw of session S1 (pool_x of dataloaders/gc10.py;
+               unlabeled_x_pool of utils/dataloader.py for NEU): each seed draws NUM_KNOWN images per class into
+               session S1 and never removes them (D16)
       S1       novel class, rank < n_use: novel-class data of session S1
       unused   novel class, the rest: never used (one online session)
       test     test images: S0 test set (base classes), novel test set (novel classes)
     The pool of session S1 is pool_x of lab/replay.py (step 04), not the role S1: S1 + NUM_KNOWN images per base
-    class drawn from reserve (GC10: 698 + 50 = 748)."""
-    if dataset != "gc10":
-        raise NotImplementedError(f"{dataset}: added with the notebook 00-data-{dataset}")
-    split = _split(dataset)
+    class drawn from reserve (GC10: 698 + 50 = 748; NEU: 576 + 36 = 612)."""
+    split, gc10 = _split(dataset), dataset == "gc10"
+    n_base = split["n_base"] if gc10 else NEU["n_base"]
     out = []
     for part in ("train", "test"):
         row = 0
+        sub = "train" if part == "train" else "validation"         # NEU folders, as build() in dino-neudet.py
         for cls, name in enumerate(split["classes"]):
-            base, n_use = cls < split["n_base"], split["n_use"][name]
+            base, n_use = cls < n_base, split["n_use"][name] if gc10 else NEU["n_use"]
             for rank, f in enumerate(split[part][name]):
                 if part == "test":
                     role = "test"
@@ -56,9 +60,12 @@ def images(dataset):
                     role = "S0" if rank < n_use else "reserve"
                 else:
                     role = "S1" if rank < n_use else "unused"
-                cam, coil, frame = Path(f).stem.split("_")[1:]
-                out.append(dict(path=f"{split['root']}/{f}", cls=cls, name=name, part=part, rank=rank, row=row,
-                                role=role, cam=cam, coil=coil, frame=frame))
+                path = f"{split['root']}/{f}" if gc10 else f"{split['root']}/{sub}/images/{name}/{f}"
+                rec = dict(path=path, cls=cls, name=name, part=part, rank=rank, row=row, role=role)
+                if gc10:
+                    cam, coil, frame = Path(f).stem.split("_")[1:]
+                    rec.update(cam=cam, coil=coil, frame=frame)
+                out.append(rec)
                 row += 1
     return pd.DataFrame(out)
 
@@ -69,56 +76,72 @@ def _num(node, tag):
     return float(text) if text and text.strip() else float("nan")
 
 
+@functools.lru_cache(maxsize=None)
+def _neu_xml():
+    """NEU-DET XML files by file stem, from both annotation folders: the XML of the train image crazing_240 sits in
+    validation/annotations. Stems are unique across train and validation (scripts/make_neu_split.py)."""
+    root = _split("neudet")["root"]
+    out = {}
+    for x in sorted((ROOT / root).glob("*/annotations/*.xml")):
+        assert x.stem not in out, f"{x.stem}: two XML files"
+        out[x.stem] = x
+    if not out:
+        raise FileNotFoundError(f"{root}: no XML files (NEU-DET must be under datasets/)")
+    return out
+
+
 def objects(dataset, path):
-    """Defect boxes of one image, read from its XML file as scripts/make_gc10_split.py reads it: the name 10_yaozhed
-    becomes 10_yaozhe (NORM), objects named d are dropped. path is a path of images(dataset). None when the image has
-    no XML file. One dict per box:
-      name                    defect name in the XML, after NORM (e.g. 1_chongkong)
-      cls                     class id of that name (folder number before "_"), None if it names no class
+    """Defect boxes of one image, read from its XML file. GC10 as scripts/make_gc10_split.py reads it: the name
+    10_yaozhed becomes 10_yaozhe (NORM), objects named d are dropped. NEU: the XML is found by file stem (_neu_xml).
+    path is a path of images(dataset). None when the image has no XML file. One dict per box:
+      name                    defect name in the XML, after NORM (e.g. 1_chongkong; NEU: a class name)
+      cls                     class id of that name (GC10: folder number before "_"; NEU: the class name itself),
+                              None if it names no class
       xmin, ymin, xmax, ymax  box in pixels of the original image
       W, H                    image size written in the XML
     Missing numbers are nan."""
-    if dataset != "gc10":
-        raise NotImplementedError(f"{dataset}: added with the notebook 00-data-{dataset}")
-    p = Path(path)
-    xml = ROOT / p.parent.parent / "label" / f"{p.stem}.xml"         # <root of the dataset>/label/<stem>.xml
-    if not xml.parent.is_dir():
-        raise FileNotFoundError(f"{xml.parent}: no XML folder (GC10-DET must be under datasets/)")
-    if not xml.exists():
+    split, gc10, p = _split(dataset), dataset == "gc10", Path(path)
+    if gc10:
+        xml = ROOT / p.parent.parent / "label" / f"{p.stem}.xml"     # <root of the dataset>/label/<stem>.xml
+        if not xml.parent.is_dir():
+            raise FileNotFoundError(f"{xml.parent}: no XML folder (GC10-DET must be under datasets/)")
+        xml = xml if xml.exists() else None
+    else:
+        xml = _neu_xml().get(p.stem)
+    if xml is None:
         return None
     root = ET.parse(xml).getroot()
     W, H = _num(root, "size/width"), _num(root, "size/height")
-    cls = {folder: i for i, folder in enumerate(_split(dataset)["folders"])}
+    ids = {k: i for i, k in enumerate(split["folders"] if gc10 else split["classes"])}
     out = []
     for o in root.iter("object"):
-        name = NORM.get(o.findtext("name"), o.findtext("name"))
-        if name == "d":
-            continue
+        name = o.findtext("name")
+        if gc10:
+            name = NORM.get(name, name)
+            if name == "d":
+                continue
         b = o.find("bndbox")
-        out.append(dict(name=name, cls=cls.get(name.split("_")[0]), xmin=_num(b, "xmin"), ymin=_num(b, "ymin"),
-                        xmax=_num(b, "xmax"), ymax=_num(b, "ymax"), W=W, H=H))
+        out.append(dict(name=name, cls=ids.get(name.split("_")[0] if gc10 else name), xmin=_num(b, "xmin"),
+                        ymin=_num(b, "ymin"), xmax=_num(b, "xmax"), ymax=_num(b, "ymax"), W=W, H=H))
     return out
 
 
 def diagnostics(dataset):
-    """The diagnostics of the split file computed again with objects(), with the rules and the order of
-    scripts/make_gc10_split.py: lists of "folder/name", by folder, then by name.
+    """Label checks of scripts/make_gc10_split.py, computed with objects(): lists of keys "folder/name" (GC10, as in its
+    split file, whose diagnostics this equals) or "class/name" (NEU), by class, then by key.
       multi_defect       more than one defect name in the XML file
-      folder_not_in_xml  no defect of the image's own folder in the XML file
+      folder_not_in_xml  no defect of the image's own class (folder) in the XML file
       no_xml             no XML file"""
-    if dataset != "gc10":
-        raise NotImplementedError(f"{dataset}: added with the notebook 00-data-{dataset}")
-    split = _split(dataset)
+    df = images(dataset)
+    keys = ["/".join(Path(p).parts[-2:]) for p in df["path"]]       # GC10: the file name in its split file
     out = {"multi_defect": [], "folder_not_in_xml": [], "no_xml": []}
-    for folder, name in zip(split["folders"], split["classes"]):
-        for f in sorted(split["train"][name] + split["test"][name]):
-            objs = objects(dataset, f"{split['root']}/{f}")
-            if objs is None:
-                out["no_xml"].append(f)
-                continue
-            names = {o["name"] for o in objs}
-            if len(names) > 1:
-                out["multi_defect"].append(f)
-            if not any(n.split("_")[0] == folder for n in names):
-                out["folder_not_in_xml"].append(f)
+    for cls, key, path in sorted(zip(df["cls"], keys, df["path"])):
+        objs = objects(dataset, path)
+        if objs is None:
+            out["no_xml"].append(key)
+            continue
+        if len({o["name"] for o in objs}) > 1:
+            out["multi_defect"].append(key)
+        if not any(o["cls"] == cls for o in objs):
+            out["folder_not_in_xml"].append(key)
     return out
