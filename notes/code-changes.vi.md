@@ -1,6 +1,6 @@
 # Thay đổi code so với upstream — VB-CGCD fork
 
-Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-10-19: thêm các thay đổi từ 1/10 tới 18/10; mã theo QD22 (mã cũ: `notes/old-codes.vi.md`); bảng đổi thành danh sách. Cập nhật 2026-10-20: `_check_09` của `lab/replay.py` và kết quả QD21/C1–C4 (§1c, §4); sửa ghi chú về các phép kiểm hồi quy của CT1 (§4). Cập nhật 2026-10-21: `lab/variants.py`, `lab/score.py`; xoá `lab/pl_cluster.py` và bản đầu của bàn mổ; phép kiểm GPU trong `replay.py run` (§1c, §4, §5). Cập nhật 2026-10-22: `lab/data_io.py` (§1c, §4, §5). Cập nhật 2026-10-24: `lab/00-data-gc10.ipynb` (§1c, §5).
+Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-10-19: thêm các thay đổi từ 1/10 tới 18/10; mã theo QD22 (mã cũ: `notes/old-codes.vi.md`); bảng đổi thành danh sách. Cập nhật 2026-10-20: `_check_09` của `lab/replay.py` và kết quả QD21/C1–C4 (§1c, §4); sửa ghi chú về các phép kiểm hồi quy của CT1 (§4). Cập nhật 2026-10-21: `lab/variants.py`, `lab/score.py`; xoá `lab/pl_cluster.py` và bản đầu của bàn mổ; phép kiểm GPU trong `replay.py run` (§1c, §4, §5). Cập nhật 2026-10-22: `lab/data_io.py` (§1c, §4, §5). Cập nhật 2026-10-24: `lab/00-data-gc10.ipynb` (§1c, §5). Cập nhật 2026-11-01: xoá `scripts/probe.py`, `scripts/vram_probe.py`, `scripts/ckpt_vs_data.py`; `lab/data_io.py` đọc NEU-DET; `lab/00-data-neu.ipynb`; sửa ô Kết quả của cell 0 trong `lab/00-data-gc10.ipynb` (§1c, §4, §5).
 
 Nguyên tắc: **mặc định trong code Python = hành vi upstream**. Wrapper phase 1 đặt
 `FT_BATCH_SIZE=32 FT_ACCUM=4` vì giới hạn 8 GB; cấu hình này đổi số ở mức nhỏ (PATCH 2).
@@ -137,9 +137,9 @@ Không sửa thuật toán, nhưng **hai file ảnh hưởng số liệu hoặc 
 - `scripts/exp.py`: chạy mọi run, ghi `config.json`, `INDEX.txt`, entry LOG; `agg` tổng hợp seed.
   Sửa từ 17/9: `cmd_agg`: cảnh báo khi `commit`/`env`/`inputs` khác nhau, có run dirty, trùng seed, hoặc có run bị bỏ qua. 29/9: `--inputs PATH…` hoặc `--inputs -`, trường `inputs_source` (`c4088a1`); `append_log` ghi `(no metrics.json)` và dùng mọi khoá khi không trùng `columns.txt` (`e66e0bd`). Lưu ý: `hash_path` băm cả tên file + nội dung, nên khác sha256 của file (vd. `splits/…npy`: `0a50cc0b…` so với `a11f243b…`).
 - `scripts/extract_vbcgcd.py`: trích chỉ số từ log phase 2; M_f là proxy trên tập test S0 (D15).
-- `scripts/probe.py`: xem đặc trưng, loader, checkpoint.
+- `scripts/probe.py`: xem đặc trưng, loader, checkpoint. Xoá 1/11 (`bba8722`); bản cuối ở `114b597`.
   Sửa từ 17/9: đọc đường dẫn từ `runs/inputs.txt`; `ckpt` đọc `runs/<run>/artifacts/saved_models`; thêm repo root vào `sys.path`.
-- `scripts/vram_probe.py`: đo VRAM theo batch size.
+- `scripts/vram_probe.py`: đo VRAM theo batch size. Xoá 1/11 (`bba8722`); bản cuối ở `114b597`.
   Sửa từ 17/9: chỉ đề xuất mốc `OK`, và chọn ước của 128.
 - `scripts/check_phase1.py`: 16 kiểm tra sau phase 1.
 - `scripts/run_phase1_extract.sh`: wrapper phase 1. **Ảnh hưởng số:** đặt 32×4 (PATCH 2), cố định `--batch-size 128` (D17).
@@ -182,7 +182,7 @@ Bốn file `eval_fold.py`, `pick_lambda.py`, `queue_eq3.sh`, `queue_grid.sh` đ�
 
 - `scripts/test_closed_form.py` (2/10, `c016f29`): unit test cho `classifier/closed_form.py` trên dữ liệu tổng hợp: công thức Σ, trung bình, ca n = 1, xác định dương, khe chưa gặp giữ (0, I), lớp cũ chép nguyên, lớp không có mẫu giữ giá trị cũ.
   Hàm chính: không có hàm; chạy thẳng.
-- `scripts/ckpt_vs_data.py` (2/10, `b7cb407`): so tham số S0 đã học với dữ liệu trong cùng không gian PCA (D23).
+- `scripts/ckpt_vs_data.py` (2/10, `b7cb407`): so tham số S0 đã học với dữ liệu trong cùng không gian PCA (D23). Xoá 1/11 (`bba8722`), `lab/replay.py` làm thay; bản cuối ở `114b597`.
   Hàm chính: chạy thẳng theo tag.
 
 **Tạo 05/10:**
@@ -204,9 +204,10 @@ Bốn file `eval_fold.py`, `pick_lambda.py`, `queue_eq3.sh`, `queue_grid.sh` đ�
   Hàm chính: `v09a_overcluster(st, k)`.
 - `lab/score.py` (21/10, `81678ec`): đánh giá tầng 1 (QD18). `score09` cùng code với `pl_cluster.score`; `tier1_09` chạy `v09a_overcluster` với K' cụm từ trạng thái RNG ở lối vào bước 09 trong ảnh chụp của một run, chấm bằng nhãn thật của pool, kèm phép kiểm C1–C3 của E09.04, E09.05; lệnh `python lab/score.py 09 --from <run>`.
   Hàm chính: `score09()`, `tier1_09()`, `main()`.
-- `lab/data_io.py` (22/10, `8910925`, `2f6f1e5`): dữ liệu thô cho các notebook `00-data-*` (QD23): bảng ảnh của file split theo thứ tự hàng của file đặc trưng, với vai trò S0, reserve, S1, unused, test (`lab/README.vi.md` §10); hộp lỗi trong XML của một ảnh, cùng quy tắc với `scripts/make_gc10_split.py`; tính lại mục `diagnostics` của file split. Chỉ đọc file split và XML, không cần torch, jax; không run nào dùng file này. Hiện chỉ có GC10.
+- `lab/data_io.py` (22/10, `8910925`, `2f6f1e5`): dữ liệu thô cho các notebook `00-data-*` (QD23): bảng ảnh của file split theo thứ tự hàng của file đặc trưng, với vai trò S0, reserve, S1, unused, test (`lab/README.vi.md` §10); hộp lỗi trong XML của một ảnh, cùng quy tắc với `scripts/make_gc10_split.py`; tính lại mục `diagnostics` của file split. Chỉ đọc file split và XML, không cần torch, jax; không run nào dùng file này. NEU-DET thêm 25/10 (`beec7b9`): đường dẫn ảnh như `build()` của `feature_extractor/dino-neudet.py`, vai trò như `dataloaders/neudet.py`, XML tra theo tên file trong cả hai thư mục `annotations` (XML của ảnh train `crazing_240` nằm trong `validation/annotations`).
   Hàm chính: `images(dataset)`, `objects(dataset, path)`, `diagnostics(dataset)`.
-- `lab/00-data-gc10.ipynb` (24/10, `1e46674`): notebook dữ liệu GC10-DET (QD23 bước 2), ba mục giao thức, ảnh, nhãn. Đọc file split và XML qua `data_io.py`, và ảnh chụp bước 04 của run `gc10_v2_ft_r0_s4`. Không run nào dùng file này; notebook trong `lab/` không làm run bị dirty (`scripts/exp.py`, 15/10).
+- `lab/00-data-gc10.ipynb` (24/10, `1e46674`): notebook dữ liệu GC10-DET (QD23 bước 2), ba mục giao thức, ảnh, nhãn. Đọc file split và XML qua `data_io.py`, và ảnh chụp bước 04 của run `gc10_v2_ft_r0_s4`. Không run nào dùng file này; notebook trong `lab/` không làm run bị dirty (`scripts/exp.py`, 15/10). Sửa 1/11 (`75a7086`): ô Kết quả của cell 0 ghi `1180a1b` như output, thay vì `c4bf75f`.
+- `lab/00-data-neu.ipynb` (1/11, `0079819`): notebook dữ liệu NEU-DET (QD23 bước 2), ba mục giao thức, ảnh, nhãn. Đọc file split, ảnh và XML qua `data_io.py`; NEU chưa có ảnh chụp nên không đọc ảnh chụp. Không run nào dùng file này.
 - `replay.py` và `pl_cluster.py` nằm ở `scripts/` tới ngày 15/10 (dời ở `dd7a954`); bản cũ ở tag `nb-v1`.
 
 **Sửa file hạ tầng từ 01/10:**
@@ -294,7 +295,7 @@ Các run Eq. 3 dùng `FT_BATCH_SIZE=16 FT_ACCUM=8`, vì 32 × 2 view = 7.68 GB >
 - `lab/replay.py` v2 sau `_check_09` (20/10, `3525e86`): C4 đạt. QD21/C1 đạt 15/15: chuỗi mặc định trên 15 run `gc10_v2_ft_r{0,1,2}_s{0–4}` trùng run `main.py` của E02.05 (mọi kết quả rời rạc trùng, tham số lệch dưới 1e-6 × max|giá trị|); C2, C3 đạt trên `gc10_v2_ft_r0_s0`. Output ở `runs/<run>/check_c*.txt` (commit `d62d059`).
 - `lab/score.py`, `lab/variants.py` (21/10): `score09` trùng `pl_cluster.score` trên 200 phân hoạch ngẫu nhiên; tầng 1 của E09.05 chạy lại qua bàn mổ (15 run `gc10_e09_05_v2_r{0,1,2}_s{0–4}`, commit `b81b78d`) trùng run `gc10_pl01b_*` ngày 7/10 ở mọi khoá `k*_` (135 khoá mỗi run; inertia lệch tương đối < 1e-6), C1–C3 đạt: 15/15.
 - `lab/replay.py` sau phép kiểm GPU và sau khi bỏ bản đầu (21/10, `1253ce6`, `370cf86`): C4 đạt; 15 ảnh chụp gốc vẫn hợp lệ (`_fresh`), tức chuỗi băm không đổi.
-- `lab/data_io.py` (22/10): `images()` khớp file split (S0 764, reserve 193, S1 698, unused 178, test 455; pool 748, test lớp mới 214), thứ tự hàng khớp `build()` của `feature_extractor/dino-neudet.py` (kiểm trên cùng file split khi viết); `diagnostics()` trên XML thật trùng mục `diagnostics` của file split (466/75/6, đúng thứ tự), đọc 2282 file XML trong khoảng 1 s. File mới, không run nào dùng, nên không có phép hồi quy.
+- `lab/data_io.py` (22/10): `images()` khớp file split (S0 764, reserve 193, S1 698, unused 178, test 455; pool 748, test lớp mới 214), thứ tự hàng khớp `build()` của `feature_extractor/dino-neudet.py` (kiểm trên cùng file split khi viết); `diagnostics()` trên XML thật trùng mục `diagnostics` của file split (466/75/6, đúng thứ tự), đọc 2282 file XML trong khoảng 1 s. File mới, không run nào dùng, nên không có phép hồi quy. NEU (25/10, `beec7b9`): phần GC10 cho kết quả không đổi (kiểm khi viết); `images("neudet")` khớp file split (S0 576, reserve 144, S1 576, unused 144, test 360), `diagnostics("neudet")` cho 123/0/0 (`00-data-neu` §1.1, §3.1).
 
 ---
 
@@ -304,7 +305,7 @@ Không chép danh sách vào đây (chép tay sẽ lệch, xem lỗi "12 file" c
 
     git diff --name-status upstream-baseline -- . ':(exclude)runs' ':(exclude)notes'
 
-Kiểm 2026-10-24, sau khi thêm `lab/00-data-gc10.ipynb`: **67 dòng = 8 `M` + 59 `A`**; trong 59 `A` có 26 file split ngân sách nhãn, `scripts/` có 16 file, `lab/` có 6 file. Lần kiểm trước (2026-10-22, sau khi thêm `lab/data_io.py`): 66 dòng = 8 `M` + 58 `A`.
+Kiểm 2026-11-01, sau khi xoá 3 script (`bba8722`) và thêm `lab/00-data-neu.ipynb`: **65 dòng = 8 `M` + 57 `A`**; trong 57 `A` có 26 file split ngân sách nhãn, `scripts/` có 13 file, `lab/` có 7 file. Lần kiểm trước (2026-10-24, sau khi thêm `lab/00-data-gc10.ipynb`): 67 dòng = 8 `M` + 59 `A`.
 Nếu lệnh cho số khác, tài liệu này đã lệch.
 
 ---
