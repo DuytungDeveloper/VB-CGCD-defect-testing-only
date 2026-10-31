@@ -12,8 +12,8 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 ### 00 Dữ liệu
 
-- Q00.01 [mở] NEU: ablation đồng xuất hiện (oracle), và vì sao patches → pitted_surface không gây quên?
-- Q00.02 [mở] GC10 khó hơn NEU vì mất cân bằng hay vì lỗi nhỏ? Kiểm bằng pool S1 của NEU dựng theo tỉ lệ lớp mới của GC10. Nguồn: `00-data-gc10` §1.3 và §3.5 cho phía GC10; phía NEU chờ `00-data-neu` (cũ: `01_data`, mục B1 và E1).
+- Q00.01 [mở] NEU: ablation đồng xuất hiện (oracle), và vì sao patches → pitted_surface không gây quên? Nguồn mô tả: `00-data-neu` §3.3 (37 ảnh pitted_surface có hộp patches; 90/125 cặp đi chung là ảnh lớp mới chứa hộp lớp cơ sở).
+- Q00.02 [mở] GC10 khó hơn NEU vì những yếu tố nào? Hai bộ khác nhau cùng lúc ở mức lệch lớp, cỡ lỗi, chỗ tập trung ảnh nhiều lỗi và thống kê độ sáng theo lớp (`00-data-neu` Summary 5), nên so hai bộ với nhau không quy được nguyên nhân. Phải can thiệp trong một bộ, ví dụ dựng pool S1 của NEU theo tỉ lệ lớp mới của GC10 (tách riêng mất cân bằng); NEU đang ở trần (lớp mới 100%, `01_data` E), nên kết quả "không giảm" khó đọc. Nguồn: `00-data-gc10` §1.3 và §3.5; `00-data-neu` §1.3 (cân bằng tuyệt đối) và §3.4 (lỗi nhỏ nhất theo ảnh là 34.7 patch, so với inclusion của GC10 là 1.0) (cũ: `01_data`, mục B1 và E1). Sửa câu chữ 2026-11-01: câu cũ "vì mất cân bằng hay vì lỗi nhỏ" ngầm cho rằng chỉ có hai nguyên nhân.
 
 ### 02 Fine-tune
 
@@ -124,3 +124,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-10-18: hệ mã mới (QD22): chuyển vào mọi câu còn mở của `plan.vi.md` §5 và `improvement-1.vi.md` §7, cùng ba câu của CT2; đánh số lại một lần, câu còn mở lên trước.
 - 2026-10-20: thêm Q04.03 (nhãn tối thiểu ở phase 2, chưa làm); Q08.01 hạ ưu tiên cho dòng PL; Q14.04 thêm nguồn (E09.05, Ghi chú 2026-10-20).
 - 2026-10-24: `00-data-gc10` (`1e46674`) thay `01_data` làm nguồn của Q00.02, Q03.03, Q08.02, kèm phát hiện mới; thêm Q08.03 (nhãn mơ hồ quanh mối hàn).
+- 2026-11-01: `00-data-neu` (`0079819`) làm nguồn phía NEU của Q00.01, Q00.02; sửa câu chữ Q00.02 (nhiều yếu tố khác nhau cùng lúc, cần can thiệp trong một bộ).
