@@ -1,1 +1,1 @@
-features/20261005_013042__gc10_fz_cls5first_img80pct/dino-vitb16
+features/20261005_013115__gc10_ft_cls5first_img80pct_r0/dino-vitb16-sl
