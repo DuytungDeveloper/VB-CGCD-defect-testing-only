@@ -26,6 +26,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 - Q03.01 [mở] Tách yếu tố trộn pooler/CLS (D8): trích CLS từ mô hình đã fine-tune.
 - Q03.02 [mở] crease và rolled_pit có tách được khỏi waist_folding trong đặc trưng không? Kiểm bằng probe cân trọng số lớp trên ba lớp này. Nguồn: CT2.
+  - 2026-11-01: E03.02 (probe 10 lớp, cân trọng số, trên `ft` r0–r2): crease đọc được 5–8/11 ảnh test, rolled_pit 3/6; với crease, phần lớn điểm mất ở khâu khám phá (D ở 2/3 bộ), rolled_pit chưa xác định do chỉ 6 ảnh test. Câu này chưa đóng: chưa đo riêng ba lớp crease, rolled_pit, waist_folding.
 - Q03.03 [mở] Đặc trưng mức vùng lỗi, không dùng nhãn (patch token, bản đồ bất thường), có giúp khám phá các lớp lỗi nhỏ (inclusion, rolled_pit, crease) không? Hộp XML của lớp mới chỉ được dùng làm cận trên (oracle). Nguồn: `00-data-gc10` §2.5 và §3.5 (cũ: `01_data`, mục C2 và D).
   - 2026-10-24: tính theo ảnh, chỉ inclusion thật sự nhỏ; rolled_pit và crease to ngang các lớp cũ water_spot, crescent_gap, nhưng là hai lớp hiếm nhất của S1 (`00-data-gc10` §3.5). [SUY LUẬN] Câu này có thể thu hẹp về inclusion; với rolled_pit và crease, số ảnh ít là một ứng viên khác (xem cả Q03.02).
 
@@ -68,6 +69,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q09.04 [mở] Gán nhãn bằng optimal transport với biên nới lỏng có thắng k-means không?
 - Q09.05 [mở] Nhãn thật tối thiểu có được dùng cho lớp mới (như setting Active GCD), hay chỉ cho lớp cơ sở? (QD16)
 - Q09.06 [mở] Ở bước 09, phương pháp nào cho nhãn giả tốt hơn k-means theo bộ đo tầng 1 (ứng viên: GMM trên PCA-64 hoặc covariance chéo, phân cụm phổ trên đồ thị kNN, HDBSCAN), và thứ hạng có giữ ở tầng 2 không? Siêu tham số không chỉnh trên pool có nhãn thật của lớp mới. Nguồn: QD18.
+  - 2026-11-01: E03.02: probe k-NN (k = 20, cosine) gần như không đọc được lớp hiếm (crease 0/11 ở cả 4 bộ, rolled_pit 1–2/6) dù probe tuyến tính đọc được. [SUY LUẬN] Phương pháp dựa trên láng giềng gần (phân cụm phổ trên kNN, HDBSCAN) cần được kiểm riêng cho lớp hiếm trước khi xếp hạng.
 
 ### 12 Bộ lọc cũ/mới
 
@@ -81,6 +83,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q14.02 [mở] Đưa balanced accuracy vào chỉ số chính (hiện chỉ có qua `cm_summary`).
 - Q14.03 [mở] S4_New ổn định, S5_New không: có đánh đổi giữa hai phiên? (r = −0.55, n = 5, không có ý nghĩa; E09.01)
 - Q14.04 [mở] Trên cấu hình paper, vì sao balanced accuracy của phân hoạch pool (tầng 1) cao hơn nhiều so với balanced novel cuối pipeline trên test (tầng 2), nhất là ở FT seed r1, trong khi trên `fz` hai con số gần nhau? Mất ở khâu nào: chuyển từ pool sang test, đặt tên cụm, hay bộ phân lớp 10 slot? Ảnh hưởng: tầng 1 có dùng được để sàng lọc phương pháp không (QD18). Nguồn: E09.05, mục Kết quả và Ghi chú (2026-10-20): so trên cùng seed 0–4, r0 và r1 bằng nhau ở tầng 1 nhưng cách xa nhau ở tầng 2.
+  - 2026-11-01: E03.02 thêm mốc biểu diễn: probe `lr_bal` (có nhãn) đạt balanced novel 0.61 / 0.68 / 0.71 trên `ft` r0 / r1 / r2, cuối pipeline 0.39 / 0.29 / 0.36. Đặc trưng không phải chỗ mất chính; chỗ mất nằm ở các bước 09–14.
 
 ## Đã xong hoặc bỏ
 
@@ -127,3 +130,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-10-24: `00-data-gc10` (`1e46674`) thay `01_data` làm nguồn của Q00.02, Q03.03, Q08.02, kèm phát hiện mới; thêm Q08.03 (nhãn mơ hồ quanh mối hàn).
 - 2026-11-01: `00-data-neu` (`0079819`) làm nguồn phía NEU của Q00.01, Q00.02; sửa câu chữ Q00.02 (nhiều yếu tố khác nhau cùng lúc, cần can thiệp trong một bộ).
 - 2026-11-01: thêm Q02.06 (số epoch fine-tune trên GC10) từ `02-finetune` (`3db9aef`).
+- 2026-11-01: E03.02 xong (`d467c6b`): ghi kết quả vào Q03.02, Q14.04, Q09.06.
