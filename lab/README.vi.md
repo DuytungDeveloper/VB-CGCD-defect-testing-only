@@ -39,7 +39,10 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
    2. resize: GC10 co bicubic 9.14 × 4.46 lần (vạch mảnh mất tương phản), NEU phóng 1.28 lần rồi cắt giữa 224;
    3. chuẩn hoá: ảnh xám thành ba kênh, thống kê đầu vào S0 so với ImageNet;
    4. kiểm đầu cuối: trích lại batch đầu bằng DINO gốc, trùng từng bit với đặc trưng `fz` (GC10, NEU).
-2. `02-finetune` [chưa có]: fine-tune backbone.
+2. `02-finetune` [có, commit `3db9aef`]: fine-tune backbone, ba mục
+   1. thiết lập: siêu tham số và log của 6 run `ft`; mô hình dựng lại bằng `load_model()`: BOFT bọc 24 `output.dense`, butterfly factor 1 (A5), pooler đóng băng;
+   2. toán của BOFT: tính tay W′ = diag(s) · W · Mᵀ với khối Cayley 4 × 4, trùng peft; thay đổi theo lớp; ba FT seed cùng độ lớn, khác hướng ở lớp sâu;
+   3. quá trình học: cross-entropy theo epoch, GC10 chưa hội tụ ở epoch 10.
 3. `03-features` [chưa có]: trích đặc trưng, CLS hay pooler.
 4. `04-loader` [chưa có]: nạp dữ liệu theo phiên (tập S0, pool, các tập test).
 5. `05-pca` [chưa có]: giảm chiều bằng PCA, fit ở S0.
