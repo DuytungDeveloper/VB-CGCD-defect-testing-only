@@ -20,6 +20,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q02.01 [mở] D9 với ít nhất 3 lần phase 1, kèm đối chứng "400 ảnh ngẫu nhiên" để tách rò rỉ khỏi kích thước dữ liệu. Chỉ làm khi cần số cho báo cáo. Nguồn: E02.03.
 - Q02.02 [mở] Code có tái lập Bảng 5 "w/o fine-tuning" (S0 = 88.54) không? Cần wrapper `c100_extract_noft`.
 - Q02.03 [tạm dừng] Giới hạn của E02.02: 30 cặp âm mỗi neo, không projection head; bản SimCLR có head chưa thử. Tạm dừng vì GĐ1 đã đóng.
+- Q02.06 [mở] Số epoch fine-tune trên GC10 chưa được kiểm: sau 10 epoch, cross-entropy huấn luyện còn 0.151–0.156 và vẫn giảm khoảng 10% mỗi epoch; tham số BOFT lớn nhất chạm mốc 60 bước × lr (`02-finetune` §2.3, §3.1). Fine-tune lâu hơn làm đặc trưng và khám phá lớp mới tốt hơn, hay chỉ khớp quá (overfit)? Cần run phase 1; hiện không có tập kiểm định (held-out). Nguồn: `02-finetune` (`3db9aef`).
 
 ### 03 Đặc trưng
 
@@ -125,3 +126,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-10-20: thêm Q04.03 (nhãn tối thiểu ở phase 2, chưa làm); Q08.01 hạ ưu tiên cho dòng PL; Q14.04 thêm nguồn (E09.05, Ghi chú 2026-10-20).
 - 2026-10-24: `00-data-gc10` (`1e46674`) thay `01_data` làm nguồn của Q00.02, Q03.03, Q08.02, kèm phát hiện mới; thêm Q08.03 (nhãn mơ hồ quanh mối hàn).
 - 2026-11-01: `00-data-neu` (`0079819`) làm nguồn phía NEU của Q00.01, Q00.02; sửa câu chữ Q00.02 (nhiều yếu tố khác nhau cùng lúc, cần can thiệp trong một bộ).
+- 2026-11-01: thêm Q02.06 (số epoch fine-tune trên GC10) từ `02-finetune` (`3db9aef`).
