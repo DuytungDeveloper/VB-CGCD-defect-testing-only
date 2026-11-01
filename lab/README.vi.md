@@ -43,7 +43,10 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
    1. thiết lập: siêu tham số và log của 6 run `ft`; mô hình dựng lại bằng `load_model()`: BOFT bọc 24 `output.dense`, butterfly factor 1 (A5), pooler đóng băng;
    2. toán của BOFT: tính tay W′ = diag(s) · W · Mᵀ với khối Cayley 4 × 4, trùng peft; thay đổi theo lớp; ba FT seed cùng độ lớn, khác hướng ở lớp sâu;
    3. quá trình học: cross-entropy theo epoch, GC10 chưa hội tụ ở epoch 10.
-3. `03-features` [chưa có]: trích đặc trưng, CLS hay pooler.
+3. `03-features` [có, commit `17f4cc5`]: trích đặc trưng, ba mục
+   1. đặc trưng: mã băm 8 bộ trùng `config.json`; kiểm đầu cuối `ft` (trích lại từ checkpoint, trùng từng bit); pooler = tanh của một phép chiếu ngẫu nhiên, gần như giữ khoảng cách (D8);
+   2. `fz` và `ft`: fine-tune dịch mọi ảnh (cosine khoảng 0.75); ba FT seed có hình học gần nhau (Spearman 0.93);
+   3. probe theo lớp (E03.02, run `gc10_e03_02`, bộ đo `score.py` `tier1_03`): đặc trưng đọc được gần gấp đôi pipeline; crease mất ở khám phá, rolled_pit chưa xác định.
 4. `04-loader` [chưa có]: nạp dữ liệu theo phiên (tập S0, pool, các tập test).
 5. `05-pca` [chưa có]: giảm chiều bằng PCA, fit ở S0.
 6. `06-gauss-svi` [chưa có]: Gaussian theo lớp, học bằng SVI ở S0. Code dùng lại ở 11, 13.
