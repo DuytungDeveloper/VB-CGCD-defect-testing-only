@@ -3,8 +3,9 @@ for scoring only, to screen methods fast; a ranking at tier 1 must be confirmed 
 Apart from the check commands of replay.py, this is the only place in lab/ that reads the true labels of the pool.
 
   python lab/score.py 09 --from <v2 run> [--ks 5 10 15 20 30]     through scripts/exp.py: writes metrics.json
+  python lab/score.py 03                                             E03.02: linear probes on the GC10 features
 """
-import argparse, importlib, json, os, sys
+import argparse, importlib, importlib.util, json, os, sys
 from pathlib import Path
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -85,14 +86,108 @@ def tier1_09(run, ks=(5, 10, 15, 20, 30)):
     return out
 
 
+# ---------------------------------------------------------------- step 03: linear probe (E03.02)
+SETS_03 = {"fz": ("gc10_fz_cls5first_img80pct", "dino-vitb16", "gc10_frozen_km_evhung_d64_head"),
+           **{f"r{r}": (f"gc10_ft_cls5first_img80pct_r{r}", "dino-vitb16-sl", f"gc10_ft_cls5first_img80pct_r{r}_km_evhung_d64")
+              for r in range(3)}}                                   # name: (feature run tag, model, phase-2 run group)
+TEST_N_03 = {"rolled_pit": 6, "crease": 11, "inclusion": 43, "silk_spot": 124, "waist_folding": 30}   # E03.02/C3
+
+
+def wilson(k, n, z=1.96):
+    """95% Wilson score interval of k successes in n trials (Wilson 1927)."""
+    p, d = k / n, 1 + z * z / n
+    c, h = (p + z * z / (2 * n)) / d, z / d * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n))
+    return c - h, c + h
+
+
+def pipeline_recall_03(group, n_classes):
+    """Per-class recall on the S1 test set of the main.py runs <group>_s0..4: the 'confusion stage 1' lines summed over the
+    seeds (rows true ids, columns predicted ids; as scripts/cm_summary.py). Returns correct, total per class, number of runs."""
+    import re
+    pat = re.compile(r"confusion stage 1: rows=true cols=pred (\[\[.*\]\])")
+    logs = sorted(f for f in (ROOT / "runs").glob(f"*__{group}_s[0-4]/console.log"))
+    cms = [np.array(json.loads(pat.search(f.read_text(errors="replace")).group(1))) for f in logs]
+    assert len(cms) == 5 and all(c.shape == (n_classes, n_classes) for c in cms), f"{group}: {len(cms)} confusion matrices"
+    C = sum(cms)
+    return C.diagonal(), C.sum(1), len(cms)
+
+
+def tier1_03():
+    """E03.02: per-class linear probes on the GC10 features of SETS_03, against the per-class recall of the pipeline.
+    Train rows: roles S0, reserve, S1 (lab/data_io.py), true labels of all 10 classes (scoring only); test: 455 images.
+    Probes (scikit-learn): lr = LogisticRegression(max_iter=5000), lr_bal = the same with class_weight="balanced",
+    knn = 20 nearest neighbours by cosine distance, pca_lr_bal = lr_bal on PCA(64, random_state=0) fit on the S0 rows
+    (num_dim of step 05). Checks: C1 feature hashes = config.json of the phase-2 runs; C3 novel test counts = TEST_N_03;
+    C4 lr on all train rows of fz reproduces the logged probe accuracy 80.2% (LOG, 20260930_232359__gc10_extract_frozen)."""
+    from sklearn.decomposition import PCA
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.neighbors import KNeighborsClassifier
+    import data_io
+    spec = importlib.util.spec_from_file_location("exp", ROOT / "scripts" / "exp.py")
+    exp = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(exp)
+    split = json.load(open(ROOT / data_io.SPLITS["gc10"]))
+    names, n_old = split["classes"], split["n_base"]
+    img = data_io.images("gc10")
+    tr = img[img["part"] == "train"].sort_values("row")
+    rows = tr["row"][tr["role"].isin(["S0", "reserve", "S1"])].to_numpy()
+    s0 = tr["row"][tr["role"] == "S0"].to_numpy()
+    out, checks = {}, {}
+    for name, (tag, model, group) in SETS_03.items():
+        F = next((ROOT / "features").glob(f"*__{tag}")) / model
+        X, y = np.load(F / f"features-{model}.npy"), np.load(F / f"labels-{model}.npy").astype(int)
+        Xt, yt = np.load(F / f"test_features-{model}.npy"), np.load(F / f"test_labels-{model}.npy").astype(int)
+        assert np.array_equal(y[tr["row"]], tr["cls"]), f"{name}: labels file and data_io disagree"
+        cfg = json.loads(next((ROOT / "runs").glob(f"*__{group}_s0")).joinpath("config.json").read_text())
+        checks[f"C1_{name}"] = int(exp.hash_path(F) in cfg["inputs"].values())
+        checks[f"C3_{name}"] = int(all(int((yt == names.index(c)).sum()) == n for c, n in TEST_N_03.items()))
+        pca = PCA(64, random_state=0).fit(X[s0])
+        probes = {"lr": (LogisticRegression(max_iter=5000), X, Xt),
+                  "lr_bal": (LogisticRegression(max_iter=5000, class_weight="balanced"), X, Xt),
+                  "knn": (KNeighborsClassifier(20, metric="cosine"), X, Xt),
+                  "pca_lr_bal": (LogisticRegression(max_iter=5000, class_weight="balanced"), pca.transform(X), pca.transform(Xt))}
+        corr_p, tot_p, n_runs = pipeline_recall_03(group, len(names))
+        for pname, (clf, A, At) in probes.items():
+            pred = clf.fit(A[rows], y[rows]).predict(At)
+            rec = []
+            for c in range(n_old, len(names)):
+                k, n = int(((pred == c) & (yt == c)).sum()), int((yt == c).sum())
+                lo, hi = wilson(k, n)
+                rec.append(k / n)
+                out.update({f"{pname}_{name}_{names[c]}_k": k, f"{pname}_{name}_{names[c]}_n": n,
+                            f"{pname}_{name}_{names[c]}_lo": round(float(lo), 4), f"{pname}_{name}_{names[c]}_hi": round(float(hi), 4)})
+            out[f"{pname}_{name}_bal_novel"] = round(float(np.mean(rec)), 4)
+        rec = []
+        for c in range(n_old, len(names)):
+            r = corr_p[c] / tot_p[c]
+            n = int((yt == c).sum())                                 # the same n test images in every seed
+            lo, hi = wilson(round(r * n), n)
+            rec.append(r)
+            out.update({f"pipe_{name}_{names[c]}_recall": round(float(r), 4), f"pipe_{name}_{names[c]}_lo": round(float(lo), 4),
+                        f"pipe_{name}_{names[c]}_hi": round(float(hi), 4)})
+        out[f"pipe_{name}_bal_novel"] = round(float(np.mean(rec)), 4)
+        out[f"pipe_{name}_runs"] = n_runs
+        for c in ("rolled_pit", "crease", "inclusion", "silk_spot", "waist_folding"):   # decision rule of E03.02
+            lo, p = out[f"lr_bal_{name}_{c}_lo"], out[f"lr_bal_{name}_{c}_k"] / out[f"lr_bal_{name}_{c}_n"]
+            out[f"type_{name}_{c}"] = ("D" if lo > out[f"pipe_{name}_{c}_hi"] else "") + ("R" if p < 0.5 else "") or "U"
+        if name == "fz":
+            acc = float((LogisticRegression(max_iter=5000).fit(X, y).predict(Xt) == yt).mean())
+            out["C4_fz_lr_all_rows_acc"] = round(100 * acc, 1)
+            checks["C4"] = int(round(100 * acc, 1) == 80.2)
+    out.update(checks)
+    out["checks_ok"] = int(all(v == 1 for v in checks.values()))
+    return out
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["09"])
-    p.add_argument("--from", dest="run", required=True, help="run id or tag of a v2 run (runs/<run>/snap)")
+    p.add_argument("step", choices=["03", "09"])
+    p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    out = tier1_09(o.run, o.ks)
+    assert o.step == "03" or o.run, "step 09 needs --from <run>"
+    out = tier1_03() if o.step == "03" else tier1_09(o.run, o.ks)
     for key, v in out.items():
         print(f"{key:30s} {v}")
     if os.environ.get("EXP_RUN_DIR"):
