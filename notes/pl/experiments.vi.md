@@ -14,7 +14,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E02.05: cấu hình paper chuẩn hoá, FT seed r0–r2, GC10 và NEU, 30 run phase 2 (2026-10-05; xong: mốc so sánh của QD19) — LOG, các run `*_cls5first_img80pct_r*`, `*_cls3first_img80pct_r*`
 - E02.06: ngân sách nhãn ở phase 1: ít ảnh mỗi lớp (10, 25, 50), hoặc đổi số lớp có nhãn và cách chọn (đông nhất, ngẫu nhiên) (2026-10-05; chờ phase 2: mới trích đặc trưng) — LOG ngày 2026-10-05, dòng "label budget"
 - E03.01: GC10, chuẩn hoá đặc trưng theo camera (2026-10-01; xong, LOẠI: không vượt nhiễu k-means; 10 seed, không lưu run) — `notes/plan.vi.md` §5
-- E03.02: probe theo lớp trên đặc trưng GC10 (`fz`, `ft` r0–r2) so với recall của pipeline: điểm mất ở biểu diễn hay ở khám phá (2026-11-01; đã tiền đăng ký) — mục E03.02 dưới đây
+- E03.02: probe theo lớp trên đặc trưng GC10 (`fz`, `ft` r0–r2) so với recall của pipeline: điểm mất ở biểu diễn hay ở khám phá (2026-11-01; xong: crease mất ở khám phá, rolled_pit chưa xác định; E09.06 vẫn là bước kế tiếp) — mục E03.02 dưới đây
 - E04.01: GC10, S0 không nhãn (`--s0_labels none`) (2026-10-01; xong: khám phá lớp mới không cần nhãn S0) — note LOG `gc10_fr_nolab_km_evhung_d64_s4`
 - E05.01: NEU, `num_dim` 384 so với 128 (2026-09-30; xong: 384 làm Σ sụp ở S0, dùng 128) — D21
 - E06.01: CT1, tiên nghiệm co Inverse-Wishart tối ưu qua SVI (2026-10-01; xong, LOẠI: tiên nghiệm gần như vô hiệu, D23) — `notes/improvement-1.vi.md`
@@ -58,6 +58,40 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - Nếu C1–C4 không đạt: không đọc kết quả, sửa lỗi rồi chạy lại một lần, ghi lý do.
 - Lưu ý: probe dùng nhãn thật của lớp mới, chỉ để chấm. Tiền đăng ký E09.06 phải ghi là đã thấy các số này.
 - Tag: `gc10_e03_02` (một run).
+
+### Kết quả (2026-11-01; run `20261101_165324__gc10_e03_02`, code `b89f1d6`, tiền đăng ký `afdeb1d`)
+
+- Toàn vẹn: C1 và C3 đạt ở cả 4 bộ; C2 đạt trước khi chạy (`lab/03-features.ipynb` §1.2); C4: `lr` trên toàn bộ ảnh train của `fz` cho 80.2%. `checks_ok` = 1.
+- Probe quyết định (`lr_bal`, 768 chiều), số ảnh test đoán đúng / tổng, so với recall của pipeline (cộng 5 seed):
+
+  | bộ | silk_spot | inclusion | rolled_pit | crease | waist_folding | balanced novel |
+  |---|---|---|---|---|---|---|
+  | `fz` probe | 111/124 | 22/43 | 4/6 | 5/11 | 25/30 | 0.672 |
+  | `fz` pipeline | 0.665 | 0.140 | 0.000 | 0.109 | 0.967 | 0.376 |
+  | `ft` r0 probe | 84/124 | 24/43 | 3/6 | 5/11 | 26/30 | 0.611 |
+  | `ft` r0 pipeline | 0.682 | 0.163 | 0.000 | 0.345 | 0.780 | 0.394 |
+  | `ft` r1 probe | 96/124 | 27/43 | 3/6 | 6/11 | 28/30 | 0.676 |
+  | `ft` r1 pipeline | 0.421 | 0.074 | 0.000 | 0.000 | 0.967 | 0.292 |
+  | `ft` r2 probe | 105/124 | 25/43 | 3/6 | 8/11 | 27/30 | 0.711 |
+  | `ft` r2 pipeline | 0.639 | 0.181 | 0.000 | 0.055 | 0.933 | 0.362 |
+
+- Xếp loại (D, R, U, theo quy tắc):
+  - rolled_pit: U ở `fz`, r0, r1, r2 (probe 3/6 hoặc 4/6, pipeline 0/6; khoảng Wilson chồng nhau);
+  - crease: R ở `fz` và r0, D ở r1 và r2;
+  - inclusion: D ở cả 4 bộ; silk_spot: D ở `fz`, r1, r2, U ở r0; waist_folding: U ở cả 4 bộ.
+- Quyết định: crease mang D (2/3 bộ `ft`), rolled_pit không mang D hay R → E09.06 giữ là thí nghiệm kế tiếp; không lớp nào mang R ở 2/3 bộ `ft` → không nâng ưu tiên Q03.02, Q05.02.
+- Dự đoán: "rolled_pit mang D" sai (U ở cả ba bộ `ft`); "crease U hoặc R" chỉ đúng ở r0.
+- Mô tả (không dùng cho quyết định), balanced novel `fz` / r0 / r1 / r2:
+  - `lr`: 0.666 / 0.623 / 0.657 / 0.685;
+  - `knn`: 0.445 / 0.509 / 0.484 / 0.499; crease 0/11 ở cả 4 bộ, rolled_pit 1–2/6;
+  - `pca_lr_bal`: 0.562 / 0.641 / 0.570 / 0.612, so với `lr_bal` thô 0.672 / 0.611 / 0.676 / 0.711.
+
+### Kết luận
+
+- Trên cấu hình paper, phần lớn điểm của lớp mới mất ở khâu khám phá, không ở đặc trưng: probe `lr_bal` đạt balanced novel 0.61–0.71 trên `ft`, pipeline 0.29–0.39; rõ nhất ở inclusion (D ở mọi bộ) và crease (D ở 2/3 bộ `ft`). Vì vậy E09.06 (bước 09) vẫn là thí nghiệm kế tiếp.
+- rolled_pit không xếp loại được: chỉ có 6 ảnh test, probe 3/6. Không kết luận gì về lớp này từ tập test hiện tại.
+- [SUY LUẬN] Fine-tune trên lớp cũ không làm lớp mới dễ tách hơn theo đường thẳng (`fz` 0.672 nằm giữa ba bộ `ft`). PCA-64 của bước 05 có thể mất tới 11 điểm (r1, r2) nhưng không mất ở r0. k-NN thua hẳn probe tuyến tính ở lớp hiếm, nên các phương pháp phân cụm dựa trên láng giềng gần (Q09.06) cần được kiểm riêng cho lớp hiếm.
+- Đã thấy các số này trước khi tiền đăng ký E09.06; E09.06 phải ghi điều này.
 
 ## E09.04 — Phân cụm thừa: lớp hiếm có cụm riêng không? (Q09.11)
 
