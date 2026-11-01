@@ -34,7 +34,11 @@ Notebook nền 00–14 dựng đủ trước, theo thứ tự (QD23); notebook c
 
 Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14 chạy cho mỗi seed. Mặc định của mọi bước hiện là code gốc với cấu hình đã chốt cho GC10/NEU (k-means `n_init` 10, Hungarian chỉ khi chấm, d = 64/128).
 
-1. `01-preprocess` [chưa có]: tiền xử lý ảnh.
+1. `01-preprocess` [có, commit `50767b1`]: tiền xử lý ảnh, bốn mục
+   1. code: tham số phase 1 của 8 run (GC10, NEU × `fz`, `ft` r0–r2), đoạn transform; ảnh lúc fine-tune đi qua cùng transform, không augmentation;
+   2. resize: GC10 co bicubic 9.14 × 4.46 lần (vạch mảnh mất tương phản), NEU phóng 1.28 lần rồi cắt giữa 224;
+   3. chuẩn hoá: ảnh xám thành ba kênh, thống kê đầu vào S0 so với ImageNet;
+   4. kiểm đầu cuối: trích lại batch đầu bằng DINO gốc, trùng từng bit với đặc trưng `fz` (GC10, NEU).
 2. `02-finetune` [chưa có]: fine-tune backbone.
 3. `03-features` [chưa có]: trích đặc trưng, CLS hay pooler.
 4. `04-loader` [chưa có]: nạp dữ liệu theo phiên (tập S0, pool, các tập test).
