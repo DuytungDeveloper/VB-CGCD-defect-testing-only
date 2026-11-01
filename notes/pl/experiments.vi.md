@@ -14,6 +14,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E02.05: cấu hình paper chuẩn hoá, FT seed r0–r2, GC10 và NEU, 30 run phase 2 (2026-10-05; xong: mốc so sánh của QD19) — LOG, các run `*_cls5first_img80pct_r*`, `*_cls3first_img80pct_r*`
 - E02.06: ngân sách nhãn ở phase 1: ít ảnh mỗi lớp (10, 25, 50), hoặc đổi số lớp có nhãn và cách chọn (đông nhất, ngẫu nhiên) (2026-10-05; chờ phase 2: mới trích đặc trưng) — LOG ngày 2026-10-05, dòng "label budget"
 - E03.01: GC10, chuẩn hoá đặc trưng theo camera (2026-10-01; xong, LOẠI: không vượt nhiễu k-means; 10 seed, không lưu run) — `notes/plan.vi.md` §5
+- E03.02: probe theo lớp trên đặc trưng GC10 (`fz`, `ft` r0–r2) so với recall của pipeline: điểm mất ở biểu diễn hay ở khám phá (2026-11-01; đã tiền đăng ký) — mục E03.02 dưới đây
 - E04.01: GC10, S0 không nhãn (`--s0_labels none`) (2026-10-01; xong: khám phá lớp mới không cần nhãn S0) — note LOG `gc10_fr_nolab_km_evhung_d64_s4`
 - E05.01: NEU, `num_dim` 384 so với 128 (2026-09-30; xong: 384 làm Σ sụp ở S0, dùng 128) — D21
 - E06.01: CT1, tiên nghiệm co Inverse-Wishart tối ưu qua SVI (2026-10-01; xong, LOẠI: tiên nghiệm gần như vô hiệu, D23) — `notes/improvement-1.vi.md`
@@ -26,6 +27,37 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.05: phân cụm thừa trên cấu hình paper (`ft`) (2026-10-07; xong, SỐNG) — mục E09.05 dưới đây
 - E09.06: gộp cụm con theo khoảng cách Bhattacharyya (chưa tiền đăng ký)
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
+
+## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
+
+### Tiền đăng ký (2026-11-01)
+
+- Câu hỏi: với mỗi lớp mới của GC10, trên đặc trưng `ft` r0–r2 (cấu hình paper, QD19), một bộ phân lớp tuyến tính có nhãn thật đọc được lớp đó tới đâu, so với recall cuối pipeline? Phần chênh nói điểm mất nằm ở biểu diễn (bước 01–03, 05) hay ở khám phá (bước 09–13).
+- Vì sao có thí nghiệm này: kết quả quyết định cải tiến tiếp theo nhắm vào bước nào (E09.06 ở bước 09, hay Q03.02 và Q05.02 ở đặc trưng). Trên `fz` đã có số cũ: probe balanced novel 69.0 so với pipeline 37.6 (LOG, CORRECTION ngày 2026-10-02 ở note `gc10_frozen_gmm10_evhung_d64_s4`); trên `ft` chưa có số theo lớp.
+- Cơ sở: phân hoạch của k-means là bộ phân lớp tuyến tính theo vùng Voronoi (argmin ‖x − c_k‖² = argmax 2c_kᵀx − ‖c_k‖²), nên bộ tuyến tính học có nhãn là trần xấp xỉ của bước 09 trên cùng đặc trưng; probe tuyến tính là cách đánh giá đặc trưng chuẩn (Alain & Bengio 2016; Caron et al. 2021). Chỉ là trần xấp xỉ: logistic regression có điều chuẩn, probe học trên ảnh train còn k-means chạy trên pool, và sau bước 09 còn bộ phân lớp Gaussian.
+- Dữ liệu: 4 bộ đặc trưng GC10 (`gc10_fz_cls5first_img80pct`, `gc10_ft_cls5first_img80pct_r0`–`r2`). Học trên các ảnh train có vai trò S0, reserve, S1 (`lab/data_io.py`), nhãn thật của cả 10 lớp; đo trên 455 ảnh test.
+- Cách làm: `python scripts/exp.py run gc10_e03_02 -- python lab/score.py 03`, hàm `tier1_03` của `lab/score.py` (commit `b89f1d6`). Một run; ngẫu nhiên duy nhất là PCA với `random_state=0`.
+- Probe (scikit-learn): `lr` = LogisticRegression(max_iter=5000); `lr_bal` = như `lr`, `class_weight="balanced"`; `knn` = 20 láng giềng gần nhất theo cosine; `pca_lr_bal` = `lr_bal` trên PCA 64 chiều fit ở các ảnh S0 (như bước 05).
+- Mốc so sánh: recall từng lớp trên test của pipeline, cộng 5 seed (dòng `confusion stage 1` trong `console.log`) của các run E02.05 `gc10_ft_cls5first_img80pct_r<r>_km_evhung_d64_s0`–`s4`; với `fz`: `gc10_frozen_km_evhung_d64_head_s0`–`s4`.
+- Đại lượng: recall từng lớp mới dạng k/n với khoảng tin cậy 95% Wilson (Wilson 1927); balanced novel = trung bình recall của 5 lớp mới. Với pipeline, khoảng Wilson tính trên n ảnh test của lớp (5 seed dùng chung các ảnh đó, nên cộng seed không làm n lớn hơn).
+- Phép kiểm toàn vẹn; chỉ đọc kết quả khi cả bốn đạt:
+  - C1: mã băm của 4 bộ đặc trưng trùng `config.json` của các run pipeline tương ứng;
+  - C2: kiểm đầu cuối `ft`: đặc trưng trích lại từ checkpoint trùng file (`lab/03-features.ipynb` §1.2, đạt ngày 2026-11-01, trùng từng bit);
+  - C3: số ảnh test: rolled_pit 6, crease 11, inclusion 43, silk_spot 124, waist_folding 30;
+  - C4: `lr` học trên toàn bộ ảnh train của `fz` tái lập độ chính xác 80.2% (LOG, `20260930_232359__gc10_extract_frozen`).
+- Quy tắc xếp loại (probe `lr_bal`, 768 chiều thô), cho mỗi lớp mới và mỗi bộ đặc trưng:
+  - D (mất ở khám phá): cận dưới khoảng tin cậy của probe lớn hơn cận trên của pipeline;
+  - R (biểu diễn yếu): recall của probe < 50%;
+  - một lớp có thể vừa D vừa R (DR); không D, không R là U (chưa xác định).
+- Quy tắc quyết định, cho rolled_pit và crease; một lớp mang nhãn D (hay R) nếu nhãn đó, kể cả trong DR, xuất hiện ở ít nhất 2/3 bộ `ft`:
+  - có lớp mang D → E09.06 giữ là thí nghiệm kế tiếp của dòng PL;
+  - có lớp mang R → nâng ưu tiên Q03.02 và Q05.02 (làm sau E09.06 nếu cũng có D);
+  - không lớp nào mang D hay R → không đổi kế hoạch; ghi "chưa xác định do số ảnh test nhỏ".
+- Chỉ để mô tả, không dùng cho quyết định: `lr`, `knn`, `pca_lr_bal`; inclusion, silk_spot, waist_folding; bộ `fz`.
+- Dự đoán [suy luận, dựa trên số cũ của `fz`: probe rolled_pit 67%, crease 45%; pipeline 0% và 11%]: rolled_pit mang D; crease U hoặc R. Không đoán số của `ft`.
+- Nếu C1–C4 không đạt: không đọc kết quả, sửa lỗi rồi chạy lại một lần, ghi lý do.
+- Lưu ý: probe dùng nhãn thật của lớp mới, chỉ để chấm. Tiền đăng ký E09.06 phải ghi là đã thấy các số này.
+- Tag: `gc10_e03_02` (một run).
 
 ## E09.04 — Phân cụm thừa: lớp hiếm có cụm riêng không? (Q09.11)
 
