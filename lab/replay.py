@@ -492,6 +492,68 @@ def load(run, upto="14", check=True):
     return st
 
 
+def _compare(new, ref, rtol):
+    """(kind, max|diff|, ok) of one output key against its snapshot, by the rule of rerun()."""
+    if isinstance(ref, dict):
+        if set(new) != set(ref):
+            return "dict", float("nan"), False
+        parts = [_compare(new[x], ref[x], rtol) for x in ref]
+        return "dict", max((d for _, d, _ in parts), default=0.0), all(ok for _, _, ok in parts)
+    if hasattr(ref, "components_") or hasattr(ref, "model"):        # PCA, KMeansCluster
+        return type(ref).__name__, float("nan"), _same(new, ref)
+    if isinstance(ref, float) or isinstance(new, float):
+        d = abs(float(new) - float(ref))
+        return "float", d, d <= rtol * abs(float(ref))
+    if isinstance(ref, np.ndarray) or hasattr(new, "shape"):
+        a, b = np.asarray(new), np.asarray(ref)
+        if a.shape != b.shape:
+            return f"array {b.dtype}", float("nan"), False
+        if np.issubdtype(b.dtype, np.floating):
+            d = float(np.abs(a.astype(np.float64) - b).max()) if b.size else 0.0
+            return f"array {b.dtype}", d, d <= rtol * float(np.abs(b).max() if b.size else 0.0)
+        return f"array {b.dtype}", float(np.sum(a != b)), bool(np.array_equal(a, b))
+    return type(ref).__name__, float("nan"), new == ref
+
+
+def rerun(run, k, rtol=1e-6):
+    """Notebooks 04-14 (QD23): run step k again from the snapshot before it (step 04 from a fresh state), as C2 does but
+    for step k only, and compare each output key with snapshot k. Pass rule, fixed before use (2026-11-01, as C1):
+    discrete outputs (integers, booleans, dicts of them) equal; floats and float arrays within rtol * max|value|; PCA and
+    cluster models by _same. Stops if JAX is not on the device the snapshots were made on; warns if the GPU driver differs
+    from config.json. Writes nothing. Outside the hash chain (chain and new_state do not call it).
+    Returns ({key: new value}, ok)."""
+    assert k in STEPS, f"rerun: step {k!r} is not one of {STEPS}"
+    if "jax" in sys.modules and DETERMINISTIC not in os.environ.get("XLA_FLAGS", ""):
+        raise SystemExit("rerun: jax was imported before XLA_FLAGS was set: restart the kernel and run cell 0 first")
+    blobs = snapshots(run)
+    _fresh(blobs, k)
+    prev = STEPS[STEPS.index(k) - 1] if k != "04" else None
+    st = load(run, prev, check=False) if prev else new_state(types.SimpleNamespace(**blobs["04"]["meta"]["args"]))
+    import jax
+    device, seen = jax.default_backend(), {b["meta"].get("device", "gpu") for b in blobs.values()}
+    if seen != {device}:
+        raise SystemExit(f"rerun: JAX runs on {device}, the snapshots of {run} on {sorted(seen)}")
+    try:
+        gpu = subprocess.run(["nvidia-smi", "--query-gpu=name,driver_version", "--format=csv,noheader"],
+                             capture_output=True, text=True).stdout.strip() or None
+    except FileNotFoundError:
+        gpu = None
+    gpu_run = (json.loads((_run_dir(run) / "config.json").read_text()).get("env") or {}).get("gpu")
+    print(f"rerun step {k} of {run} | device {device} | GPU now {gpu} | GPU of the run {gpu_run}"
+          + ("" if gpu == gpu_run else " | driver differs: float outputs may move in the last bits"))
+    chain(st, blobs[k]["spec"], k, blobs, upto=k)
+    rows, out = [], {}
+    for key, ref in blobs[k]["out"].items():
+        out[key] = st[key]
+        kind, d, ok = _compare(st[key], ref, rtol)
+        rows.append((key, kind, d, ok))
+    for key, kind, d, ok in rows:
+        print(f"  {'OK  ' if ok else 'DIFF'} {key:12s} {kind:22s} max|diff| {d:.3g}")
+    ok = all(r[3] for r in rows)
+    print(f"rerun step {k}: {'OK' if ok else 'DIFF'} ({sum(r[3] for r in rows)}/{len(rows)} keys)")
+    return out, ok
+
+
 # ---------------------------------------------------------------- commands: run, check (C1), C2, C3
 def _git():
     sh = lambda *c: subprocess.run(c, cwd=ROOT, capture_output=True, text=True).stdout.strip()
