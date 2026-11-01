@@ -1,6 +1,6 @@
 # Thay đổi code so với upstream — VB-CGCD fork
 
-Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-10-19: thêm các thay đổi từ 1/10 tới 18/10; mã theo QD22 (mã cũ: `notes/old-codes.vi.md`); bảng đổi thành danh sách. Cập nhật 2026-10-20: `_check_09` của `lab/replay.py` và kết quả QD21/C1–C4 (§1c, §4); sửa ghi chú về các phép kiểm hồi quy của CT1 (§4). Cập nhật 2026-10-21: `lab/variants.py`, `lab/score.py`; xoá `lab/pl_cluster.py` và bản đầu của bàn mổ; phép kiểm GPU trong `replay.py run` (§1c, §4, §5). Cập nhật 2026-10-22: `lab/data_io.py` (§1c, §4, §5). Cập nhật 2026-10-24: `lab/00-data-gc10.ipynb` (§1c, §5). Cập nhật 2026-11-01: xoá `scripts/probe.py`, `scripts/vram_probe.py`, `scripts/ckpt_vs_data.py`; `lab/data_io.py` đọc NEU-DET; `lab/00-data-neu.ipynb`; sửa ô Kết quả của cell 0 trong `lab/00-data-gc10.ipynb` (§1c, §4, §5).
+Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-10-19: thêm các thay đổi từ 1/10 tới 18/10; mã theo QD22 (mã cũ: `notes/old-codes.vi.md`); bảng đổi thành danh sách. Cập nhật 2026-10-20: `_check_09` của `lab/replay.py` và kết quả QD21/C1–C4 (§1c, §4); sửa ghi chú về các phép kiểm hồi quy của CT1 (§4). Cập nhật 2026-10-21: `lab/variants.py`, `lab/score.py`; xoá `lab/pl_cluster.py` và bản đầu của bàn mổ; phép kiểm GPU trong `replay.py run` (§1c, §4, §5). Cập nhật 2026-10-22: `lab/data_io.py` (§1c, §4, §5). Cập nhật 2026-10-24: `lab/00-data-gc10.ipynb` (§1c, §5). Cập nhật 2026-11-01: xoá `scripts/probe.py`, `scripts/vram_probe.py`, `scripts/ckpt_vs_data.py`; `lab/data_io.py` đọc NEU-DET; `lab/00-data-neu.ipynb`; sửa ô Kết quả của cell 0 trong `lab/00-data-gc10.ipynb` (§1c, §4, §5); `lab/01-preprocess.ipynb` (§1c, §5).
 
 Nguyên tắc: **mặc định trong code Python = hành vi upstream**. Wrapper phase 1 đặt
 `FT_BATCH_SIZE=32 FT_ACCUM=4` vì giới hạn 8 GB; cấu hình này đổi số ở mức nhỏ (PATCH 2).
@@ -208,6 +208,7 @@ Bốn file `eval_fold.py`, `pick_lambda.py`, `queue_eq3.sh`, `queue_grid.sh` đ�
   Hàm chính: `images(dataset)`, `objects(dataset, path)`, `diagnostics(dataset)`.
 - `lab/00-data-gc10.ipynb` (24/10, `1e46674`): notebook dữ liệu GC10-DET (QD23 bước 2), ba mục giao thức, ảnh, nhãn. Đọc file split và XML qua `data_io.py`, và ảnh chụp bước 04 của run `gc10_v2_ft_r0_s4`. Không run nào dùng file này; notebook trong `lab/` không làm run bị dirty (`scripts/exp.py`, 15/10). Sửa 1/11 (`75a7086`): ô Kết quả của cell 0 ghi `1180a1b` như output, thay vì `c4bf75f`.
 - `lab/00-data-neu.ipynb` (1/11, `0079819`): notebook dữ liệu NEU-DET (QD23 bước 2), ba mục giao thức, ảnh, nhãn. Đọc file split, ảnh và XML qua `data_io.py`; NEU chưa có ảnh chụp nên không đọc ảnh chụp. Không run nào dùng file này.
+- `lab/01-preprocess.ipynb` (1/11, `50767b1`): notebook bước 01 (QD23 bước 3), bốn mục code, resize, chuẩn hoá, kiểm đầu cuối. Đọc `config.json` của 8 run phase 1, code trong `feature_extractor/`, ảnh qua `data_io.py`, và đặc trưng `fz`; tải DINO gốc từ cache Hugging Face để trích lại 128 hàng đầu. Không run nào dùng file này.
 - `replay.py` và `pl_cluster.py` nằm ở `scripts/` tới ngày 15/10 (dời ở `dd7a954`); bản cũ ở tag `nb-v1`.
 
 **Sửa file hạ tầng từ 01/10:**
@@ -305,7 +306,7 @@ Không chép danh sách vào đây (chép tay sẽ lệch, xem lỗi "12 file" c
 
     git diff --name-status upstream-baseline -- . ':(exclude)runs' ':(exclude)notes'
 
-Kiểm 2026-11-01, sau khi xoá 3 script (`bba8722`) và thêm `lab/00-data-neu.ipynb`: **65 dòng = 8 `M` + 57 `A`**; trong 57 `A` có 26 file split ngân sách nhãn, `scripts/` có 13 file, `lab/` có 7 file. Lần kiểm trước (2026-10-24, sau khi thêm `lab/00-data-gc10.ipynb`): 67 dòng = 8 `M` + 59 `A`.
+Kiểm 2026-11-01, sau khi thêm `lab/01-preprocess.ipynb` (`50767b1`): **66 dòng = 8 `M` + 58 `A`**; trong 58 `A` có 26 file split ngân sách nhãn, `scripts/` có 13 file, `lab/` có 8 file. Lần kiểm trước (2026-11-01, sau khi xoá 3 script và thêm `lab/00-data-neu.ipynb`): 65 dòng = 8 `M` + 57 `A`.
 Nếu lệnh cho số khác, tài liệu này đã lệch.
 
 ---
