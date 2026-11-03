@@ -47,7 +47,10 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
    1. đặc trưng: mã băm 8 bộ trùng `config.json`; kiểm đầu cuối `ft` (trích lại từ checkpoint, trùng từng bit); pooler = tanh của một phép chiếu ngẫu nhiên, gần như giữ khoảng cách (D8);
    2. `fz` và `ft`: fine-tune dịch mọi ảnh (cosine khoảng 0.75); ba FT seed có hình học gần nhau (Spearman 0.93);
    3. probe theo lớp (E03.02, run `gc10_e03_02`, bộ đo `score.py` `tier1_03`): đặc trưng đọc được gần gấp đôi pipeline; crease mất ở khám phá, rolled_pit chưa xác định.
-4. `04-loader` [chưa có]: nạp dữ liệu theo phiên (tập S0, pool, các tập test).
+4. `04-loader` [có, commit `3f6e08e`]: nạp dữ liệu theo phiên, ba mục
+   1. kiểm: `rerun` bước 04 trùng từng bit; sáu tập và thành phần lớp;
+   2. code: loader t1 của GC10; 5 lần rút RNG, chỉ một lần chọn 50 ảnh cũ vào pool; D16 thấy bằng số (pool sau phiên 1 có 371 hàng);
+   3. phiên: các tập test từng hàng; qua 15 ảnh chụp, seed chỉ đổi 50 ảnh cũ được bốc và thứ tự hàng, FT seed không đổi ảnh nào; đổi thứ tự hàng của pool làm đổi k-means ở bước 09 (một hoán vị: ARI 0.73, balanced accuracy lớp mới 0.32 thành 0.56).
 5. `05-pca` [chưa có]: giảm chiều bằng PCA, fit ở S0.
 6. `06-gauss-svi` [chưa có]: Gaussian theo lớp, học bằng SVI ở S0. Code dùng lại ở 11, 13.
 7. `07-early-stop` [chưa có]: luật dừng sớm theo det Σ; chỉ chạy ở phiên online.
