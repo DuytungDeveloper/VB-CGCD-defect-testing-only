@@ -70,6 +70,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q09.05 [mở] Nhãn thật tối thiểu có được dùng cho lớp mới (như setting Active GCD), hay chỉ cho lớp cơ sở? (QD16)
 - Q09.06 [mở] Ở bước 09, phương pháp nào cho nhãn giả tốt hơn k-means theo bộ đo tầng 1 (ứng viên: GMM trên PCA-64 hoặc covariance chéo, phân cụm phổ trên đồ thị kNN, HDBSCAN), và thứ hạng có giữ ở tầng 2 không? Siêu tham số không chỉnh trên pool có nhãn thật của lớp mới. Nguồn: QD18.
   - 2026-11-01: E03.02: probe k-NN (k = 20, cosine) gần như không đọc được lớp hiếm (crease 0/11 ở cả 4 bộ, rolled_pit 1–2/6) dù probe tuyến tính đọc được. [SUY LUẬN] Phương pháp dựa trên láng giềng gần (phân cụm phổ trên kNN, HDBSCAN) cần được kiểm riêng cho lớp hiếm trước khi xếp hạng.
+- Q09.12 [mở] k-means ở bước 09 (`n_init` 10) có ổn định theo thứ tự hàng của pool không? Ở r0 seed 4, cùng trạng thái RNG, chỉ đổi thứ tự hàng (do bước 04 xáo theo seed): ARI 0.73, inertia 82926 thành 82757, balanced accuracy lớp mới trên pool 0.32 thành 0.56, crease có cụm riêng (`04-loader` §3.3; một hoán vị). Cần đo trên 15 ảnh chụp × nhiều hoán vị: mức dao động; inertia thấp hơn có đi cùng balanced accuracy cao hơn không; tăng `n_init`, hoặc chọn nghiệm inertia thấp nhất qua nhiều thứ tự, có giúp không. Nếu dao động lớn, nó cũng ảnh hưởng cách đọc mọi kết quả theo seed (Q14.03) và thiết kế E09.06. Cấu hình nào thuộc thí nghiệm thì tiền đăng ký trước khi chạy trên pool lớp mới. Nguồn: `04-loader` (`3f6e08e`).
 
 ### 12 Bộ lọc cũ/mới
 
@@ -131,3 +132,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-01: `00-data-neu` (`0079819`) làm nguồn phía NEU của Q00.01, Q00.02; sửa câu chữ Q00.02 (nhiều yếu tố khác nhau cùng lúc, cần can thiệp trong một bộ).
 - 2026-11-01: thêm Q02.06 (số epoch fine-tune trên GC10) từ `02-finetune` (`3db9aef`).
 - 2026-11-01: E03.02 xong (`d467c6b`): ghi kết quả vào Q03.02, Q14.04, Q09.06.
+- 2026-11-04: thêm Q09.12 (k-means không ổn định theo thứ tự hàng của pool) từ `04-loader` (`3f6e08e`).
