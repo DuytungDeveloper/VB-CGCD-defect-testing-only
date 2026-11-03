@@ -1,6 +1,6 @@
 # Thay đổi code so với upstream — VB-CGCD fork
 
-Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-10-19: thêm các thay đổi từ 1/10 tới 18/10; mã theo QD22 (mã cũ: `notes/old-codes.vi.md`); bảng đổi thành danh sách. Cập nhật 2026-10-20: `_check_09` của `lab/replay.py` và kết quả QD21/C1–C4 (§1c, §4); sửa ghi chú về các phép kiểm hồi quy của CT1 (§4). Cập nhật 2026-10-21: `lab/variants.py`, `lab/score.py`; xoá `lab/pl_cluster.py` và bản đầu của bàn mổ; phép kiểm GPU trong `replay.py run` (§1c, §4, §5). Cập nhật 2026-10-22: `lab/data_io.py` (§1c, §4, §5). Cập nhật 2026-10-24: `lab/00-data-gc10.ipynb` (§1c, §5). Cập nhật 2026-11-01: xoá `scripts/probe.py`, `scripts/vram_probe.py`, `scripts/ckpt_vs_data.py`; `lab/data_io.py` đọc NEU-DET; `lab/00-data-neu.ipynb`; sửa ô Kết quả của cell 0 trong `lab/00-data-gc10.ipynb` (§1c, §4, §5); `lab/01-preprocess.ipynb`, `lab/02-finetune.ipynb` (§1c, §5); `lab/score.py` thêm `tier1_03` cho E03.02 (§1c); `lab/03-features.ipynb` (§1c, §5). Cập nhật 2026-11-03: `rerun` trong `lab/replay.py` (§1c, §4).
+Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-10-19: thêm các thay đổi từ 1/10 tới 18/10; mã theo QD22 (mã cũ: `notes/old-codes.vi.md`); bảng đổi thành danh sách. Cập nhật 2026-10-20: `_check_09` của `lab/replay.py` và kết quả QD21/C1–C4 (§1c, §4); sửa ghi chú về các phép kiểm hồi quy của CT1 (§4). Cập nhật 2026-10-21: `lab/variants.py`, `lab/score.py`; xoá `lab/pl_cluster.py` và bản đầu của bàn mổ; phép kiểm GPU trong `replay.py run` (§1c, §4, §5). Cập nhật 2026-10-22: `lab/data_io.py` (§1c, §4, §5). Cập nhật 2026-10-24: `lab/00-data-gc10.ipynb` (§1c, §5). Cập nhật 2026-11-01: xoá `scripts/probe.py`, `scripts/vram_probe.py`, `scripts/ckpt_vs_data.py`; `lab/data_io.py` đọc NEU-DET; `lab/00-data-neu.ipynb`; sửa ô Kết quả của cell 0 trong `lab/00-data-gc10.ipynb` (§1c, §4, §5); `lab/01-preprocess.ipynb`, `lab/02-finetune.ipynb` (§1c, §5); `lab/score.py` thêm `tier1_03` cho E03.02 (§1c); `lab/03-features.ipynb` (§1c, §5). Cập nhật 2026-11-03: `rerun` trong `lab/replay.py` (§1c, §4). Cập nhật 2026-11-04: `lab/04-loader.ipynb` (§1c, §5).
 
 Nguyên tắc: **mặc định trong code Python = hành vi upstream**. Wrapper phase 1 đặt
 `FT_BATCH_SIZE=32 FT_ACCUM=4` vì giới hạn 8 GB; cấu hình này đổi số ở mức nhỏ (PATCH 2).
@@ -213,6 +213,7 @@ Bốn file `eval_fold.py`, `pick_lambda.py`, `queue_eq3.sh`, `queue_grid.sh` đ�
 - `lab/01-preprocess.ipynb` (1/11, `50767b1`): notebook bước 01 (QD23 bước 3), bốn mục code, resize, chuẩn hoá, kiểm đầu cuối. Đọc `config.json` của 8 run phase 1, code trong `feature_extractor/`, ảnh qua `data_io.py`, và đặc trưng `fz`; tải DINO gốc từ cache Hugging Face để trích lại 128 hàng đầu. Không run nào dùng file này.
 - `lab/02-finetune.ipynb` (1/11, `3db9aef`): notebook bước 02 (QD23 bước 3), ba mục thiết lập, toán của BOFT, quá trình học. Đọc `console.log` của 6 run `ft` và checkpoint `ft_ckpt.pt` của GC10 r0–r2; dựng mô hình bằng `load_model()` của `sl_finetuned_model.py` trên CPU, không huấn luyện. Không run nào dùng file này.
 - `lab/03-features.ipynb` (1/11, `17f4cc5`): notebook bước 03 (QD23 bước 3), ba mục đặc trưng, `fz` và `ft`, probe theo lớp. Đọc 8 bộ đặc trưng, `config.json`, checkpoint `ft_ckpt.pt`, ảnh qua `data_io.py`; trích lại trên GPU 128 hàng đầu (GC10, NEU) và 455 ảnh test GC10 bằng mô hình dựng từ checkpoint; đọc `metrics.json` của run E03.02 (`gc10_e03_02`). Không run nào dùng file này.
+- `lab/04-loader.ipynb` (4/11, `3f6e08e`): notebook bước 04 (QD23 bước 5), ba mục kiểm, code, phiên. Gọi `replay.rerun` cho bước 04 của `gc10_v2_ft_r0_s4`; đọc `snap/04.pkl` của 15 run `gc10_v2_ft_*`; chạy lại loader một lần với `np.random.permutation` được bọc để ghi các lần gọi; chạy `s09_cluster` hai lần (thứ tự gốc và một hoán vị) từ trạng thái RNG của ảnh chụp 09. Không ghi file; không run nào dùng file này.
 - `replay.py` và `pl_cluster.py` nằm ở `scripts/` tới ngày 15/10 (dời ở `dd7a954`); bản cũ ở tag `nb-v1`.
 
 **Sửa file hạ tầng từ 01/10:**
@@ -311,7 +312,7 @@ Không chép danh sách vào đây (chép tay sẽ lệch, xem lỗi "12 file" c
 
     git diff --name-status upstream-baseline -- . ':(exclude)runs' ':(exclude)notes'
 
-Kiểm 2026-11-01, sau khi thêm `lab/03-features.ipynb` (`17f4cc5`): **68 dòng = 8 `M` + 60 `A`**; trong 60 `A` có 26 file split ngân sách nhãn, `scripts/` có 13 file, `lab/` có 10 file. Lần kiểm trước (2026-11-01, sau khi thêm `lab/02-finetune.ipynb`): 67 dòng = 8 `M` + 59 `A`.
+Kiểm 2026-11-04, sau khi thêm `lab/04-loader.ipynb` (`3f6e08e`): **69 dòng = 8 `M` + 61 `A`**; trong 61 `A` có 26 file split ngân sách nhãn, `scripts/` có 13 file, `lab/` có 11 file. Lần kiểm trước (2026-11-01, sau khi thêm `lab/03-features.ipynb`): 68 dòng = 8 `M` + 60 `A`.
 Nếu lệnh cho số khác, tài liệu này đã lệch.
 
 ---
