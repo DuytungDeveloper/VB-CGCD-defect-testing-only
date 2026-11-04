@@ -50,8 +50,8 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 ### 07 Dừng sớm
 
-- Q07.01 [mở] logdet của lớp mới tăng hay giảm theo từng bước? Cần log logdet theo bước (Hình 2b của paper so với D14).
 - Q07.03 [mở] Tắt dừng sớm thì khám phá lớp mới có khá hơn không? Dừng sớm không kích hoạt trên NEU, kích hoạt giữa chừng trên GC10 fine-tune (D14). Biến thể dự kiến: `07a-no-early-stop`.
+  - 2026-11-05 (`13-gauss-s` §3.2, `a4b9f7e`; nhìn trước một phần, một ảnh chụp): ở r0 s4, lượt F (không lọc, đủ 1000 bước) so với chính nó ở bước 525: balanced novel +2.0 điểm, S1_New +2.3, S1_Old −3.7 (9 ảnh test cũ). Tiền đăng ký `07a-no-early-stop` phải ghi đã thấy các số này.
 
 ### 08 Bộ phân lớp
 
@@ -96,6 +96,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
   - 2026-11-05: ở mức cụm (k-means trên test), r0 hơn r1 7.2 điểm balanced theo tên của pipeline nhưng 1.6 theo cách đặt tên tối ưu cho balanced; kiểm chéo hai nửa, cách đó vẫn hơn tên của pipeline 6.7 điểm ở r1 (cụm do crease sở hữu trong pool mang tên inclusion ở r1 s0–s2). [SUY LUẬN] Cách đặt tên cân theo số ảnh là một phần chỗ mất của r1; kiểm ở 14 bằng dự đoán của bộ phân lớp (`10-naming` §3, `b2723cb`).
   - 2026-11-05: nếu dừng pipeline sau lượt F (cột 11 của sổ mất điểm, phản thực tế), balanced mức cụm giảm 3.7 / 7.5 / 1.9 điểm (r0 / r1 / r2) so với cột 10; r1 mất nhiều nhất (114 ảnh trên 5 ảnh chụp, chủ yếu do chia lại giữa các khe mới). Cột 11 (0.421 / 0.311 / 0.386) đã gần mức cuối pipeline của E03.02 (`11-gauss-f` §4, `e46f92d`).
   - 2026-11-05: bộ lọc không phải chỗ mất. Trên pool, balanced đổi dưới 1 điểm từ cột 10 sang 12, độ sạch nhãn của tập học chỉ tăng +1.7 đến +3.1 điểm, và 80% ảnh mới bị loại nằm ở cụm sai tên. Trước bộ lọc, chỉ 27–45% nhãn mà lượt F học là đúng tên (`12-filter` §4.1, `c331526`). [SUY LUẬN] Nhiễu nhãn của lượt S đến chủ yếu từ bước 09–10.
+  - 2026-11-05: từ lượt F tới cuối pipeline ở r0 s4, lớp mới mất ít (balanced 0.380 → 0.368). Dừng sớm cắt khe mới còn 54% ngân sách, giữ 9 ảnh test cũ, mất 5 ảnh test mới; ở cùng ngân sách, bộ lọc không đổi lớp cũ (`13-gauss-s` §3.2, `a4b9f7e`). Chỗ mất lớn của lớp mới vẫn ở 09–11.
 
 ## Đã xong hoặc bỏ
 
@@ -122,6 +123,8 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 ### 07 Dừng sớm
 
+- Q07.01 [xong] logdet của lớp mới tăng hay giảm theo từng bước? Cần log logdet theo bước (Hình 2b của paper so với D14).
+  - Kết luận (2026-11-05): trên GC10 `ft`, giảm đơn điệu từ 1 ở cả lượt F và lượt S, nhanh nhất ở các cụm silk chặt, ngược chiều Hình 2b của paper; lượt F cắt ngưỡng S ở bước 541 và det cũ ở bước 740 (`13-gauss-s` §3.1, `a4b9f7e`).
 - Q07.02 [xong] `--scaling-factor 1.2` tác động vào đâu trong luật dừng (D14)?
   - Kết luận (2026-11-04): không tác động vào phép tính nào; `self.scaling_factor` chỉ được gán, `main.py` chỉ in và truyền cờ đi; hệ số của luật dừng tính từ số lớp (`07-early-stop` §2.1, `0d6d7ad`).
 
@@ -186,3 +189,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-05: `10-naming` (`b2723cb`) đóng Q10.03; ghi chú Q14.04.
 - 2026-11-05: `11-gauss-f` (`e46f92d`): ghi chú Q08.02, Q14.04.
 - 2026-11-05: `12-filter` (`c331526`): ghi chú Q08.02, Q12.02, Q12.03, Q14.04.
+- 2026-11-05: `13-gauss-s` (`a4b9f7e`): đóng Q07.01; ghi chú Q07.03, Q14.04.
