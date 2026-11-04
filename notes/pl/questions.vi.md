@@ -75,12 +75,12 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
   - 2026-11-04 (QD26): với cùng trạng thái RNG, đổi thứ tự hàng cho cùng phân phối nghiệm như rút khởi tạo mới (k-means++ chọn tâm theo chỉ số hàng; Lloyd không phụ thuộc thứ tự; đã thử trên dữ liệu đồ chơi), nên câu hỏi là độ ổn định của best-of-10 theo khởi tạo, và ARI 0.73 ở trên là một lần rút. Pool khác nhau giữa các seed (50 ảnh reserve), nên inertia chỉ so được trong cùng pool. Phần không nhãn: `09-cluster`; phần có nhãn: E09.07 (tiền đăng ký 2026-11-04).
   - Sửa (2026-11-04, `09-cluster` §3.4b, `8982942`): ghi chú trên sai một phần. Với trạng thái RNG cố định, đổi thứ tự hàng không cho cùng phân phối với rút khởi tạo mới (KS D của inertia 0.087–0.089 so với mức nền 0.056–0.059 ở r0 s4): `searchsorted` ở các mức tích luỹ cố định không còn là lấy mẫu theo D². Nó vẫn tác động qua cơ chế chọn tâm và cho dao động cùng cỡ ở cấp nhóm nghiệm; khi cả thứ tự hàng lẫn RNG cùng đổi (giữa các seed), dao động đúng là của rút khởi tạo mới.
   - 2026-11-04 (`09-cluster`, `8982942`), phần không nhãn: trên cùng một pool, hai lần chạy pipeline có E[ARI] 0.75–0.90 và hiếm khi ra cùng phân hoạch (0.005–0.038); pipeline ở nhóm nghiệm sâu nhất (ARI ≥ 0.95) ở 7/15 ảnh chụp; các seed của một FT seed rút từ gần như cùng một landscape (E[ARI] giữa hai seed thấp hơn trong một seed 0.007–0.020), nên dao động giữa các seed ở bước 09 chủ yếu là may rủi khởi tạo. Phần có nhãn: E09.07.
-- Q09.13 [mở] k-means ở bước 09 có chia silk_spot (và inclusion) theo camera hoặc cuộn thép không? Với 698 ảnh lớp mới, trong đặc trưng thô, phần chỉ do camera lớn hơn phần chỉ do lớp; camera giải thích 0.43 phương sai trong silk_spot, cuộn và camera cùng giải thích 0.61 (`05a-camera` §3.1, §4.1). Kiểm ở `09-cluster` bằng bảng cụm × camera và cụm × cuộn trên 15 ảnh chụp (camera, cuộn lấy từ tên file, không cần nhãn lớp). Nếu đúng, đây là một cơ chế của tranh cụm ở K = 5 (QD24) và là đầu vào cho thiết kế E09.06, E09.07. Nguồn: `05a-camera` (`75e1bf9`).
-  - 2026-11-04 (`09-cluster` §4.3, `8982942`), phần không nhãn: trên toàn pool, id cụm liên hệ mạnh với camera (Cramér's V 0.50–0.65) và với cuộn (0.71–0.78), vượt xa mức nền; chưa tách được khỏi lớp. Phép đo trong từng lớp ở `09d-ownership`.
+  - 2026-11-04 (`09d-ownership` §7.1, `abbc3af`), một ca có nhãn: trên cùng pool r0, cấu hình cho crease cụm riêng có inertia cao hơn 0.23–0.35% nhưng balanced accuracy tầng 1 0.56–0.57 so với 0.32–0.33. Không thay E09.07.
 
 ### 10 Đặt tên cụm
 
 - Q10.03 [mở] Cụm bám theo cuộn thép có co lại trên tập test không? GC10 chia train/test theo cuộn (không chung cuộn nào), và silk_spot có 420 ảnh pool từ 16 cuộn. Nếu k-means chia silk_spot theo cuộn (Q09.13), phần ảnh test lớp mới rơi vào cụm đó (`cluster.predict_raw(test1_x)`) sẽ nhỏ hơn phần ảnh pool lớp mới của cụm. Đo ở `10-naming`: tỷ lệ mỗi cụm trên 698 ảnh pool lớp mới so với trên 214 ảnh test lớp mới, kèm mức tập trung theo cuộn của cụm. Nếu đúng, đây là một nguồn chênh giữa tầng 1 và tầng 2 (Q14.04). Nguồn: QD26.
+  - 2026-11-04 (`09d-ownership` §6, `abbc3af`): cụm con của silk là nhóm camera/cuộn (camera và cuộn giải thích 0.87–0.92 thành viên cụm trong silk); cách chia crease ở r1, r2 bám cuộn, không bám camera. Đo ở `10-naming` như trên.
 
 ### 12 Bộ lọc cũ/mới
 
@@ -139,6 +139,9 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
   - Kết luận (2026-10-02): không; balanced novel khoảng 36% với cả SVI và dạng đóng (E06.03). Chuyển sang hình học đặc trưng và phân cụm (CT2).
 - Q09.11 [xong] Ở số cụm K' = 20, crease hoặc rolled_pit có cụm riêng không (lớp đó chiếm đa số trong cụm, recall ≥ 50%)? Nếu không, hướng phân cụm thừa rồi gộp bị loại.
   - Kết luận (2026-10-07): trên cấu hình paper, có (E09.05, SỐNG); trên `fz`, không (E09.04, LOẠI). Bước tiếp: E09.06.
+- Q09.13 [xong] k-means ở bước 09 có chia silk_spot (và inclusion) theo camera hoặc cuộn thép không? Với 698 ảnh lớp mới, trong đặc trưng thô, phần chỉ do camera lớn hơn phần chỉ do lớp; camera giải thích 0.43 phương sai trong silk_spot, cuộn và camera cùng giải thích 0.61 (`05a-camera` §3.1, §4.1). Kiểm ở `09-cluster` bằng bảng cụm × camera và cụm × cuộn trên 15 ảnh chụp (camera, cuộn lấy từ tên file, không cần nhãn lớp). Nếu đúng, đây là một cơ chế của tranh cụm ở K = 5 (QD24) và là đầu vào cho thiết kế E09.06, E09.07. Nguồn: `05a-camera` (`75e1bf9`).
+  - 2026-11-04 (`09-cluster` §4.3, `8982942`), phần không nhãn: trên toàn pool, id cụm liên hệ mạnh với camera (Cramér's V 0.50–0.65) và với cuộn (0.71–0.78), vượt xa mức nền; chưa tách được khỏi lớp. Phép đo trong từng lớp ở `09d-ownership`.
+  - Kết luận (2026-11-04): có, cho silk_spot và inclusion. Trong silk, camera và cuộn cùng giải thích 0.87–0.92 thành viên cụm (inclusion 0.66–0.71), và mỗi yếu tố vẫn có ý nghĩa khi giữ yếu tố kia cố định ở 5/5 ảnh chụp của mọi FT seed; các cụm con của silk về thực chất là nhóm camera/cuộn. Đối chứng: rolled không; crease ở r1, r2 bám cuộn. Đây là một cơ chế của tranh cụm ở K = 5 (QD24) và là đầu vào cho E09.06 (`09d-ownership` §6, `abbc3af`).
 
 ### 10 Đặt tên cụm
 
@@ -174,3 +177,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-04: `08-classifier` (`6cad5fa`) đóng Q08.03; ghi chú vào Q08.01, Q08.02.
 - 2026-11-04: QD26: ghi chú Q09.12 (đổi thứ tự hàng là rút khởi tạo mới; E09.07 đã tiền đăng ký); thêm Q10.03.
 - 2026-11-04: `09-cluster` (`8982942`): sửa ghi chú Q09.12 về thứ tự hàng; ghi phần không nhãn của Q09.12, Q09.13.
+- 2026-11-04: `09d-ownership` (`abbc3af`, kế hoạch `d282b37`) đóng Q09.13; ghi chú vào Q09.12, Q10.03.
