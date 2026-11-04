@@ -66,7 +66,12 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
    1. kiểm: `rerun` bước 07 trùng (chỉ chọn `stop_default`);
    2. code: so det trung bình của 5 lớp mới với det trung bình lớp cũ, sf = 2 ở lượt F và 0.707 ở lượt S, chỉ dừng sau bước 333 và quay lui một bước; `--scaling-factor` và `--early_stop_ratio` là cờ chết (Q07.02); ngưỡng của r0 s4: S 0.524, Eq. 11 0.374, F 0.185;
    3. qua 15 ảnh chụp: lượt F không dừng lần nào, lượt S dừng ở bước 468–620; giữa các FT seed bước dừng đi theo ngưỡng, trong một FT seed đi theo phân hoạch của bước 09.
-8. `08-classifier` [chưa có]: bộ phân lớp, đánh giá S0. Code dùng lại ở 12, 14.
+8. `08-classifier` [có, commit `6cad5fa`]: bộ phân lớp và bảng S0. Code dùng lại ở 12, 14. Năm mục
+   1. kiểm: `rerun` bước 08 trùng; cả bốn dòng của bảng S0 là 206/241;
+   2. code: argmax trên đủ 10 khe của log-mật độ Gaussian đầy đủ (có log det, tiên nghiệm đều), tức QDA;
+   3. cơ chế: tách đúng log-mật độ thành b = −½ log det Σ, q = −½ xᵀ(Σ⁻¹ − I)x, ℓ = μᵀΣ⁻¹x; giữa 5 lớp cũ q trải 11.0, ℓ 0.75, b 0.29; q một mình trùng pipeline ở 240/241 ảnh; Σ − I gần như là ngân sách bước × dấu của hiệp phương sai lớp; bỏ log det (đọc theo paper) không đổi ảnh nào ở r0 s4 (D25);
+   4. lỗi S0: 23/35 ảnh sai nằm giữa ba lớp quanh mối hàn; 17/35 bị đoán thành một lớp có hộp trong chính ảnh (Q08.03); camera không phải nguồn lỗi chính;
+   5. qua 15 ảnh chụp: q quyết định ở mọi ảnh chụp; bỏ log det đổi 0–3 ảnh; không ảnh nào vào khe 5–9 (D24).
 9. `09-cluster` [chưa có]: phân cụm pool. Nguồn cũ: `12_cluster`.
 10. `10-naming` [chưa có]: đặt tên cụm bằng Hungarian trên tập test, chỉ dùng khi chấm.
 11. `11-gauss-f` [chưa có]: lượt F, SVI trên nhãn cụm.
