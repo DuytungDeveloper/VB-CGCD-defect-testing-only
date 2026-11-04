@@ -172,6 +172,7 @@ QD01–QD15 (các dòng cũ) ở `notes/plan.vi.md` §4.
   - Ngưỡng dừng chỉ cần `params0` và code, như notebook cũ `04_s1_discovery` (tag `nb-v1`) đã tính; viết 07 sau 13 thì 13 phải giải thích luật dừng trước.
   - Sổ mất điểm cho mọi bước một đại lượng chung. Ở bước 09 cụm chưa có tên, nên sổ bắt đầu ở 10.
 - Hệ quả: câu hỏi camera vào `questions.vi.md` khi viết 05; E09.07 vào danh mục thí nghiệm và rủi ro về đại lượng chính vào Q09.12 khi viết 09; `lab/README.vi.md` §3 và §9 sửa theo quyết định này.
+- Sửa (2026-11-04, `10-naming` §4, trước khi viết hàm): thiết kế sổ mất điểm. Hàm `ledger` của `lab/score.py` lưu đúng/sai từng ảnh, mỗi cột một bước; `ledger_summary` báo theo lớp (mỗi cột cho một balanced novel) và theo luồng đúng→sai, sai→đúng giữa hai cột liền nhau, vì đúng/sai không đi một chiều qua các bước. Ba tập hàng: test lớp mới (cột 09, 10, 11, 14; cột 11 là phản thực tế: bộ phân lớp của lượt F trên test), test lớp cũ (cột 08, 14; ở 14 tách lỗi cũ→mới khỏi cũ→cũ), pool (cột 09, 10, 12; ở 12 ảnh cũ đúng khi bị loại, ảnh lớp mới đúng khi được giữ và nằm trong cụm mang đúng tên). Cột 09: cụm của ảnh có lớp chủ trong pool là lớp của ảnh (nhiều–một, chỉ để chẩn đoán); cột 10: tên của pipeline (QD15). Lý do: một cột chỉ đếm ảnh còn đúng thì giấu ảnh được bước sau sửa lại, và không cho balanced novel theo từng bước.
 
 ### QD25 — Đại lượng chính của dòng PL; `05a` trước 08 (2026-11-04)
 
