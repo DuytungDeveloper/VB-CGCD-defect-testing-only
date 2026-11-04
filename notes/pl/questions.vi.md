@@ -39,6 +39,8 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 - Q05.01 [mở] D21: công thức CUB của upstream có n = 25 < d = 384; số CUB của paper đến từ cấu hình nào?
 - Q05.02 [mở] Phép chiếu học từ nhãn lớp cũ (LDA, hoặc làm trắng trong lớp) có tách được các lớp chồng lấn không? Đây là hướng sửa biểu diễn nếu giả thuyết chồng lấn của E09.03 đúng. Nguồn: CT2.
+  - 2026-11-04: không gian con PCA của S0 giữ 0.84–0.94 khoảng cách giữa các tâm lớp mới, thấp nhất ở ba cặp của crease, rolled_pit, waist_folding (0.842–0.857), và giữ 0.53–0.69 phương sai trong lớp (`05-pca` §4.1, đo Euclid). [SUY LUẬN] Một phép chiếu học từ lớp cũ có thể còn ít thấy hướng phân biệt ba lớp này hơn PCA; phép kiểm phải đo riêng ba cặp này.
+- Q05.03 [mở] Các thành phần PCA đầu của S0 mã hoá camera (và cuộn thép) hay lớp lỗi? Đo η² (tỉ số tương quan, correlation ratio) của từng thành phần theo camera và theo lớp. Nếu camera chiếm các thành phần đầu, Gaussian ở 06–14 có thể gom ảnh theo camera; phân cụm ở 09 chạy trên đặc trưng thô nên cần đo riêng. E03.01 đã loại chuẩn hoá camera bằng trừ trung bình, nên câu này hỏi tín hiệu camera nằm ở đâu, không thử lại cách sửa đó. Làm ở `05a-camera` (QD24). Nguồn: `00-data-gc10` §2.2–2.4 (Cramér's V giữa lớp và camera 0.31).
 
 ### 06 Gaussian theo lớp (SVI)
 
@@ -46,6 +48,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q06.02 [mở] S0_All tăng theo số bước SVI thế nào? Một phần đã thấy ở E06.02.
 - Q06.03 [mở] Khi n ≈ d (CIFAR: 400 so với 384), điều chuẩn mạnh hơn (Σ gộp, tức LDA) có cứu được ước lượng dạng đóng không? Chọn trên CIFAR, xác nhận trên GC10 một lần. Nguồn: E06.03.
 - Q06.04 [tạm dừng] Hiệp phương sai low-rank/sparse: chỉ chạm giới hạn ước lượng Σ khi ít mẫu, không chạm lỗi phân cụm.
+- Q06.05 [mở] Vì sao Σ học ở S0 có det < 1 (det trung bình của lớp cũ 0.3707 ở r0 s4, notebook cũ `04_s1_discovery`, tag `nb-v1`) trong khi 24–32/64 hướng của mỗi lớp cũ có phương sai trong lớp lớn hơn 1 (`05-pca` §3.2)? Ứng viên [SUY LUẬN]: với Σ = I + E nhỏ, log det ≈ tr E − ½‖E‖²_F, và Adam đẩy cả 4032 phần tử ngoài đường chéo (D23), nên phần ngoài đường chéo kéo log det xuống. Kiểm ở `06-gauss-svi`: tách log det của `params0` thành tr E và ‖E‖²_F. Ảnh hưởng: nhánh của luật dừng (D14) và cách đọc 07.
 
 ### 07 Dừng sớm
 
@@ -133,3 +136,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-01: thêm Q02.06 (số epoch fine-tune trên GC10) từ `02-finetune` (`3db9aef`).
 - 2026-11-01: E03.02 xong (`d467c6b`): ghi kết quả vào Q03.02, Q14.04, Q09.06.
 - 2026-11-04: thêm Q09.12 (k-means không ổn định theo thứ tự hàng của pool) từ `04-loader` (`3f6e08e`).
+- 2026-11-04: thêm Q05.03 (camera, làm ở `05a`) và Q06.05 (vì sao det Σ < 1); ghi chú vào Q05.02; từ `05-pca` (`42c0ca4`).
