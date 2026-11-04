@@ -72,7 +72,11 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
    3. cơ chế: tách đúng log-mật độ thành b = −½ log det Σ, q = −½ xᵀ(Σ⁻¹ − I)x, ℓ = μᵀΣ⁻¹x; giữa 5 lớp cũ q trải 11.0, ℓ 0.75, b 0.29; q một mình trùng pipeline ở 240/241 ảnh; Σ − I gần như là ngân sách bước × dấu của hiệp phương sai lớp; bỏ log det (đọc theo paper) không đổi ảnh nào ở r0 s4 (D25);
    4. lỗi S0: 23/35 ảnh sai nằm giữa ba lớp quanh mối hàn; 17/35 bị đoán thành một lớp có hộp trong chính ảnh (Q08.03); camera không phải nguồn lỗi chính;
    5. qua 15 ảnh chụp: q quyết định ở mọi ảnh chụp; bỏ log det đổi 0–3 ảnh; không ảnh nào vào khe 5–9 (D24).
-9. `09-cluster` [chưa có]: phân cụm pool. Nguồn cũ: `12_cluster`.
+9. `09-cluster` [có, commit `8982942`]: phân cụm pool, không đọc nhãn (QD26). Nguồn cũ: `12_cluster`. Bốn mục
+   1. kiểm: `rerun` bước 09 trùng 3/3 khoá; `n_init` 10 của pipeline đúng là lần có inertia nhỏ nhất trong 10 lần khởi tạo đơn rút liên tiếp từ `rng_in` (15/15);
+   2. code: `KMeansCluster` gọi `KMeans` của scikit-learn 1.5.2 (k-means++ thử 3 ứng viên mỗi tâm, Lloyd) trên đặc trưng thô 748 × 768, không trên PCA-64;
+   3. landscape (`lab/landscape.py`, 10.000 lần khởi tạo đơn mỗi ảnh chụp): 521–1238 nhóm nghiệm ở ARI ≥ 0.95; pipeline ở nhóm sâu nhất 7/15; hai lần chạy pipeline trên cùng pool có E[ARI] 0.75–0.90; các seed của một FT seed rút từ gần như cùng một landscape, nên khác biệt giữa seed ở bước 09 chủ yếu là may rủi khởi tạo; RNG cố định với hàng hoán vị không cùng phân phối với rút khởi tạo mới (sửa QD26);
+   4. cụm × camera, cụm × cuộn trên toàn pool: Cramér's V 0.50–0.65 và 0.71–0.78, chưa tách khỏi lớp (để `09d`).
 10. `10-naming` [chưa có]: đặt tên cụm bằng Hungarian trên tập test, chỉ dùng khi chấm.
 11. `11-gauss-f` [chưa có]: lượt F, SVI trên nhãn cụm.
 12. `12-filter` [chưa có]: lọc cũ/mới, giữ ảnh bị đoán là lớp mới.
@@ -88,6 +92,8 @@ Biến thể và phần thêm:
 - `06a-closed-form` [có trong code, chưa có notebook]: E06.03, `--estimator closed`; đã đóng ngày 2/10.
 - `09a-overcluster` [có hàm `v09a_overcluster`, chưa có notebook]: phân cụm thừa K' = 20; E09.04, E09.05. Nguồn cũ: `12b_cluster`.
 - `09b-overcluster-merge` [chưa có]: gộp cụm con; E09.06, chưa tiền đăng ký. Nguồn cũ: phần Bhattacharyya của `12b_cluster`.
+- `09c-multi-init` [chưa có]: E09.07 (tiền đăng ký `1ce3233`), best-of-1000 so với best-of-10 qua 11 lần rút lồng nhau mỗi ảnh chụp; chạy sau 14 (QD26).
+- `09d-ownership` [chưa có]: phân tích có nhãn cho bước 09 (QD26): sở hữu cụm, hiệu ứng đồng đều, sổ Ward, nghiệm oracle, Q09.13 trong từng lớp, cụm crease ở r0 s2; chạy sau tiền đăng ký E09.07.
 - `14a-loss-by-step` [chưa có]: phân tích, mất điểm ở khâu nào; Q14.04. Chỉ đọc sổ mất điểm: một hàm trong `score.py`, dựng dần từ notebook 10, mỗi notebook 11–14 thêm cột (QD24). Nguồn cũ: `04_s1_discovery` (cell 9: recall sau đặt tên và ở cuối pipeline, r0 s4).
 - Dự kiến: `07a-no-early-stop` (Q07.03), `12a-relabel` (Q12.03).
 
@@ -115,7 +121,7 @@ Hiện có:
 - `variants.py`: biến thể, mỗi hàm mang mã bước (`v09a_overcluster`; sau thêm `v09b_merge`…), cùng đầu vào/đầu ra với bước gốc; không nhận nhãn thật của pool. `replay.py run --at` tìm hàm ở đây. Quy tắc viết biến thể: docstring đầu file và mục 4.
 - `score.py`: bộ đo tầng 1, mỗi bước một hàm (`score09`; sau thêm `score10`, `score12`); `tier1_09` chạy K' cụm từ ảnh chụp của một run, lệnh `python lab/score.py 09 --from <run>` qua `exp.py`. Ngoài các lệnh kiểm của `replay.py`, đây là nơi duy nhất trong `lab/` đọc nhãn thật của pool, chỉ để chấm. Thay `pl_cluster.py` (xoá ngày 2026-10-21) sau khi tái lập tầng 1 của E09.05 ở 15/15 cặp (run `gc10_e09_05_v2_*`, commit `b81b78d`).
 - `data_io.py`: dữ liệu thô cho các notebook `00-data-*` (QD23; commit `8910925`, `2f6f1e5`). `images(dataset)`: bảng ảnh của file split, mỗi ảnh một dòng, theo thứ tự hàng của file đặc trưng; vai trò S0, reserve, S1, unused, test (mục 10). `objects(dataset, path)`: hộp lỗi trong XML của một ảnh, cùng quy tắc với `scripts/make_gc10_split.py`. `diagnostics(dataset)`: tính lại mục `diagnostics` của file split, trùng 466/75/6; đọc 2282 file XML trong khoảng 1 s nên không cần bộ nhớ đệm. Chỉ đọc file split và XML, không cần torch, jax. NEU thêm ở commit `beec7b9`: đường dẫn ảnh như `build()` của `feature_extractor/dino-neudet.py`, vai trò như `dataloaders/neudet.py`, XML tra theo tên file trong cả hai thư mục `annotations` (XML của ảnh train `crazing_240` nằm trong `validation/annotations`); `diagnostics("neudet")` cho 123/0/0. Không đặt tên `datasets.py` (sẽ che gói `datasets` của HuggingFace).
-- `landscape.py`: landscape của k-means ở bước 09 (QD26; commit `1adc3e2`): nhiều lần khởi tạo k-means++ đơn trên pool của một ảnh chụp, không đọc nhãn (chỉ `pool_x`, `ids`, `inertia`, `rng_in`; khoá `true_*` bỏ khi nạp). `singles(run, n)`: n lần khởi tạo đơn từ một luồng RNG riêng, 1 luồng OpenMP; `permuted(run, m)`: m lần chạy `n_init` 10 từ `rng_in` với hàng hoán vị; `decompose(run)`: tách `n_init` 10 của pipeline thành 10 lần khởi tạo đơn; `run_all`: chạy song song theo ảnh chụp. Cache trên máy ở `runs/<run>/landscape/` (git bỏ qua), khoá theo băm của ảnh chụp, code và tham số. Hàm phân tích không rút RNG: `keep_rule`, `canon`, `ari`, `modes`, `best_of_weights`, `good_turing`, `instability`.
+- `landscape.py`: landscape của k-means ở bước 09 (QD26; commit `1adc3e2`): nhiều lần khởi tạo k-means++ đơn trên pool của một ảnh chụp, không đọc nhãn (chỉ `pool_x`, `ids`, `inertia`, `rng_in`; khoá `true_*` bỏ khi nạp). `singles(run, n)`: n lần khởi tạo đơn từ một luồng RNG riêng, 1 luồng OpenMP; `permuted(run, m)`: m lần chạy `n_init` 10 từ `rng_in` với hàng hoán vị; `decompose(run)`: tách `n_init` 10 của pipeline thành 10 lần khởi tạo đơn; `run_all`: chạy song song theo ảnh chụp. Cache trên máy ở `runs/<run>/landscape/` (git bỏ qua), khoá theo băm của ảnh chụp, code và tham số. Hàm phân tích không rút RNG: `keep_rule`, `canon`, `ari`, `ari_many`, `modes`, `assign`, `best_of_weights`, `good_turing`, `instability`; `modes_all` chạy `modes` song song (sửa ở commit `62f81a8`).
 
 Quy tắc:
 - Không sửa code gốc (`main.py`, `classifier/`, `clustering/`); các file này chỉ gọi lại hàm của pipeline.
