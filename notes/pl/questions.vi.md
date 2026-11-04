@@ -62,6 +62,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
   - 2026-10-24: inclusion là nhãn lớp mới kém tin cậy nhất, và một phần ảnh inclusion có hộp water_spot, một lớp cũ (`00-data-gc10` §3.2, §3.4). [SUY LUẬN] Một phần ảnh bị đẩy sang water_spot có thể đúng theo nội dung ảnh; chưa đối chiếu với chính các ảnh bị đẩy.
   - 2026-11-04: ở S0, quyết định của bộ phân lớp do số hạng bậc hai q = −½ xᵀ(Σ⁻¹ − I)x chi phối, và Σ − I lớn dần theo số bước Adam (`08-classifier` §3.1–3.3). [SUY LUẬN] Nếu khe mới ở S1 học ít bước hơn khe cũ, q của chúng nhỏ hơn và chúng thua khi tranh ảnh inclusion với khe cũ; kiểm ở 12, 14 bằng cùng phép tách.
   - 2026-11-05: ở lượt F (`11-gauss-f` §4.2, `e46f92d`), trong các ảnh test lớp mới đúng ở bước 10 mà bộ phân lớp của lượt F đoán sai, 71–81% sang một khe mới khác và chỉ 19–29% sang khe cũ; khe cũ cướp chủ yếu inclusion → oil_spot (35/51 ảnh trên 15 ảnh chụp), không phải water_spot. [SUY LUẬN] Phần ảnh inclusion bị đẩy sang lớp cũ cần đo lại ở 14, trên bộ phân lớp cuối.
+  - 2026-11-05 (`12-filter` §3.1, `c331526`): trên pool, bộ lọc loại 4–14/135 ảnh inclusion; cộng 15 ảnh chụp, ảnh inclusion bị loại vào khe water 80, oil 32, punching 16. Trên pool khe nhận chính là water_spot, trên test (lượt F) là oil_spot. [SUY LUẬN] Khớp với 23/135 ảnh inclusion của S1 có hộp water_spot (`00-data-gc10` §3.4); một phần ảnh bị loại có thể đúng theo nội dung ảnh.
 
 ### 09 Phân cụm
 
@@ -82,7 +83,9 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 - Q12.01 [mở] Trên CIFAR, trong khoảng 4000 mẫu mỗi phiên bị lọc là "mới", bao nhiêu là dương tính giả, bao nhiêu âm tính giả?
 - Q12.02 [mở] Một bộ lọc không dùng nhãn và không dựa vào pass F yếu. Nguồn: E06.03.
+  - 2026-11-05 (`12-filter` §3.2, `c331526`): bộ lọc SVI quyết định bằng số hạng bậc hai q ở 98.4–100% ảnh pool; bộ lọc chỉ dùng ℓ (hướng của μ) lọt ×1.38 ảnh cũ và loại ×2.6 ảnh mới, nên giả thuyết "khuôn không mang vị trí nên lọc được" không được ủng hộ. Bộ lọc hiện tại đã loại 39–48/50 ảnh cũ; một bộ lọc mới chỉ còn chỗ ở 2–11 ảnh cũ lọt và 5–16 ảnh mới bị loại mỗi ảnh chụp.
 - Q12.03 [mở] Re-labeling đúng như paper (D12) có tốt hơn cách code hiện đang chỉ lọc không?
+  - 2026-11-05 (`12-filter` §2.1, `c331526`; không dùng nhãn thật): bộ phân lớp của lượt F trùng id cụm ở 89.6–92.6% pool; trong ảnh được giữ, chỉ 7–21 ảnh nằm ở khe mới khác. Re-labeling của paper (Algorithm 1 dòng 34–39) đổi ít nhãn lớp mới; khác biệt chính là 46–61 ảnh bị loại mà paper gán cho lớp cũ (D12, ý b). Chưa chấm bằng nhãn thật (`lab/README.vi.md` §9): muốn chấm thì tiền đăng ký `12a-relabel` trước.
 
 ### 14 Đánh giá
 
@@ -92,6 +95,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
   - 2026-11-01: E03.02 thêm mốc biểu diễn: probe `lr_bal` (có nhãn) đạt balanced novel 0.61 / 0.68 / 0.71 trên `ft` r0 / r1 / r2, cuối pipeline 0.39 / 0.29 / 0.36. Đặc trưng không phải chỗ mất chính; chỗ mất nằm ở các bước 09–14.
   - 2026-11-05: ở mức cụm (k-means trên test), r0 hơn r1 7.2 điểm balanced theo tên của pipeline nhưng 1.6 theo cách đặt tên tối ưu cho balanced; kiểm chéo hai nửa, cách đó vẫn hơn tên của pipeline 6.7 điểm ở r1 (cụm do crease sở hữu trong pool mang tên inclusion ở r1 s0–s2). [SUY LUẬN] Cách đặt tên cân theo số ảnh là một phần chỗ mất của r1; kiểm ở 14 bằng dự đoán của bộ phân lớp (`10-naming` §3, `b2723cb`).
   - 2026-11-05: nếu dừng pipeline sau lượt F (cột 11 của sổ mất điểm, phản thực tế), balanced mức cụm giảm 3.7 / 7.5 / 1.9 điểm (r0 / r1 / r2) so với cột 10; r1 mất nhiều nhất (114 ảnh trên 5 ảnh chụp, chủ yếu do chia lại giữa các khe mới). Cột 11 (0.421 / 0.311 / 0.386) đã gần mức cuối pipeline của E03.02 (`11-gauss-f` §4, `e46f92d`).
+  - 2026-11-05: bộ lọc không phải chỗ mất. Trên pool, balanced đổi dưới 1 điểm từ cột 10 sang 12, độ sạch nhãn của tập học chỉ tăng +1.7 đến +3.1 điểm, và 80% ảnh mới bị loại nằm ở cụm sai tên. Trước bộ lọc, chỉ 27–45% nhãn mà lượt F học là đúng tên (`12-filter` §4.1, `c331526`). [SUY LUẬN] Nhiễu nhãn của lượt S đến chủ yếu từ bước 09–10.
 
 ## Đã xong hoặc bỏ
 
@@ -181,3 +185,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-04: `09d-ownership` (`abbc3af`, kế hoạch `d282b37`) đóng Q09.13; ghi chú vào Q09.12, Q10.03.
 - 2026-11-05: `10-naming` (`b2723cb`) đóng Q10.03; ghi chú Q14.04.
 - 2026-11-05: `11-gauss-f` (`e46f92d`): ghi chú Q08.02, Q14.04.
+- 2026-11-05: `12-filter` (`c331526`): ghi chú Q08.02, Q12.02, Q12.03, Q14.04.
