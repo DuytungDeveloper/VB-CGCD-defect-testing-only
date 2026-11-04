@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 for p in (str(ROOT), str(ROOT / "lab")):
     if p not in sys.path:
         sys.path.insert(0, p)
-from replay import load, snapshots, _fresh          # noqa: E402
+from replay import load, snapshots, _fresh, predict_default, _jnp          # noqa: E402
 from variants import v09a_overcluster               # noqa: E402
 
 
@@ -93,12 +93,14 @@ def ledger(run):
     Sets: 'test1' (novel test set), 'pool' (pool of session 1; its old images get NaN at 09 and 10).
     Columns: '09' the image's cluster has the image's class as pool owner (plurality class of the cluster in the pool,
     old classes included, ties to the lower id, as score09): many-to-one, a diagnostic, not a usable naming;
-    '10' the image's cluster carries the image's class under pi_test (the pipeline's naming, QD15).
+    '10' the image's cluster carries the image's class under pi_test (the pipeline's naming, QD15);
+    '11' (test1 only, counterfactual) the classifier with the pass-F Gaussians (params_f) puts the image in the slot
+    of its named cluster, as if the pipeline stopped after pass F.
     Returns {set: DataFrame with y (true id), novel (bool), cluster, and one float column per step: 1 right, 0 wrong,
     NaN not defined}."""
     import pandas as pd
     b = snapshots(run)
-    _fresh(b, "10")
+    _fresh(b, "11")
     o4, o9, o10 = b["04"]["out"], b["09"]["out"], b["10"]["out"]
     off, K = int(o4["offset"]), int(b["04"]["meta"]["args"]["increment"])
     yp, ids = np.asarray(o4["true_pool_y"]).astype(int), np.asarray(o9["ids"]).astype(int)
@@ -114,6 +116,12 @@ def ledger(run):
         df["09"] = np.where(nov, (owner[cl] == y).astype(float), np.nan)
         df["10"] = np.where(nov, (name[cl] == y).astype(float), np.nan)
         out[s] = df
+    import jax.numpy as jnp
+    st = load(run, "11", check=False)                                # workbench: classifier of step 08, params_f
+    predict_default(st["clf"])
+    slot = np.asarray(st["clf"]._predict(jnp.asarray(st["z_test1"]), _jnp(st["params_f"]))[0])
+    t, lut = out["test1"], np.asarray(o10["lut"])
+    t["11"] = np.where(t["novel"], (slot == lut[t["y"].to_numpy()]).astype(float), np.nan)
     return out
 
 
