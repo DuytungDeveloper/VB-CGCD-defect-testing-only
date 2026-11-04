@@ -180,6 +180,8 @@ measured: GC10 (num_dim 64), both branches. Frozen DINO CLS: det > 1 (old mean ~
         Fine-tuned pooler (tanh): det < 1 (old 0.436, new falls to 0.436 / 0.707 = 0.616), stop in 5/5
         seeds at steps 508-617. [INFERENCE] the branch follows the feature scale: the rule is not
         scale-invariant, and on fine-tuned features it halts novel learning mid-budget.
+note:   2026-11-04: on GC10 ft r0 the old-class det < 1 comes mostly from the optimiser (off-diagonal drift and a negative
+        trace of Sigma - I), not from the feature scale (D23, measured 2026-11-04); read the inference above with that qualification.
 
 ## D15. M_f is computed on a proxy set, not on D_l as defined
 paper:  Appendix C.2 defines M_f (forgetting) over the initially labeled dataset D_l.
@@ -391,6 +393,12 @@ impact: [INFERENCE] the classifier is its initialisation plus a sign-gradient-si
         D14 (det(I + E) ~ exp(tr E): det > 1 when feature variance > 1, < 1 when < 1, so the stop rule is in effect a
         step-count rule set by the feature scale); D21 (spectral drift up to ~d x 0.033: 2.1 at d 64, 12.8 at d 384).
         A covariance prior on this objective is inert: E06.01 (--cov_prior_kappa) left the learned Sigma unchanged on GC10.
+measured: GC10 ft r0 (lab/06-gauss-svi.ipynb, 4112807, 2026-11-04): max |mu| 0.0329 = 98.5% of the 0.0334 budget, max
+        |Sigma - I| 0.0357; r_mu 0.992-0.996; learned Sigma eigenvalues 0.82-1.32 vs sample covariance 0.01-32. log det(I + E) ~
+        tr E - 1/2 ||E||_F^2 holds to 0.03: the off-diagonal drift gives 1/2 ||E_off||^2 = 0.42-0.51 in every old class (95% of
+        ||E||_F^2) and tr E = -0.35 to -0.93, so det 0.24-0.44, mean 0.3707 (the early-stop dets[0]). In PCA space 24-32 of 64
+        directions have within-class variance > 1 (05-pca), so [INFERENCE] the det < 1 branch of D14 comes mostly from the optimiser,
+        not from the feature scale. S0 test accuracy is set by step 100; the last 900 steps lower the loss, not the test score.
 
 ## D24 (CANDIDATE). Prediction takes the argmax over all num_classes slots, untrained ones included
 paper:  Sec 3.2.1, Eq. 4 and 6: the MVN-NCM classifier normalises over the classes k'; which classes take part
