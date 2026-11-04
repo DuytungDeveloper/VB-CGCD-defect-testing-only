@@ -52,7 +52,6 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 ### 07 Dừng sớm
 
 - Q07.01 [mở] logdet của lớp mới tăng hay giảm theo từng bước? Cần log logdet theo bước (Hình 2b của paper so với D14).
-- Q07.02 [mở] `--scaling-factor 1.2` tác động vào đâu trong luật dừng (D14)?
 - Q07.03 [mở] Tắt dừng sớm thì khám phá lớp mới có khá hơn không? Dừng sớm không kích hoạt trên NEU, kích hoạt giữa chừng trên GC10 fine-tune (D14). Biến thể dự kiến: `07a-no-early-stop`.
 
 ### 08 Bộ phân lớp
@@ -106,6 +105,11 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q06.05 [xong] Vì sao Σ học ở S0 có det < 1 (det trung bình của lớp cũ 0.3707 ở r0 s4, notebook cũ `04_s1_discovery`, tag `nb-v1`) trong khi 24–32/64 hướng của mỗi lớp cũ có phương sai trong lớp lớn hơn 1 (`05-pca` §3.2)? Ứng viên [SUY LUẬN]: với Σ = I + E nhỏ, log det ≈ tr E − ½‖E‖²_F, và Adam đẩy cả 4032 phần tử ngoài đường chéo (D23), nên phần ngoài đường chéo kéo log det xuống. Kiểm ở `06-gauss-svi`: tách log det của `params0` thành tr E và ‖E‖²_F. Ảnh hưởng: nhánh của luật dừng (D14) và cách đọc 07.
   - Kết luận (2026-11-04): hai phần cùng kéo log det xuống: phần ngoài đường chéo của E (chiếm phần lớn ‖E‖²_F, có ở mọi lớp cũ) và vết âm của E; thang đo của dữ liệu một mình không quyết định nhánh det của luật dừng (`06-gauss-svi` §3.2, `4112807`).
 
+### 07 Dừng sớm
+
+- Q07.02 [xong] `--scaling-factor 1.2` tác động vào đâu trong luật dừng (D14)?
+  - Kết luận (2026-11-04): không tác động vào phép tính nào; `self.scaling_factor` chỉ được gán, `main.py` chỉ in và truyền cờ đi; hệ số của luật dừng tính từ số lớp (`07-early-stop` §2.1, `0d6d7ad`).
+
 ### 09 Phân cụm
 
 - Q09.07 [bỏ] k-means hay GMM? Phép so cũ (E09.02) không kiểm được giả thuyết sức chứa, vì GMM full ở n_k < d tự ưu tiên cụm đều; câu được làm tiếp bằng E09.03, rồi thay bằng Q09.06. CORRECTION ở note LOG `gc10_frozen_gmm10_evhung_d64_s4`.
@@ -142,3 +146,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-04: thêm Q09.12 (k-means không ổn định theo thứ tự hàng của pool) từ `04-loader` (`3f6e08e`).
 - 2026-11-04: thêm Q05.03 (camera, làm ở `05a`) và Q06.05 (vì sao det Σ < 1); ghi chú vào Q05.02; từ `05-pca` (`42c0ca4`).
 - 2026-11-04: đóng Q06.05 bằng `06-gauss-svi` (`4112807`).
+- 2026-11-04: đóng Q07.02 bằng `07-early-stop` (`0d6d7ad`).
