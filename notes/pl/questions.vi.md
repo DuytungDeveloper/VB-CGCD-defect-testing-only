@@ -77,11 +77,6 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
   - 2026-11-04 (`09-cluster`, `8982942`), phần không nhãn: trên cùng một pool, hai lần chạy pipeline có E[ARI] 0.75–0.90 và hiếm khi ra cùng phân hoạch (0.005–0.038); pipeline ở nhóm nghiệm sâu nhất (ARI ≥ 0.95) ở 7/15 ảnh chụp; các seed của một FT seed rút từ gần như cùng một landscape (E[ARI] giữa hai seed thấp hơn trong một seed 0.007–0.020), nên dao động giữa các seed ở bước 09 chủ yếu là may rủi khởi tạo. Phần có nhãn: E09.07.
   - 2026-11-04 (`09d-ownership` §7.1, `abbc3af`), một ca có nhãn: trên cùng pool r0, cấu hình cho crease cụm riêng có inertia cao hơn 0.23–0.35% nhưng balanced accuracy tầng 1 0.56–0.57 so với 0.32–0.33. Không thay E09.07.
 
-### 10 Đặt tên cụm
-
-- Q10.03 [mở] Cụm bám theo cuộn thép có co lại trên tập test không? GC10 chia train/test theo cuộn (không chung cuộn nào), và silk_spot có 420 ảnh pool từ 16 cuộn. Nếu k-means chia silk_spot theo cuộn (Q09.13), phần ảnh test lớp mới rơi vào cụm đó (`cluster.predict_raw(test1_x)`) sẽ nhỏ hơn phần ảnh pool lớp mới của cụm. Đo ở `10-naming`: tỷ lệ mỗi cụm trên 698 ảnh pool lớp mới so với trên 214 ảnh test lớp mới, kèm mức tập trung theo cuộn của cụm. Nếu đúng, đây là một nguồn chênh giữa tầng 1 và tầng 2 (Q14.04). Nguồn: QD26.
-  - 2026-11-04 (`09d-ownership` §6, `abbc3af`): cụm con của silk là nhóm camera/cuộn (camera và cuộn giải thích 0.87–0.92 thành viên cụm trong silk); cách chia crease ở r1, r2 bám cuộn, không bám camera. Đo ở `10-naming` như trên.
-
 ### 12 Bộ lọc cũ/mới
 
 - Q12.01 [mở] Trên CIFAR, trong khoảng 4000 mẫu mỗi phiên bị lọc là "mới", bao nhiêu là dương tính giả, bao nhiêu âm tính giả?
@@ -94,6 +89,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q14.03 [mở] S4_New ổn định, S5_New không: có đánh đổi giữa hai phiên? (r = −0.55, n = 5, không có ý nghĩa; E09.01)
 - Q14.04 [mở] Trên cấu hình paper, vì sao balanced accuracy của phân hoạch pool (tầng 1) cao hơn nhiều so với balanced novel cuối pipeline trên test (tầng 2), nhất là ở FT seed r1, trong khi trên `fz` hai con số gần nhau? Mất ở khâu nào: chuyển từ pool sang test, đặt tên cụm, hay bộ phân lớp 10 slot? Ảnh hưởng: tầng 1 có dùng được để sàng lọc phương pháp không (QD18). Nguồn: E09.05, mục Kết quả và Ghi chú (2026-10-20): so trên cùng seed 0–4, r0 và r1 bằng nhau ở tầng 1 nhưng cách xa nhau ở tầng 2.
   - 2026-11-01: E03.02 thêm mốc biểu diễn: probe `lr_bal` (có nhãn) đạt balanced novel 0.61 / 0.68 / 0.71 trên `ft` r0 / r1 / r2, cuối pipeline 0.39 / 0.29 / 0.36. Đặc trưng không phải chỗ mất chính; chỗ mất nằm ở các bước 09–14.
+  - 2026-11-05: ở mức cụm (k-means trên test), r0 hơn r1 7.2 điểm balanced theo tên của pipeline nhưng 1.6 theo cách đặt tên tối ưu cho balanced; kiểm chéo hai nửa, cách đó vẫn hơn tên của pipeline 6.7 điểm ở r1 (cụm do crease sở hữu trong pool mang tên inclusion ở r1 s0–s2). [SUY LUẬN] Cách đặt tên cân theo số ảnh là một phần chỗ mất của r1; kiểm ở 14 bằng dự đoán của bộ phân lớp (`10-naming` §3, `b2723cb`).
 
 ## Đã xong hoặc bỏ
 
@@ -148,6 +144,9 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q10.01 [xong] Đổi tên cụm có cứu được recall của lớp hiếm không?
   - Kết luận (2026-10-02): không; một cụm chỉ mang một tên, và hai cụm silk thừa lấy tên rolled_pit và crease (E09.03).
 - Q10.02 [bỏ] Ánh xạ nhãn giả động (dynamic pseudo-label mapping): pipeline chỉ phân cụm một lần mỗi phiên, không có gì để ánh xạ lại.
+- Q10.03 [xong] Cụm bám theo cuộn thép có co lại trên tập test không? GC10 chia train/test theo cuộn (không chung cuộn nào), và silk_spot có 420 ảnh pool từ 16 cuộn. Nếu k-means chia silk_spot theo cuộn (Q09.13), phần ảnh test lớp mới rơi vào cụm đó (`cluster.predict_raw(test1_x)`) sẽ nhỏ hơn phần ảnh pool lớp mới của cụm. Đo ở `10-naming`: tỷ lệ mỗi cụm trên 698 ảnh pool lớp mới so với trên 214 ảnh test lớp mới, kèm mức tập trung theo cuộn của cụm. Nếu đúng, đây là một nguồn chênh giữa tầng 1 và tầng 2 (Q14.04). Nguồn: QD26.
+  - 2026-11-04 (`09d-ownership` §6, `abbc3af`): cụm con của silk là nhóm camera/cuộn (camera và cuộn giải thích 0.87–0.92 thành viên cụm trong silk); cách chia crease ở r1, r2 bám cuộn, không bám camera. Đo ở `10-naming` như trên.
+  - Kết luận (2026-11-05): đúng với silk: phân bố ảnh silk qua 5 cụm khác giữa pool và test ở 15/15 ảnh chụp, và ô silk dồn vào ít cuộn co lại trên test (Spearman giữa số cuộn hiệu dụng và độ co +0.45 đến +0.77 theo FT seed); ở r0 s4 hai cụm silk mang tên rolled, crease đều từ một cuộn. inclusion chỉ dịch ở r1 và không theo cuộn (`10-naming` §5, `b2723cb`).
 
 ### 14 Đánh giá
 
@@ -178,3 +177,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-04: QD26: ghi chú Q09.12 (đổi thứ tự hàng là rút khởi tạo mới; E09.07 đã tiền đăng ký); thêm Q10.03.
 - 2026-11-04: `09-cluster` (`8982942`): sửa ghi chú Q09.12 về thứ tự hàng; ghi phần không nhãn của Q09.12, Q09.13.
 - 2026-11-04: `09d-ownership` (`abbc3af`, kế hoạch `d282b37`) đóng Q09.13; ghi chú vào Q09.12, Q10.03.
+- 2026-11-05: `10-naming` (`b2723cb`) đóng Q10.03; ghi chú Q14.04.
