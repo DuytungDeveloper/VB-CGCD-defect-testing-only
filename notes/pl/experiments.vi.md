@@ -208,7 +208,7 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 
 ## E09.07 — Nhiều lần khởi tạo k-means, giữ inertia thấp nhất (Q09.12, QD24, QD26)
 
-### Tiền đăng ký, phần 1 (2026-11-04)
+### Tiền đăng ký, phần 1 (2026-11-04; commit: 1ce3233)
 
 - Câu hỏi (Q09.12, phần có nhãn): ở bước 09, thay `n_init` 10 bằng 1000 lần khởi tạo k-means++ và giữ nghiệm inertia thấp nhất có làm tăng balanced novel ở tầng 2 không? Kèm theo: trong cùng một ảnh chụp, phân hoạch có inertia thấp hơn có cho balanced novel cao hơn không?
 - Vì sao có thí nghiệm này: E09.06 cũng chạy k-means, nên phải đứng trên k-means đã ổn định, để phần thắng do gộp cụm không lẫn với phần thắng do tối ưu (QD24). Trên CIFAR-100, số lần khởi tạo quyết định độ chính xác nhiều hơn thuật toán phân cụm (D18, E09.01).
