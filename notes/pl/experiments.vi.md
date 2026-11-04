@@ -26,6 +26,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.04: phân cụm thừa trên `fz`: lớp hiếm có cụm riêng ở K' = 20 không? (2026-10-05 → 07; xong, LOẠI) — mục E09.04 dưới đây
 - E09.05: phân cụm thừa trên cấu hình paper (`ft`) (2026-10-07; xong, SỐNG) — mục E09.05 dưới đây
 - E09.06: gộp cụm con theo khoảng cách Bhattacharyya (chưa tiền đăng ký)
+- E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04; đã tiền đăng ký phần 1, chạy sau 14) — mục E09.07 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
@@ -204,3 +205,48 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - So trên cùng tập seed: dòng balanced accuracy ở mục Kết quả lấy tầng 1 trên seed 0–9 nhưng tầng 2 trên seed 0–4. Tầng 1 tính lại trên seed 0–4 (khoá `k5_bal_acc_hungarian` trong `metrics.json` của `gc10_pl01b_r<r>_s<N>` và `gc10_pl01_s<N>`): r0/r1/r2 0.469/0.469/0.399, `fz` 0.374. Số trên seed 0–9 ở mục Kết quả giữ nguyên.
 - Trên cùng 5 seed, r0 và r1 bằng nhau ở tầng 1 (0.469) nhưng cách nhau 10.2 điểm ở tầng 2 (39.4 so với 29.2). [suy luận] Phần r1 mất nằm sau phân hoạch pool: chuyển từ pool sang test, đặt tên cụm, hoặc các bước 11–14 (Q14.04). Điều này củng cố quy tắc của QD18: thứ hạng ở tầng 1 phải được xác nhận ở tầng 2.
 - Bước tiếp, cập nhật mục Kết luận: E09.06 gộp cụm con tới đúng k = 5 cụm vì k đã biết, không dùng ngưỡng gộp; quy tắc quyết định đặt ở tầng 2. K' vẫn phải chốt trước khi chạy.
+
+## E09.07 — Nhiều lần khởi tạo k-means, giữ inertia thấp nhất (Q09.12, QD24, QD26)
+
+### Tiền đăng ký, phần 1 (2026-11-04)
+
+- Câu hỏi (Q09.12, phần có nhãn): ở bước 09, thay `n_init` 10 bằng 1000 lần khởi tạo k-means++ và giữ nghiệm inertia thấp nhất có làm tăng balanced novel ở tầng 2 không? Kèm theo: trong cùng một ảnh chụp, phân hoạch có inertia thấp hơn có cho balanced novel cao hơn không?
+- Vì sao có thí nghiệm này: E09.06 cũng chạy k-means, nên phải đứng trên k-means đã ổn định, để phần thắng do gộp cụm không lẫn với phần thắng do tối ưu (QD24). Trên CIFAR-100, số lần khởi tạo quyết định độ chính xác nhiều hơn thuật toán phân cụm (D18, E09.01).
+- Giả thuyết [suy luận]: nghiệm best-of-10 đổi theo khởi tạo (`04-loader` §3.3); nghiệm best-of-1000 nằm ở cực tiểu sâu hơn, ổn định hơn, và cho nhãn giả tốt hơn. Giả thuyết ngược cũng có cơ sở: do hiệu ứng đồng đều (Xiong, Wu & Chen 2009), mục tiêu SSE ưa chia silk_spot hơn là tách lớp hiếm, nên inertia thấp hơn có thể không giúp, thậm chí làm giảm, balanced novel.
+- Đã thấy trước tiền đăng ký này:
+  - tầng 1 của 15 nghiệm mặc định (khoá `k5_*` trong `metrics.json` của `gc10_e09_05_v2_*`; QD24) và tầng 2 của 15 chuỗi mặc định (`runs/INDEX.txt`);
+  - `04-loader` §3.3: ở r0 s4, cùng trạng thái RNG, chỉ đổi thứ tự hàng: inertia 82926 thành 82757, balanced accuracy lớp mới trên pool 0.32 thành 0.56, crease có cụm riêng (một lần rút);
+  - thử trên dữ liệu đồ chơi (QD26): tách `n_init` 10 thành 10 lần khởi tạo đơn; hoán vị hàng cùng phân phối với rút khởi tạo mới.
+  - Chưa thấy: landscape của `09-cluster`, mọi số của `09d-ownership`, mọi phân hoạch best-of-1000.
+- Dữ liệu: 15 ảnh chụp `gc10_v2_ft_r<r>_s<N>`, r = 0–2, N = 0–4 (chuỗi mặc định, QD21). Bước 04–08 giữ nguyên; chỉ đổi bước 09; bước 10–14 chạy code mặc định.
+- Biến thể `v09c_multi_init` (`lab/variants.py`): k-means của bước 09 (`KMeans` của scikit-learn 1.5.2, K = increment, k-means++, Lloyd, các tham số khác mặc định) chạy M lần khởi tạo đơn liên tiếp từ một luồng RNG, giữ nghiệm theo đúng luật của scikit-learn (thay khi inertia nhỏ hơn hẳn và phân hoạch khác); không đọc nhãn; trả `ids`, `cluster` như bước 09 (`_check_09`).
+- Thiết kế (lặp phép so trong cùng ảnh chụp, QD26):
+  - Mỗi ảnh chụp có 11 lần rút. Lần k = 0: luồng là RNG toàn cục đặt về `rng_in` của bước 09 (đúng phép so một lần chạy của QD25). Lần k = 1–10: `np.random.RandomState(907000 + 1000·r + 100·N + k)`.
+  - Mỗi lần rút: 1000 lần khởi tạo đơn liên tiếp. Nhánh mặc định: nghiệm được giữ sau 10 lần đầu (đúng thủ tục `n_init` 10). Nhánh biến thể: nghiệm được giữ sau cả 1000 lần (M = 1000). Hai nhánh dùng chung 10 lần đầu (RNG chung), nên inertia của biến thể không lớn hơn của mặc định.
+  - Mỗi phân hoạch khác nhau (so sau khi đánh lại số cụm) chạy tiếp bước 10–14 một lần, trong cùng tiến trình, từ trạng thái của ảnh chụp sau bước 08; phân hoạch trùng dùng lại kết quả. Hợp lệ vì sau bước 09 không bước nào rút RNG toàn cục (`RNG_STEPS` = 04, 05, 09) và SVI dùng `PRNGKey(0)`.
+- Đại lượng chính (QD25; cách so theo QD26): balanced novel ở tầng 2, tức trung bình recall của 5 lớp mới trên 214 ảnh test lớp mới, tên cụm như chuỗi mặc định (QD15; Brodersen et al. 2010).
+  - D_i = trung bình theo các lần rút của (balanced novel của biến thể − của mặc định) ở ảnh chụp i.
+  - Δ_r = trung bình D_i trên 5 seed của FT seed r; Δ = trung bình Δ_r trên 3 FT seed. Đơn vị: FT seed (n = 3).
+  - Ràng buộc lớp cũ: Δ_Old, tính cùng cách với S1_Old (241 ảnh test lớp cũ, cuối phiên S1).
+  - Sai số Monte Carlo: SE_MC = √(Σ_i s_i²/K) / 15, tổng trên 15 ảnh chụp; s_i là độ lệch chuẩn (ddof = 1) của hiệu giữa các lần rút ở ảnh chụp i, K là số lần rút.
+- Ngưỡng (công thức chốt ở đây; số điền ở phần 2, đo ở 14 trên 15 chuỗi mặc định, trước mọi run của E09.07):
+  - T = trung bình theo 3 FT seed của độ lệch chuẩn (ddof = 1) của balanced novel trên 5 seed của chuỗi mặc định. Lý do: cải thiện nhỏ hơn dao động của một lần chạy thì người chạy pipeline một lần không nhận ra.
+  - B = như T, với S1_Old.
+- Quy tắc quyết định:
+  - Chấp nhận: Δ ≥ T, Δ_r > 0 ở ít nhất 2/3 FT seed, và Δ_Old ≥ −B → `v09c_multi_init` (M = 1000) thành bước 09 mặc định của dòng PL; E09.06 chạy trên nó.
+  - Bác: Δ ≤ 0, hoặc Δ_Old < −B → giữ `n_init` 10; E09.06 chạy trên k-means mặc định.
+  - Không đủ lớn: các trường hợp còn lại (0 < Δ < T, hoặc Δ ≥ T nhưng Δ_r > 0 ở dưới 2/3 FT seed) → giữ `n_init` 10; báo cáo.
+  - Nếu Δ hoặc Δ_Old cách một ranh giới quyết định (T, 0, −B) dưới 2·SE_MC: thêm 10 lần rút (k = 11–20, cùng công thức seed) cho cả 15 ảnh chụp, một lần duy nhất, rồi quyết theo 21 lần rút.
+- Điều kiện bỏ ý tưởng: bác hoặc không đủ lớn → bỏ hướng "thêm khởi tạo" ở bước 09; câu "inertia thấp hơn có tốt hơn không" trả lời bằng tương quan ở báo cáo phụ.
+- Báo cáo phụ (không dùng để quyết định): kết quả riêng của k = 0; S1_New, S1_All, M_f, balanced accuracy 10 lớp; recall từng lớp mới kèm khoảng Wilson (Wilson 1927); tầng 1 (`score09`: `bal_acc_hungarian`, số cụm sở hữu) của nghiệm được giữ sau 10, 100 và 1000 lần khởi tạo trên cùng các lần rút; inertia; số ảnh chụp và số lần rút mà biến thể đổi phân hoạch; tương quan hạng Spearman giữa inertia và balanced novel trên các phân hoạch đã chạy 10–14 trong từng ảnh chụp, trung bình theo FT seed.
+- Phép kiểm toàn vẹn; chỉ đọc kết quả khi cả ba đạt:
+  - C1: ở k = 0, phân hoạch của nhánh mặc định trùng `ids` của ảnh chụp, và các số ở bước 14 trùng chuỗi mặc định (kết quả rời rạc trùng hẳn; số thực lệch tương đối ≤ 1e-6), ở 15/15 ảnh chụp.
+  - C2: ở mọi lần rút, inertia của biến thể ≤ inertia của mặc định.
+  - C3: mọi phân hoạch qua `_check_09` (mỗi ảnh pool và ảnh test một id trong [0, increment)).
+- Nếu C1–C3 không đạt: không đọc kết quả, sửa lỗi rồi chạy lại một lần, ghi lý do.
+- Dự đoán [suy luận, xác suất chủ quan]: ở lần k = 0, biến thể đổi phân hoạch ở ít nhất 8/15 ảnh chụp (khoảng 70%); Δ > 0 (khoảng 55%); Δ ≥ T (khoảng 30%); tương quan Spearman âm (inertia thấp đi với balanced novel cao) ở ít nhất 2/3 FT seed (khoảng 50%).
+- Phần 2 (sau 14, trước mọi run của E09.07): điền T và B; chốt đại lượng cơ chế từ sổ mất điểm (định nghĩa ở 10); không đổi gì khác của phần 1.
+- Ngoài phạm vi: phương pháp phân cụm khác (Q09.06); gộp cụm (E09.06); đổi K (Q09.02); M khác 1000 (chỉ ở báo cáo phụ tầng 1).
+- Chi phí ước lượng [suy luận]: 165.000 lần khởi tạo k-means; tối đa 330 lần chạy bước 10–14 (cả chuỗi 04–14 mất 2.3–2.5 phút theo `runs/INDEX.txt`); dưới một ngày máy.
+- Cách chạy: 15 run qua `exp.py`, mỗi run một ảnh chụp, ghi mọi lần rút vào `metrics.json`; hàm tầng 2 trong `lab/score.py`, biến thể trong `lab/variants.py`; code viết sau 14 và commit trước khi chạy.
+- Tag: `gc10_e09_07_r<r>_s<N>`, r = 0–2, N = 0–4.
