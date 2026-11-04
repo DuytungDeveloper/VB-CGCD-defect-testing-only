@@ -85,6 +85,13 @@ code:   mngmm.py:170-176 pre_processing: first call (pca is None) -> fit_transfo
         sklearn 1.5.2 auto solver for 20000x768, 384 comps = covariance_eigh (checked 2026-09-17) -> deterministic.
 impact: PCA is not a source of seed variance. The 384-d space is built from base classes only;
         new classes may lose variance. Matters more for datasets with few base classes (NEU-DET, GC10-DET).
+measured: GC10 (lab/05-pca.ipynb, 42c0ca4, 2026-11-04): 764 S0 images, 768 dims, num_dim 64 -> the auto rule picks the RANDOMIZED
+        solver (n < 10 d; random_state=None draws the global RNG; input transposed, so each S0 image gets one random row).
+        So on GC10 the PCA depends on the seed and on the S0 row order, but only in 3-4 of the 64 directions: largest principal
+        angle 21.7-79.3 deg between the seeds of one FT seed, median < 0.003 deg, kept S0 variance equal to 4 decimals; the
+        eigenvalues near k = 64 are nearly tied (relative gap 1.5%). "Not a source of seed variance" above holds for CIFAR-100 only.
+        The S0 subspace keeps 0.862 of S0 variance but 0.663 of the novel test set; per novel class 0.53-0.69 of the within-class
+        variance and 0.84-0.94 of the between-centre distances (lowest for crease, rolled_pit, waist_folding).
 
 ## D11. No variational inference: mu and Sigma are plain parameters, the guide is empty
 paper:  Eq. 7 is an ELBO with a N(0, I) prior and a KL term; Sec 3.2.2 argues the KL penalty
