@@ -57,9 +57,10 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 - Q08.01 [mở] D24: paper có chỉ dự đoán trên các lớp đã gặp không? Code lấy argmax trên cả các khe chưa huấn luyện. Nguồn: E06.03.
   - 2026-10-20: ưu tiên thấp cho dòng PL. Ở phiên S1 của GC10 và NEU (t1), mọi khe đều đã gặp (`n_seen` = `num_classes`, `classifier/mngmm.py` dòng 216), nên `--mask_unseen` không đổi gì ở S1, kể cả bộ lọc ở bước 12; cờ này chỉ chạm bảng S0 và M_f proxy.
+  - 2026-11-04: với SVI trên GC10 `ft`, không ảnh test S0 nào vào khe 5–9 ở cả 15 ảnh chụp, vì khe đã học có số hạng bậc hai dương với ảnh của lớp mình (`08-classifier` §3.2, §5.1, `6cad5fa`). Câu về paper chưa trả lời được từ văn bản; D24 giữ CANDIDATE.
 - Q08.02 [mở] Vì sao bộ phân lớp 10 slot đẩy nhiều ảnh inclusion sang lớp cũ, và bộ lọc cũng loại một phần ảnh inclusion của pool? Giả thuyết: nhiễu nhãn và đồng xuất hiện với water_spot (`00-data-gc10` §3.2 và §3.4; cũ: `01_data`, mục C1), lỗi nhỏ (Q03.03), hay tham số Gaussian gần khởi tạo (D23). Nguồn: `04_s1_discovery` (cell 7, 9; một seed).
   - 2026-10-24: inclusion là nhãn lớp mới kém tin cậy nhất, và một phần ảnh inclusion có hộp water_spot, một lớp cũ (`00-data-gc10` §3.2, §3.4). [SUY LUẬN] Một phần ảnh bị đẩy sang water_spot có thể đúng theo nội dung ảnh; chưa đối chiếu với chính các ảnh bị đẩy.
-- Q08.03 [mở] Nhãn mơ hồ ở ba lớp cũ quanh mối hàn (punching_hole, welding_line, crescent_gap): độ chính xác trên ảnh test chỉ có một loại lỗi khác bao nhiêu so với trên ảnh nhiều loại lỗi, và trong các ảnh nhiều lỗi bị đoán sai, bao nhiêu ảnh được gán cho một lớp có hộp trong chính ảnh đó? So trong từng lớp, vì ảnh nhiều lỗi dồn ở ba lớp này; water_spot và oil_spot có quá ít ảnh test nhiều lỗi. Nguồn: `00-data-gc10` §3.2, §3.4, §3.6.
+  - 2026-11-04: ở S0, quyết định của bộ phân lớp do số hạng bậc hai q = −½ xᵀ(Σ⁻¹ − I)x chi phối, và Σ − I lớn dần theo số bước Adam (`08-classifier` §3.1–3.3). [SUY LUẬN] Nếu khe mới ở S1 học ít bước hơn khe cũ, q của chúng nhỏ hơn và chúng thua khi tranh ảnh inclusion với khe cũ; kiểm ở 12, 14 bằng cùng phép tách.
 
 ### 09 Phân cụm
 
@@ -114,6 +115,11 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q07.02 [xong] `--scaling-factor 1.2` tác động vào đâu trong luật dừng (D14)?
   - Kết luận (2026-11-04): không tác động vào phép tính nào; `self.scaling_factor` chỉ được gán, `main.py` chỉ in và truyền cờ đi; hệ số của luật dừng tính từ số lớp (`07-early-stop` §2.1, `0d6d7ad`).
 
+### 08 Bộ phân lớp
+
+- Q08.03 [xong] Nhãn mơ hồ ở ba lớp cũ quanh mối hàn (punching_hole, welding_line, crescent_gap): độ chính xác trên ảnh test chỉ có một loại lỗi khác bao nhiêu so với trên ảnh nhiều loại lỗi, và trong các ảnh nhiều lỗi bị đoán sai, bao nhiêu ảnh được gán cho một lớp có hộp trong chính ảnh đó? So trong từng lớp, vì ảnh nhiều lỗi dồn ở ba lớp này; water_spot và oil_spot có quá ít ảnh test nhiều lỗi. Nguồn: `00-data-gc10` §3.2, §3.4, §3.6.
+  - Kết luận (2026-11-04): ảnh nhiều lỗi chỉ làm hại welding_line (đúng 10/19 ảnh nhiều lỗi so với 28/35 ảnh một lỗi); 17/35 ảnh S0 bị đoán sai được gán cho một lớp có hộp lỗi trong chính ảnh, 23/35 ảnh sai nằm trong ba lớp quanh mối hàn (welding_line → punching_hole: 7/7 ảnh có hộp punching_hole); trần khi tính các ảnh này là đúng ≈ 223/241 = 92.5%; camera không phải nguồn lỗi chính. Hệ quả: S0_All và S1_Old có một trần do nhãn; nên báo thêm độ chính xác trên ảnh test một lỗi, nhãn thư mục trùng XML, làm đại lượng phụ ở 14 (`08-classifier` §4.1, `6cad5fa`).
+
 ### 09 Phân cụm
 
 - Q09.07 [bỏ] k-means hay GMM? Phép so cũ (E09.02) không kiểm được giả thuyết sức chứa, vì GMM full ở n_k < d tự ưu tiên cụm đều; câu được làm tiếp bằng E09.03, rồi thay bằng Q09.06. CORRECTION ở note LOG `gc10_frozen_gmm10_evhung_d64_s4`.
@@ -157,3 +163,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-04: đóng Q06.05 bằng `06-gauss-svi` (`4112807`).
 - 2026-11-04: đóng Q07.02 bằng `07-early-stop` (`0d6d7ad`).
 - 2026-11-04: QD25 đóng Q14.02 (đại lượng chính); `05a-camera` (`75e1bf9`) đóng Q05.03 và thêm Q09.13.
+- 2026-11-04: `08-classifier` (`6cad5fa`) đóng Q08.03; ghi chú vào Q08.01, Q08.02.
