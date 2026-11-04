@@ -182,6 +182,11 @@ measured: GC10 (num_dim 64), both branches. Frozen DINO CLS: det > 1 (old mean ~
         scale-invariant, and on fine-tuned features it halts novel learning mid-budget.
 note:   2026-11-04: on GC10 ft r0 the old-class det < 1 comes mostly from the optimiser (off-diagonal drift and a negative
         trace of Sigma - I), not from the feature scale (D23, measured 2026-11-04); read the inference above with that qualification.
+measured: GC10 ft (lab/07-early-stop.ipynb, 0d6d7ad, 2026-11-04): with the old det 0.3707 of r0 s4 the thresholds are 0.524 for
+        pass S (1.414 x old), 0.374 for Eq. 11 (R < 0.01, 1.010 x old) and 0.185 for pass F (0.5 x old), so pass S stops before
+        the new/old det equality that Eq. 9-11 argue for. Over the 15 default chains pass F never stops and pass S stops at steps
+        468-620; within an FT seed the threshold varies by < 0.5% while the stop step follows the step-09 partition.
+        --scaling-factor (main.py) is dead too: stored by mngmm.init_parameters, never read (Q07.02).
 
 ## D15. M_f is computed on a proxy set, not on D_l as defined
 paper:  Appendix C.2 defines M_f (forgetting) over the initially labeled dataset D_l.
