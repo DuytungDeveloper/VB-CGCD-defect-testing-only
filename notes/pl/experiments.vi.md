@@ -250,3 +250,8 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Chi phí ước lượng [suy luận]: 165.000 lần khởi tạo k-means; tối đa 330 lần chạy bước 10–14 (cả chuỗi 04–14 mất 2.3–2.5 phút theo `runs/INDEX.txt`); dưới một ngày máy.
 - Cách chạy: 15 run qua `exp.py`, mỗi run một ảnh chụp, ghi mọi lần rút vào `metrics.json`; hàm tầng 2 trong `lab/score.py`, biến thể trong `lab/variants.py`; code viết sau 14 và commit trước khi chạy.
 - Tag: `gc10_e09_07_r<r>_s<N>`, r = 0–2, N = 0–4.
+
+### Ghi chú (2026-11-04, sau tiền đăng ký; không đổi phần tiền đăng ký)
+
+- Dòng "thử trên dữ liệu đồ chơi (QD26): ... hoán vị hàng cùng phân phối với rút khởi tạo mới" ghi đúng kết quả thử lúc đó, nhưng trên dữ liệu thật phép so này trượt khi trạng thái RNG cố định (`09-cluster` §3.4b, `8982942`; sửa ở QD26). Thiết kế E09.07 không dùng hoán vị hàng (k = 0 dùng `rng_in`, k = 1–10 dùng luồng RNG mới), nên không đổi.
+- Đã thấy sau tiền đăng ký, trước mọi run (không dùng nhãn): landscape của `09-cluster` (`8982942`); ví dụ nghiệm pipeline ở nhóm sâu nhất ở 7/15 ảnh chụp, best-of-10 rơi vào nhóm đó với xác suất 0.11–0.70. Tiền đăng ký chốt trước khi có các số này.
