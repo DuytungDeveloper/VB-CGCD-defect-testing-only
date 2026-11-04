@@ -57,7 +57,11 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
    3. phương sai: không gian con của S0 giữ 0.862 phương sai của S0 nhưng 0.663 của test lớp mới; log det hiệp phương sai mẫu của mỗi lớp cũ từ −35 tới −80, dù 24–32/64 hướng có phương sai trong lớp lớn hơn 1;
    4. lớp mới: giữ 0.53–0.69 phương sai trong lớp nhưng 0.84–0.94 khoảng cách giữa các tâm; ít nhất ở ba cặp crease, rolled_pit, waist_folding;
    5. qua 15 ảnh chụp: mỗi cặp seed khác nhau ở 3–4 hướng (lớn nhất 21.7–79.3°); không seed nào trùng PCA tối ưu.
-6. `06-gauss-svi` [chưa có]: Gaussian theo lớp, học bằng SVI ở S0. Code dùng lại ở 11, 13.
+6. `06-gauss-svi` [có, commit `4112807`]: Gaussian theo lớp, học bằng SVI ở S0. Code dùng lại ở 11, 13. Bốn mục
+   1. kiểm: `rerun` bước 06 (SVI trên GPU, chế độ tất định) trùng từng bit; khe 5–9 giữ μ = 0, Σ = I;
+   2. code: "SVI" là MLE bằng Adam trên minibatch 128 ảnh, guide rỗng, không prior, không KL (D11); tổng learning rate 0.0334 sau 1000 bước, max|μ| đạt 98.5% con số đó (D23);
+   3. params0 so với dữ liệu: r_μ 0.992–0.996, trị riêng Σ 0.82–1.32; độ chính xác định hình trong 100 bước đầu; det Σ < 1 do phần ngoài đường chéo (½‖E‖² 0.42–0.51) và vết âm, det trung bình 0.3707 (Q06.05);
+   4. qua 15 ảnh chụp: seed chỉ đổi tối đa 4/241 dự đoán trên test S0 và dưới 1% det; FT seed đổi det (0.37 so với 0.42–0.43), nên đổi ngưỡng dừng.
 7. `07-early-stop` [chưa có]: luật dừng sớm theo det Σ; chỉ chạy ở phiên online. Viết đúng thứ tự: ngưỡng của lượt F, lượt S tính từ `params0`; 11 và 13 kiểm, quỹ đạo det theo bước nằm ở 13 (QD24).
 8. `08-classifier` [chưa có]: bộ phân lớp, đánh giá S0. Code dùng lại ở 12, 14.
 9. `09-cluster` [chưa có]: phân cụm pool. Nguồn cũ: `12_cluster`.
