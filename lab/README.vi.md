@@ -51,7 +51,12 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
    1. kiểm: `rerun` bước 04 trùng từng bit; sáu tập và thành phần lớp;
    2. code: loader t1 của GC10; 5 lần rút RNG, chỉ một lần chọn 50 ảnh cũ vào pool; D16 thấy bằng số (pool sau phiên 1 có 371 hàng);
    3. phiên: các tập test từng hàng; qua 15 ảnh chụp, seed chỉ đổi 50 ảnh cũ được bốc và thứ tự hàng, FT seed không đổi ảnh nào; đổi thứ tự hàng của pool làm đổi k-means ở bước 09 (một hoán vị: ARI 0.73, balanced accuracy lớp mới 0.32 thành 0.56).
-5. `05-pca` [chưa có]: giảm chiều bằng PCA, fit ở S0.
+5. `05-pca` [có, commit `42c0ca4`]: giảm chiều bằng PCA, fit ở S0, năm mục
+   1. kiểm: `rerun` bước 05 trùng từng bit; solver `randomized` (scikit-learn 1.5.2: n = 764 < 10·d), rút RNG toàn cục, ma trận chuyển vị;
+   2. code: 09, 10 chạy trên đặc trưng thô 768 chiều, còn 06, 08, 11–14 trong không gian PCA 64 chiều; PCA ngẫu nhiên chỉ xoay 3–4 hướng cuối, nơi các trị riêng sát nhau;
+   3. phương sai: không gian con của S0 giữ 0.862 phương sai của S0 nhưng 0.663 của test lớp mới; log det hiệp phương sai mẫu của mỗi lớp cũ từ −35 tới −80, dù 24–32/64 hướng có phương sai trong lớp lớn hơn 1;
+   4. lớp mới: giữ 0.53–0.69 phương sai trong lớp nhưng 0.84–0.94 khoảng cách giữa các tâm; ít nhất ở ba cặp crease, rolled_pit, waist_folding;
+   5. qua 15 ảnh chụp: mỗi cặp seed khác nhau ở 3–4 hướng (lớn nhất 21.7–79.3°); không seed nào trùng PCA tối ưu.
 6. `06-gauss-svi` [chưa có]: Gaussian theo lớp, học bằng SVI ở S0. Code dùng lại ở 11, 13.
 7. `07-early-stop` [chưa có]: luật dừng sớm theo det Σ; chỉ chạy ở phiên online. Viết đúng thứ tự: ngưỡng của lượt F, lượt S tính từ `params0`; 11 và 13 kiểm, quỹ đạo det theo bước nằm ở 13 (QD24).
 8. `08-classifier` [chưa có]: bộ phân lớp, đánh giá S0. Code dùng lại ở 12, 14.
