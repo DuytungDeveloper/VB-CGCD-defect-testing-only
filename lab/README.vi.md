@@ -62,7 +62,10 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
    2. code: "SVI" là MLE bằng Adam trên minibatch 128 ảnh, guide rỗng, không prior, không KL (D11); tổng learning rate 0.0334 sau 1000 bước, max|μ| đạt 98.5% con số đó (D23);
    3. params0 so với dữ liệu: r_μ 0.992–0.996, trị riêng Σ 0.82–1.32; độ chính xác định hình trong 100 bước đầu; det Σ < 1 do phần ngoài đường chéo (½‖E‖² 0.42–0.51) và vết âm, det trung bình 0.3707 (Q06.05);
    4. qua 15 ảnh chụp: seed chỉ đổi tối đa 4/241 dự đoán trên test S0 và dưới 1% det; FT seed đổi det (0.37 so với 0.42–0.43), nên đổi ngưỡng dừng.
-7. `07-early-stop` [chưa có]: luật dừng sớm theo det Σ; chỉ chạy ở phiên online. Viết đúng thứ tự: ngưỡng của lượt F, lượt S tính từ `params0`; 11 và 13 kiểm, quỹ đạo det theo bước nằm ở 13 (QD24).
+7. `07-early-stop` [có, commit `0d6d7ad`]: luật dừng sớm theo det Σ; chỉ chạy ở phiên online. Viết đúng thứ tự: ngưỡng của lượt F, lượt S tính từ `params0`; 11 và 13 kiểm, quỹ đạo det theo bước nằm ở 13 (QD24). Ba mục
+   1. kiểm: `rerun` bước 07 trùng (chỉ chọn `stop_default`);
+   2. code: so det trung bình của 5 lớp mới với det trung bình lớp cũ, sf = 2 ở lượt F và 0.707 ở lượt S, chỉ dừng sau bước 333 và quay lui một bước; `--scaling-factor` và `--early_stop_ratio` là cờ chết (Q07.02); ngưỡng của r0 s4: S 0.524, Eq. 11 0.374, F 0.185;
+   3. qua 15 ảnh chụp: lượt F không dừng lần nào, lượt S dừng ở bước 468–620; giữa các FT seed bước dừng đi theo ngưỡng, trong một FT seed đi theo phân hoạch của bước 09.
 8. `08-classifier` [chưa có]: bộ phân lớp, đánh giá S0. Code dùng lại ở 12, 14.
 9. `09-cluster` [chưa có]: phân cụm pool. Nguồn cũ: `12_cluster`.
 10. `10-naming` [chưa có]: đặt tên cụm bằng Hungarian trên tập test, chỉ dùng khi chấm.
