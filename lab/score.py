@@ -86,6 +86,56 @@ def tier1_09(run, ks=(5, 10, 15, 20, 30)):
     return out
 
 
+# ---------------------------------------------------------------- loss ledger (QD24; notebooks 10-14)
+def ledger(run):
+    """Loss ledger (QD24; design fixed in 10-naming): for each image, whether it is still right after each step, from
+    the snapshots of one run; true labels for scoring only. Columns are added by the notebooks 10-14.
+    Sets: 'test1' (novel test set), 'pool' (pool of session 1; its old images get NaN at 09 and 10).
+    Columns: '09' the image's cluster has the image's class as pool owner (plurality class of the cluster in the pool,
+    old classes included, ties to the lower id, as score09): many-to-one, a diagnostic, not a usable naming;
+    '10' the image's cluster carries the image's class under pi_test (the pipeline's naming, QD15).
+    Returns {set: DataFrame with y (true id), novel (bool), cluster, and one float column per step: 1 right, 0 wrong,
+    NaN not defined}."""
+    import pandas as pd
+    b = snapshots(run)
+    _fresh(b, "10")
+    o4, o9, o10 = b["04"]["out"], b["09"]["out"], b["10"]["out"]
+    off, K = int(o4["offset"]), int(b["04"]["meta"]["args"]["increment"])
+    yp, ids = np.asarray(o4["true_pool_y"]).astype(int), np.asarray(o9["ids"]).astype(int)
+    y1 = np.asarray(o4["true_test1_y"]).astype(int)
+    n = np.zeros((int(max(yp.max(), y1.max())) + 1, K), dtype=int)
+    np.add.at(n, (yp, ids), 1)                                       # pool: class x cluster
+    owner = n.argmax(0)
+    name = np.array([off + o10["pi_test"][k] for k in range(K)])     # true id named by each cluster
+    out = {}
+    for s, y, cl in (("test1", y1, np.asarray(o9["cluster"].predict_raw(o4["test1_x"])).astype(int)), ("pool", yp, ids)):
+        nov = y >= off
+        df = pd.DataFrame({"y": y, "novel": nov, "cluster": cl})
+        df["09"] = np.where(nov, (owner[cl] == y).astype(float), np.nan)
+        df["10"] = np.where(nov, (name[cl] == y).astype(float), np.nan)
+        out[s] = df
+    return out
+
+
+def ledger_summary(df, names, steps):
+    """Per novel class of a ledger set: images right after each step, and the flows between consecutive steps
+    (lost = right -> wrong, gained = wrong -> right); last row 'balanced' = mean recall of the novel classes per step."""
+    import pandas as pd
+    rows = {}
+    for c, g in df[df["novel"]].groupby("y"):
+        r = {"n": len(g)}
+        for i, s in enumerate(steps):
+            r[s] = int(g[s].sum())
+            if i:
+                p = steps[i - 1]
+                r[f"lost_{p}_{s}"] = int(((g[p] == 1) & (g[s] == 0)).sum())
+                r[f"gained_{p}_{s}"] = int(((g[p] == 0) & (g[s] == 1)).sum())
+        rows[names[c]] = r
+    t = pd.DataFrame(rows).T.astype(float)
+    t.loc["balanced"] = {s: float((t[s] / t["n"]).mean()) for s in steps}
+    return t
+
+
 # ---------------------------------------------------------------- step 03: linear probe (E03.02)
 SETS_03 = {"fz": ("gc10_fz_cls5first_img80pct", "dino-vitb16", "gc10_frozen_km_evhung_d64_head"),
            **{f"r{r}": (f"gc10_ft_cls5first_img80pct_r{r}", "dino-vitb16-sl", f"gc10_ft_cls5first_img80pct_r{r}_km_evhung_d64")
