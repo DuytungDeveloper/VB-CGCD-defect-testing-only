@@ -53,7 +53,7 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
    3. phiên: các tập test từng hàng; qua 15 ảnh chụp, seed chỉ đổi 50 ảnh cũ được bốc và thứ tự hàng, FT seed không đổi ảnh nào; đổi thứ tự hàng của pool làm đổi k-means ở bước 09 (một hoán vị: ARI 0.73, balanced accuracy lớp mới 0.32 thành 0.56).
 5. `05-pca` [chưa có]: giảm chiều bằng PCA, fit ở S0.
 6. `06-gauss-svi` [chưa có]: Gaussian theo lớp, học bằng SVI ở S0. Code dùng lại ở 11, 13.
-7. `07-early-stop` [chưa có]: luật dừng sớm theo det Σ; chỉ chạy ở phiên online.
+7. `07-early-stop` [chưa có]: luật dừng sớm theo det Σ; chỉ chạy ở phiên online. Viết đúng thứ tự: ngưỡng của lượt F, lượt S tính từ `params0`; 11 và 13 kiểm, quỹ đạo det theo bước nằm ở 13 (QD24).
 8. `08-classifier` [chưa có]: bộ phân lớp, đánh giá S0. Code dùng lại ở 12, 14.
 9. `09-cluster` [chưa có]: phân cụm pool. Nguồn cũ: `12_cluster`.
 10. `10-naming` [chưa có]: đặt tên cụm bằng Hungarian trên tập test, chỉ dùng khi chấm.
@@ -66,8 +66,8 @@ Biến thể và phần thêm:
 - `06a-closed-form` [có trong code, chưa có notebook]: E06.03, `--estimator closed`; đã đóng ngày 2/10.
 - `09a-overcluster` [có hàm `v09a_overcluster`, chưa có notebook]: phân cụm thừa K' = 20; E09.04, E09.05. Nguồn cũ: `12b_cluster`.
 - `09b-overcluster-merge` [chưa có]: gộp cụm con; E09.06, chưa tiền đăng ký. Nguồn cũ: phần Bhattacharyya của `12b_cluster`.
-- `14a-loss-by-step` [chưa có]: phân tích, mất điểm ở khâu nào; Q14.04. Nguồn cũ: `04_s1_discovery`.
-- Dự kiến: `07a-no-early-stop` (Q07.03), `12a-relabel` (Q12.03).
+- `14a-loss-by-step` [chưa có]: phân tích, mất điểm ở khâu nào; Q14.04. Chỉ đọc sổ mất điểm: một hàm trong `score.py`, dựng dần từ notebook 10, mỗi notebook 11–14 thêm cột (QD24). Nguồn cũ: `04_s1_discovery` (cell 9: recall sau đặt tên và ở cuối pipeline, r0 s4).
+- Dự kiến: `05a-camera` (câu hỏi camera, QD24), `07a-no-early-stop` (Q07.03), `12a-relabel` (Q12.03).
 
 `04_s1_discovery` (tag `nb-v1`) đi xuyên các bước 09–14; nội dung chia vào notebook của từng bước khi làm tới bước đó.
 
@@ -151,6 +151,7 @@ Cảnh báo trùng số: `12_cluster` cũ (khoang 12 = phân cụm) khác hẳn 
 - Bộ đo viết một lần trong `.py`, notebook import lại. Xem code trong model: in đúng hàm bằng `inspect.getsource` cạnh đầu vào/đầu ra của nó, không chép code.
 - Đánh giá hai tầng: tầng 1 chấm đầu ra của một bước bằng nhãn thật (chỉ để chấm), để lọc nhanh; tầng 2 chạy cả pipeline qua `exp.py`, ít nhất 5 seed. Thứ hạng ở tầng 1 phải được xác nhận ở tầng 2.
 - Bối cảnh mặc định: cấu hình paper (`ft`); `fz` là bối cảnh phụ (QD19).
+- Ảnh chụp minh hoạ (QD24): hình và giải thích dùng `gc10_v2_ft_r0_s4`; từ bước 09, cell cần cơ chế của một cụm crease dùng `gc10_v2_ft_r0_s2`. Mỗi minh hoạ ghi ảnh chụp đó đứng ở đâu trong 15 ảnh chụp, ví dụ "r0 s4: crease không có cụm riêng ở K = 5, như 9/15 ảnh chụp". Số để kết luận tính trên cả 15 ảnh chụp khi rẻ (đọc pickle); kết luận về biểu diễn lấy FT seed làm đơn vị (n = 3).
 - Không nhìn trước dữ liệu: cấu hình thuộc một thí nghiệm sẽ tiền đăng ký không chạy trên pool lớp mới của GC10 trước khi tiền đăng ký; muốn thử thì dùng dữ liệu đồ chơi hoặc mô phỏng khám phá trên lớp cơ sở.
 - Cuối mỗi notebook có "Summary (EN)": 3–5 phát biểu dạng kết quả, mỗi câu kèm số và nguồn (mã E, run trong LOG, hoặc mục của notebook như §3.4); phần diễn giải ghi [inference].
 
