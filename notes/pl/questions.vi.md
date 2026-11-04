@@ -48,7 +48,6 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q06.02 [mở] S0_All tăng theo số bước SVI thế nào? Một phần đã thấy ở E06.02.
 - Q06.03 [mở] Khi n ≈ d (CIFAR: 400 so với 384), điều chuẩn mạnh hơn (Σ gộp, tức LDA) có cứu được ước lượng dạng đóng không? Chọn trên CIFAR, xác nhận trên GC10 một lần. Nguồn: E06.03.
 - Q06.04 [tạm dừng] Hiệp phương sai low-rank/sparse: chỉ chạm giới hạn ước lượng Σ khi ít mẫu, không chạm lỗi phân cụm.
-- Q06.05 [mở] Vì sao Σ học ở S0 có det < 1 (det trung bình của lớp cũ 0.3707 ở r0 s4, notebook cũ `04_s1_discovery`, tag `nb-v1`) trong khi 24–32/64 hướng của mỗi lớp cũ có phương sai trong lớp lớn hơn 1 (`05-pca` §3.2)? Ứng viên [SUY LUẬN]: với Σ = I + E nhỏ, log det ≈ tr E − ½‖E‖²_F, và Adam đẩy cả 4032 phần tử ngoài đường chéo (D23), nên phần ngoài đường chéo kéo log det xuống. Kiểm ở `06-gauss-svi`: tách log det của `params0` thành tr E và ‖E‖²_F. Ảnh hưởng: nhánh của luật dừng (D14) và cách đọc 07.
 
 ### 07 Dừng sớm
 
@@ -102,6 +101,11 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q04.02 [xong] S0 không nhãn: điểm thứ ba của trục lượng nhãn.
   - Kết luận (2026-10-01): chạy được; khám phá lớp mới không cần nhãn S0 (E04.01). Đầu thấp của trục lượng nhãn sau đó đổi thành nhãn thật tối thiểu (QD16).
 
+### 06 Gaussian theo lớp (SVI)
+
+- Q06.05 [xong] Vì sao Σ học ở S0 có det < 1 (det trung bình của lớp cũ 0.3707 ở r0 s4, notebook cũ `04_s1_discovery`, tag `nb-v1`) trong khi 24–32/64 hướng của mỗi lớp cũ có phương sai trong lớp lớn hơn 1 (`05-pca` §3.2)? Ứng viên [SUY LUẬN]: với Σ = I + E nhỏ, log det ≈ tr E − ½‖E‖²_F, và Adam đẩy cả 4032 phần tử ngoài đường chéo (D23), nên phần ngoài đường chéo kéo log det xuống. Kiểm ở `06-gauss-svi`: tách log det của `params0` thành tr E và ‖E‖²_F. Ảnh hưởng: nhánh của luật dừng (D14) và cách đọc 07.
+  - Kết luận (2026-11-04): hai phần cùng kéo log det xuống: phần ngoài đường chéo của E (chiếm phần lớn ‖E‖²_F, có ở mọi lớp cũ) và vết âm của E; thang đo của dữ liệu một mình không quyết định nhánh det của luật dừng (`06-gauss-svi` §3.2, `4112807`).
+
 ### 09 Phân cụm
 
 - Q09.07 [bỏ] k-means hay GMM? Phép so cũ (E09.02) không kiểm được giả thuyết sức chứa, vì GMM full ở n_k < d tự ưu tiên cụm đều; câu được làm tiếp bằng E09.03, rồi thay bằng Q09.06. CORRECTION ở note LOG `gc10_frozen_gmm10_evhung_d64_s4`.
@@ -137,3 +141,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-01: E03.02 xong (`d467c6b`): ghi kết quả vào Q03.02, Q14.04, Q09.06.
 - 2026-11-04: thêm Q09.12 (k-means không ổn định theo thứ tự hàng của pool) từ `04-loader` (`3f6e08e`).
 - 2026-11-04: thêm Q05.03 (camera, làm ở `05a`) và Q06.05 (vì sao det Σ < 1); ghi chú vào Q05.02; từ `05-pca` (`42c0ca4`).
+- 2026-11-04: đóng Q06.05 bằng `06-gauss-svi` (`4112807`).
