@@ -93,7 +93,14 @@ Biến thể và phần thêm:
 - `09a-overcluster` [có hàm `v09a_overcluster`, chưa có notebook]: phân cụm thừa K' = 20; E09.04, E09.05. Nguồn cũ: `12b_cluster`.
 - `09b-overcluster-merge` [chưa có]: gộp cụm con; E09.06, chưa tiền đăng ký. Nguồn cũ: phần Bhattacharyya của `12b_cluster`.
 - `09c-multi-init` [chưa có]: E09.07 (tiền đăng ký `1ce3233`), best-of-1000 so với best-of-10 qua 11 lần rút lồng nhau mỗi ảnh chụp; chạy sau 14 (QD26).
-- `09d-ownership` [chưa có]: phân tích có nhãn cho bước 09 (QD26): sở hữu cụm, hiệu ứng đồng đều, sổ Ward, nghiệm oracle, Q09.13 trong từng lớp, cụm crease ở r0 s2; chạy sau tiền đăng ký E09.07.
+- `09d-ownership` [có, commit `abbc3af`; kế hoạch chốt trước khi đọc nhãn ở `d282b37`]: phân tích có nhãn cho bước 09 (QD26). Bảy mục
+  1. kiểm: `score09` trùng 26 khoá `k5_*` của E09.05 v2 ở 15/15;
+  2. thành phần cụm: xếp sai chủ yếu do cấu trúc (chỉ 4.5% ảnh xếp sai có hộp của lớp chủ cụm); crease và rolled đi theo waist hoặc chung một cụm với ảnh cũ, inclusion lẫn vào silk; CV cỡ lớp 1.17 so với cỡ cụm 0.24–0.57;
+  3. sổ Ward: giải phóng một cụm tốn 3645–4748, tách một lớp nhỏ lợi tối đa 1709;
+  4. oracle: loại (c) ở 15/15 (ARI với lớp 0.34–0.42); basin cao hơn inertia tốt nhất 0.9–3.6%, best-of-10 không rơi vào;
+  5. độ bất ổn theo lớp: hình dạng đổi theo FT seed (r1 dồn vào lớp hiếm, r2 vào inclusion);
+  6. Q09.13: trong silk, camera và cuộn giải thích 0.87–0.92 thành viên cụm, mỗi yếu tố có ý nghĩa khi giữ yếu tố kia; inclusion 0.66–0.71;
+  7. crease, r0 s2 so với r0 s4: trên cùng pool, cấu hình crease có inertia cao hơn 0.23–0.35% nhưng balanced accuracy tầng 1 0.56–0.57 so với 0.32–0.33.
 - `14a-loss-by-step` [chưa có]: phân tích, mất điểm ở khâu nào; Q14.04. Chỉ đọc sổ mất điểm: một hàm trong `score.py`, dựng dần từ notebook 10, mỗi notebook 11–14 thêm cột (QD24). Nguồn cũ: `04_s1_discovery` (cell 9: recall sau đặt tên và ở cuối pipeline, r0 s4).
 - Dự kiến: `07a-no-early-stop` (Q07.03), `12a-relabel` (Q12.03).
 
