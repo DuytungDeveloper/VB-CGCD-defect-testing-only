@@ -404,6 +404,12 @@ measured: GC10 ft r0 (lab/06-gauss-svi.ipynb, 4112807, 2026-11-04): max |mu| 0.0
         ||E||_F^2) and tr E = -0.35 to -0.93, so det 0.24-0.44, mean 0.3707 (the early-stop dets[0]). In PCA space 24-32 of 64
         directions have within-class variance > 1 (05-pca), so [INFERENCE] the det < 1 branch of D14 comes mostly from the optimiser,
         not from the feature scale. S0 test accuracy is set by step 100; the last 900 steps lower the loss, not the test score.
+measured: GC10 ft (lab/08-classifier.ipynb, 6cad5fa, 2026-11-04): the S0 decision is made by the quadratic term q = -1/2 x'(Sigma^-1 - I)x
+        of the log-density. Across the old classes q spreads by 10.2-11.0 per test image, mu'Sigma^-1 x by 0.73-0.75 and -1/2 log det Sigma by
+        0.29-0.34 (15 default chains); at r0 s4, q alone gives the pipeline's label on 240/241 images. The off-diagonal signs of Sigma - I
+        match the class data at 93-96% of entries, so [INFERENCE] the classifier is a sign-quantised QDA whose strength grows with the
+        number of Adam steps; the linear term mu'Sigma^-1 x alone gives
+        200/241 correct but loses whenever it disagrees with q (Delta q > 0 for the true class on 240/241 images).
 
 ## D24 (CANDIDATE). Prediction takes the argmax over all num_classes slots, untrained ones included
 paper:  Sec 3.2.1, Eq. 4 and 6: the MVN-NCM classifier normalises over the classes k'; which classes take part
@@ -418,8 +424,22 @@ measured (seed 0, --estimator closed, 2026-10-02): CIFAR-100 S0_All 84.40 -> 87.
 impact: [INFERENCE] small with the default SVI estimator: trained slots stay at N(0, I) plus a shift towards
         their class (D23), so an untouched N(0, I) slot rarely wins. Not measured with SVI; why CIFAR is affected
         and GC10 is not was not checked.
+measured (SVI, GC10 ft, lab/08-classifier.ipynb, 6cad5fa, 2026-11-04): no S0 test image goes to slots 5-9 in any of the 15 default
+        chains. An untouched slot scores 0 on every term of the split in D23, a trained slot scores q > 0 on the images of its class.
 status: CANDIDATE until the paper's prediction rule is confirmed. Diagnostic flag --mask_unseen (default off =
         upstream). Found in CT1 (E06.03, notes/improvement-1.vi.md); open question Q08.01.
+
+## D25 (CANDIDATE). The code classifies by the full Gaussian log-density; the paper's Eq. 4/6 have no log det, and Eq. 6 and 8 disagree
+paper:  Eq. 4 normalises exp(-d) over the classes. Eq. 6 defines d = exp(-1/2 (h - mu)'Sigma^-1 (h - mu)), a similarity; Eq. 8 writes d as
+        proportional to sum_j (x_j - mu_j)^2 / sigma_j^2, a distance. Read with Eq. 6, Eq. 4 ranks the farthest class first; read with
+        Eq. 8, it is a Mahalanobis NCM without a log det term. Sec 3.2.1 calls the classifier Bayes-optimal, which for Gaussian classes
+        needs that term (quadratic discriminant; Hastie, Tibshirani & Friedman, ESL 4.3).
+code:   classifier/mngmm.py _predict: argmax of MultivariateNormal(mu_i, Sigma_i).log_prob = -1/2 Mahalanobis - 1/2 log det Sigma_i - const,
+        equal priors.
+measured (lab/08-classifier.ipynb, 6cad5fa, 2026-11-04, GC10 ft, S0 test): dropping the log det term changes 0-3 of 241 labels over the
+        15 default chains (0 at r0 s4). -1/2 log det Sigma is +0.42 to +0.71 over the old classes and comes from the optimiser (D23).
+impact: none measured at S0. [INFERENCE] at S1 the new slots start at -1/2 log det = 0 against +0.4-0.7 for the old ones; checked at 12, 14.
+status: CANDIDATE: the paper does not say which formula was run; the code is the released implementation.
 
 ## Additional notes on the fine-tuning implementation
 - BOFT config declared: boft_block_size=4, boft_n_butterfly_factor=2, boft_dropout=0.1,
