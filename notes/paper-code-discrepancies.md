@@ -191,6 +191,12 @@ measured: GC10 ft (lab/07-early-stop.ipynb, 0d6d7ad, 2026-11-04): with the old d
         the new/old det equality that Eq. 9-11 argue for. Over the 15 default chains pass F never stops and pass S stops at steps
         468-620; within an FT seed the threshold varies by < 0.5% while the stop step follows the step-09 partition.
         --scaling-factor (main.py) is dead too: stored by mngmm.init_parameters, never read (Q07.02).
+measured: GC10 ft r0 s4 (lab/13-gauss-s.ipynb, a4b9f7e, 2026-11-05), Figure 2 of the paper redrawn from per-update traces of passes F and S:
+        the novel mean det falls monotonically from 1 (Fig. 2b shows it rising); pass F crosses the S threshold at update 541 and the old
+        det at 740. Overall test accuracy peaks at updates 462-484, near the code's stop (526) and about 260 updates before the det
+        equality of Eq. 9-11. Stopping at 525 instead of 1000 keeps 9 of 241 old test images and loses 5 of 214 novel ones. One snapshot.
+        Over the 15 default chains the stop step follows the spread of the learned clusters (Spearman with the mean within-cluster
+        variance +0.90 / +0.90 / +0.56 per FT seed).
 
 ## D15. M_f is computed on a proxy set, not on D_l as defined
 paper:  Appendix C.2 defines M_f (forgetting) over the initially labeled dataset D_l.
