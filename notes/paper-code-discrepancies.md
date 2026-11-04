@@ -127,6 +127,10 @@ note:   clustering uses k = C_t = increment clusters, so every old-class sample 
         gets a NEW id. That is the paper's design (Sec 3.2.2: old samples are "reassigned" to old
         labels; Alg. 1 lines 29-35; D.1 estimates the number of NEW classes), not a discrepancy.
         The discrepancy is the next step: the paper re-labels them, the code drops them.
+measured: GC10 ft (lab/12-filter.ipynb, c331526, 2026-11-05): the pass-F classifier agrees with the cluster ids on 89.6-92.6% of the
+        748 pool images and puts only 7-21 kept images into another novel slot, so re-labeling as in Alg. 1 would change few novel
+        labels. The main difference is (b): 46-61 images per snapshot are dropped (39-48 of the 50 old ones, 5-16 novel ones), where
+        the paper would assign them to old classes.
 
 ## D13. Hungarian matching uses the TRUE labels of the unlabeled data
 paper:  never mentions it. In the C-GCD protocol, sessions S1-S5 are unlabeled by definition.
@@ -439,6 +443,9 @@ code:   classifier/mngmm.py _predict: argmax of MultivariateNormal(mu_i, Sigma_i
 measured (lab/08-classifier.ipynb, 6cad5fa, 2026-11-04, GC10 ft, S0 test): dropping the log det term changes 0-3 of 241 labels over the
         15 default chains (0 at r0 s4). -1/2 log det Sigma is +0.42 to +0.71 over the old classes and comes from the optimiser (D23).
 impact: none measured at S0. [INFERENCE] at S1 the new slots start at -1/2 log det = 0 against +0.4-0.7 for the old ones; checked at 12, 14.
+measured (lab/12-filter.ipynb, c331526, 2026-11-05, GC10 ft, filter of step 12): after pass F, -1/2 log det is 0.30-0.98 for the novel
+        slots against 0.31-0.72 for the old ones, +0.34 to +0.37 on average for the best novel minus the best old slot. Dropping the term
+        changes 22 novel drops and 4 old leaks over 15 snapshots; the quadratic term is the largest one on 98.4-100% of the pool. Step 14: pending.
 status: CANDIDATE: the paper does not say which formula was run; the code is the released implementation.
 
 ## Additional notes on the fine-tuning implementation
