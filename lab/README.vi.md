@@ -75,11 +75,16 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
 14. `14-eval` [chưa có]: đánh giá S1 (All/Old/New/S0test, M_f, M_d).
 
 Biến thể và phần thêm:
+- `05a-camera` [có, commit `75e1bf9`]: phân tích cho bước 05 (Q05.03), làm trước 08 (QD25); bốn mục
+  1. dữ liệu: gắn mỗi hàng của ảnh chụp với ảnh của nó theo byte (camera, cuộn thép, lớp);
+  2. PCA-64, phân tách phương sai (R² hiệu chỉnh) thành lớp / chung / camera / dư: S0 0.304 / 0.145 / 0.070 / 0.481, lớp chiếm pc1–pc4; 698 ảnh lớp mới 0.187 / 0.086 / 0.232 / 0.495;
+  3. đặc trưng thô (không gian của k-means): lớp mới 0.146 / 0.063 / 0.198 / 0.593; camera giải thích 0.431 phương sai trong silk_spot, 0.353 trong inclusion, 0.08–0.11 trong crease, rolled_pit, waist_folding; trong silk_spot, cuộn và camera cùng giải thích 0.607;
+  4. qua 15 ảnh chụp và `fz`: với lớp mới, camera hơn lớp ở cả 3 FT seed; `fz` có lớp 0.119, camera 0.221.
 - `06a-closed-form` [có trong code, chưa có notebook]: E06.03, `--estimator closed`; đã đóng ngày 2/10.
 - `09a-overcluster` [có hàm `v09a_overcluster`, chưa có notebook]: phân cụm thừa K' = 20; E09.04, E09.05. Nguồn cũ: `12b_cluster`.
 - `09b-overcluster-merge` [chưa có]: gộp cụm con; E09.06, chưa tiền đăng ký. Nguồn cũ: phần Bhattacharyya của `12b_cluster`.
 - `14a-loss-by-step` [chưa có]: phân tích, mất điểm ở khâu nào; Q14.04. Chỉ đọc sổ mất điểm: một hàm trong `score.py`, dựng dần từ notebook 10, mỗi notebook 11–14 thêm cột (QD24). Nguồn cũ: `04_s1_discovery` (cell 9: recall sau đặt tên và ở cuối pipeline, r0 s4).
-- Dự kiến: `05a-camera` (câu hỏi camera, QD24), `07a-no-early-stop` (Q07.03), `12a-relabel` (Q12.03).
+- Dự kiến: `07a-no-early-stop` (Q07.03), `12a-relabel` (Q12.03).
 
 `04_s1_discovery` (tag `nb-v1`) đi xuyên các bước 09–14; nội dung chia vào notebook của từng bước khi làm tới bước đó.
 
