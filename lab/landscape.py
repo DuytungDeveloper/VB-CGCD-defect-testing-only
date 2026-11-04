@@ -9,7 +9,9 @@ Results are cached on this machine in runs/<run>/landscape/<key>.npz (git ignore
   singles(run, n)      n single inits (KMeans(n_init=1)) from an own RNG stream, 1 OpenMP thread
   permuted(run, m)     m pipeline runs (n_init 10) from rng_in of step 09 with the rows permuted (r0 s4 in QD26)
   decompose(run)       the 10 inits of the pipeline's n_init 10, replayed one by one from rng_in
-  keep_rule, canon, ari, modes, best_of_weights, good_turing, instability: analysis helpers (no RNG, no cache)
+  modes_all(runs)      modes() of many runs and thresholds in parallel processes
+  keep_rule, canon, ari, ari_many, modes, assign, best_of_weights, good_turing, instability: analysis helpers
+                       (no RNG, no cache)
 """
 import hashlib, inspect, io, json, time, zlib
 from concurrent.futures import ProcessPoolExecutor
@@ -145,8 +147,10 @@ def _job(a):
 
 
 def run_all(runs, fn=singles, workers=None, **kw):
-    """fn(run, **kw) for many runs in parallel processes (each one OpenMP thread); returns {run: meta}."""
-    with ProcessPoolExecutor(max_workers=workers) as ex:
+    """fn(run, **kw) for many runs in parallel processes (each one OpenMP thread); returns {run: meta}. Spawned, not
+    forked: a fork after OpenMP has run in the parent (any KMeans fit) can hang the children."""
+    import multiprocessing as mp
+    with ProcessPoolExecutor(max_workers=workers, mp_context=mp.get_context("spawn")) as ex:
         return dict(ex.map(_job, [(fn, r, kw) for r in runs]))
 
 
@@ -182,6 +186,19 @@ def ari(a, b, k=None):
     return float((s - e) / ((sa + sb) / 2 - e)) if (sa + sb) / 2 != e else 1.0
 
 
+def ari_many(a, B, k):
+    """ARI of labels a (N,) against each row of B (m, N), labels < k: one bincount for all m contingency tables."""
+    a, B = np.asarray(a, dtype=np.int64), np.asarray(B, dtype=np.int64)
+    m, N = B.shape
+    idx = (np.arange(m, dtype=np.int64)[:, None] * k * k + a[None, :] * k + B).ravel()
+    n = np.bincount(idx, minlength=m * k * k).reshape(m, k, k).astype(np.float64)
+    c2 = lambda v: v * (v - 1) / 2
+    s, sa, sb, t = c2(n).sum((1, 2)), c2(n.sum(2)).sum(1), c2(n.sum(1)).sum(1), N * (N - 1) / 2
+    e = sa * sb / t
+    den = (sa + sb) / 2 - e
+    return np.where(den != 0, (s - e) / np.where(den != 0, den, 1.0), 1.0)
+
+
 def modes(L, J, tau=0.95):
     """Solution modes: distinct partitions sorted by inertia; each joins the first leader with ARI >= tau, else leads a
     new mode. Returns mode (n,) per init, leaders (indices into L), and per mode: inertia of the leader, count."""
@@ -191,17 +208,39 @@ def modes(L, J, tau=0.95):
         first.setdefault(kb, i)
     distinct = sorted(first.values(), key=lambda i: (J[i], i))
     k = int(L.max()) + 1
+    lead = np.empty((len(distinct), L.shape[1]), dtype=L.dtype)     # leader labels, filled in order
     leaders, of = [], {}
     for i in distinct:
-        for m, l in enumerate(leaders):
-            if ari(L[i], L[l], k) >= tau:
-                of[keys[i]] = m
-                break
+        hit = np.flatnonzero(ari_many(L[i], lead[:len(leaders)], k) >= tau) if leaders else []
+        if len(hit):
+            of[keys[i]] = int(hit[0])
         else:
             of[keys[i]] = len(leaders)
+            lead[len(leaders)] = L[i]
             leaders.append(i)
     mode = np.array([of[kb] for kb in keys])
     return dict(mode=mode, leaders=np.array(leaders), J=J[leaders], count=np.bincount(mode, minlength=len(leaders)))
+
+
+def _modes_job(a):
+    run, n, tau = a
+    s, _ = singles(run, n)
+    return (run, tau), modes(s["L"], s["J"], tau)
+
+
+def modes_all(runs, n=10000, taus=(0.90, 0.95, 0.99), workers=None):
+    """modes() of the singles cache of many runs for each tau, in spawned processes; returns {(run, tau): modes}."""
+    import multiprocessing as mp
+    with ProcessPoolExecutor(max_workers=workers, mp_context=mp.get_context("spawn")) as ex:
+        return dict(ex.map(_modes_job, [(r, n, t) for r in runs for t in taus]))
+
+
+def assign(lab, L, md, tau=0.95):
+    """Mode of an outside partition lab (e.g. the pipeline's): the first leader of md = modes(L, J, tau) with
+    ARI >= tau, or -1 if none; also the largest ARI to a leader."""
+    r = ari_many(canon(lab), L[md["leaders"]], int(L.max()) + 1)
+    hit = np.flatnonzero(r >= tau)
+    return (int(hit[0]) if len(hit) else -1), float(r.max())
 
 
 def best_of_weights(J, m):
