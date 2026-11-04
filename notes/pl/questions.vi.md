@@ -72,7 +72,12 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q09.06 [mở] Ở bước 09, phương pháp nào cho nhãn giả tốt hơn k-means theo bộ đo tầng 1 (ứng viên: GMM trên PCA-64 hoặc covariance chéo, phân cụm phổ trên đồ thị kNN, HDBSCAN), và thứ hạng có giữ ở tầng 2 không? Siêu tham số không chỉnh trên pool có nhãn thật của lớp mới. Nguồn: QD18.
   - 2026-11-01: E03.02: probe k-NN (k = 20, cosine) gần như không đọc được lớp hiếm (crease 0/11 ở cả 4 bộ, rolled_pit 1–2/6) dù probe tuyến tính đọc được. [SUY LUẬN] Phương pháp dựa trên láng giềng gần (phân cụm phổ trên kNN, HDBSCAN) cần được kiểm riêng cho lớp hiếm trước khi xếp hạng.
 - Q09.12 [mở] k-means ở bước 09 (`n_init` 10) có ổn định theo thứ tự hàng của pool không? Ở r0 seed 4, cùng trạng thái RNG, chỉ đổi thứ tự hàng (do bước 04 xáo theo seed): ARI 0.73, inertia 82926 thành 82757, balanced accuracy lớp mới trên pool 0.32 thành 0.56, crease có cụm riêng (`04-loader` §3.3; một hoán vị). Cần đo trên 15 ảnh chụp × nhiều hoán vị: mức dao động; inertia thấp hơn có đi cùng balanced accuracy cao hơn không; tăng `n_init`, hoặc chọn nghiệm inertia thấp nhất qua nhiều thứ tự, có giúp không. Nếu dao động lớn, nó cũng ảnh hưởng cách đọc mọi kết quả theo seed (Q14.03) và thiết kế E09.06. Cấu hình nào thuộc thí nghiệm thì tiền đăng ký trước khi chạy trên pool lớp mới. Nguồn: `04-loader` (`3f6e08e`).
+  - 2026-11-04 (QD26): với cùng trạng thái RNG, đổi thứ tự hàng cho cùng phân phối nghiệm như rút khởi tạo mới (k-means++ chọn tâm theo chỉ số hàng; Lloyd không phụ thuộc thứ tự; đã thử trên dữ liệu đồ chơi), nên câu hỏi là độ ổn định của best-of-10 theo khởi tạo, và ARI 0.73 ở trên là một lần rút. Pool khác nhau giữa các seed (50 ảnh reserve), nên inertia chỉ so được trong cùng pool. Phần không nhãn: `09-cluster`; phần có nhãn: E09.07 (tiền đăng ký 2026-11-04).
 - Q09.13 [mở] k-means ở bước 09 có chia silk_spot (và inclusion) theo camera hoặc cuộn thép không? Với 698 ảnh lớp mới, trong đặc trưng thô, phần chỉ do camera lớn hơn phần chỉ do lớp; camera giải thích 0.43 phương sai trong silk_spot, cuộn và camera cùng giải thích 0.61 (`05a-camera` §3.1, §4.1). Kiểm ở `09-cluster` bằng bảng cụm × camera và cụm × cuộn trên 15 ảnh chụp (camera, cuộn lấy từ tên file, không cần nhãn lớp). Nếu đúng, đây là một cơ chế của tranh cụm ở K = 5 (QD24) và là đầu vào cho thiết kế E09.06, E09.07. Nguồn: `05a-camera` (`75e1bf9`).
+
+### 10 Đặt tên cụm
+
+- Q10.03 [mở] Cụm bám theo cuộn thép có co lại trên tập test không? GC10 chia train/test theo cuộn (không chung cuộn nào), và silk_spot có 420 ảnh pool từ 16 cuộn. Nếu k-means chia silk_spot theo cuộn (Q09.13), phần ảnh test lớp mới rơi vào cụm đó (`cluster.predict_raw(test1_x)`) sẽ nhỏ hơn phần ảnh pool lớp mới của cụm. Đo ở `10-naming`: tỷ lệ mỗi cụm trên 698 ảnh pool lớp mới so với trên 214 ảnh test lớp mới, kèm mức tập trung theo cuộn của cụm. Nếu đúng, đây là một nguồn chênh giữa tầng 1 và tầng 2 (Q14.04). Nguồn: QD26.
 
 ### 12 Bộ lọc cũ/mới
 
@@ -164,3 +169,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-04: đóng Q07.02 bằng `07-early-stop` (`0d6d7ad`).
 - 2026-11-04: QD25 đóng Q14.02 (đại lượng chính); `05a-camera` (`75e1bf9`) đóng Q05.03 và thêm Q09.13.
 - 2026-11-04: `08-classifier` (`6cad5fa`) đóng Q08.03; ghi chú vào Q08.01, Q08.02.
+- 2026-11-04: QD26: ghi chú Q09.12 (đổi thứ tự hàng là rút khởi tạo mới; E09.07 đã tiền đăng ký); thêm Q10.03.
