@@ -38,7 +38,7 @@ Trạng thái câu hỏi không ghi ở đây: xem `questions.vi.md`.
 
 1. Lấy mã E kế tiếp trong bước, thêm một dòng vào danh mục (mục 0 của `experiments.vi.md`), rồi viết mục tiền đăng ký: câu hỏi, giả thuyết, đại lượng (công thức kèm nguồn), dự đoán, phép kiểm toàn vẹn, quy tắc quyết định, điều kiện bỏ ý tưởng.
 2. Commit và push; ghi hash của commit tiền đăng ký vào mục.
-3. Chạy qua `exp.py run`, kể cả script offline (script ghi số vào `$EXP_RUN_DIR/metrics.json`, vì `console.log` không vào git).
+3. Chạy qua `exp.py run`, kể cả script offline (script ghi số vào `$EXP_RUN_DIR/metrics.json`, vì `console.log` không vào git). Commit một run gồm thư mục run, `notes/LOG.md` và `runs/INDEX.txt`, vì `exp.py` viết lại `INDEX.txt` sau mỗi run (E03.02 từng sót file này, sửa ở `77bb06a`).
 4. Chỉ thêm Kết quả, Đánh đổi, Kết luận; không sửa phần tiền đăng ký. Thay đổi làm sau khi đã thấy dữ liệu ghi riêng, kèm ngày và lý do. Ngoại lệ duy nhất: đổi mã theo QD22; bản gốc kiểm được bằng hash commit ghi trong mục.
 5. Cập nhật câu hỏi tương ứng trong `questions.vi.md`.
 
@@ -172,3 +172,19 @@ QD01–QD15 (các dòng cũ) ở `notes/plan.vi.md` §4.
   - Ngưỡng dừng chỉ cần `params0` và code, như notebook cũ `04_s1_discovery` (tag `nb-v1`) đã tính; viết 07 sau 13 thì 13 phải giải thích luật dừng trước.
   - Sổ mất điểm cho mọi bước một đại lượng chung. Ở bước 09 cụm chưa có tên, nên sổ bắt đầu ở 10.
 - Hệ quả: câu hỏi camera vào `questions.vi.md` khi viết 05; E09.07 vào danh mục thí nghiệm và rủi ro về đại lượng chính vào Q09.12 khi viết 09; `lab/README.vi.md` §3 và §9 sửa theo quyết định này.
+
+### QD25 — Đại lượng chính của dòng PL; `05a` trước 08 (2026-11-04)
+
+- Nội dung:
+  - Đại lượng chính (Q14.02) của mọi thí nghiệm cải tiến, từ E09.07: balanced novel ở tầng 2, tức trung bình recall của 5 lớp mới trên 214 ảnh test lớp mới, với tên cụm đặt như chuỗi mặc định (QD15). So biến thể với mặc định theo cặp (cùng FT seed, cùng seed, RNG chung): lấy hiệu trung bình trong từng FT seed, rồi trung bình của 3 FT seed. FT seed là đơn vị (n = 3).
+  - Ràng buộc lớp cũ: S1_Old (241 ảnh test lớp cũ, cuối phiên S1) không được giảm quá một biên chốt trong tiền đăng ký. Dùng mức S1_Old, không dùng M_f: M_f là hiệu, nên giảm được chỉ bằng cách hạ S0_All (D9).
+  - Chỉ báo cáo, không dùng để quyết định: S1_New (với t1 bằng M_d), S1_All, M_f, recall từng lớp kèm khoảng Wilson, balanced accuracy 10 lớp. Đại lượng cơ chế (sổ mất điểm, tầng 1) chốt riêng trong từng tiền đăng ký.
+  - Ngưỡng của quy tắc quyết định và biên của S1_Old chốt trong từng tiền đăng ký, dựa trên dao động giữa các seed của chuỗi mặc định (đo ở 14), trước mọi run biến thể.
+  - `05a-camera` (Q05.03) làm ngay sau 05, trước 08. Phạm vi: tín hiệu camera và cuộn thép trong không gian PCA-64 (dùng ở 06–14) và trong đặc trưng thô (dùng ở 09), tách khỏi tín hiệu lớp bằng phân tách phương sai (variance partitioning). FT seed là đơn vị; `fz` là bối cảnh phụ ở phần đặc trưng thô. Chỉ mô tả: không chạy cách sửa nào (E03.01), không tính chỉ số tách cũ/mới nào (QD24, Q12.02).
+- Thay cho: Q14.02 còn mở; QD24 chưa chốt thời điểm làm `05a`.
+- Lý do:
+  - Câu hỏi nghiên cứu là khám phá loại lỗi, nên mỗi lớp mới phải nặng như nhau (balanced accuracy; Brodersen et al. 2010, ICPR). S1_New nặng theo số ảnh: silk_spot chiếm 124/214 ảnh test lớp mới, và ở r0 s4, 88/122 ảnh lớp mới đoán đúng là silk_spot (notebook cũ `04_s1_discovery`, cell 9, tag `nb-v1`). Khi đổi cụm inclusion lấy cụm crease (r0 s2 so với s3, s4; QD24), S1_New cân hai lớp theo 43 so với 11 ảnh test, còn balanced novel cân 1 so với 1.
+  - Bước dừng của lượt S đi theo phân hoạch ở 09 (`07-early-stop` §3.1), nên một cải tiến ở 09 có thể đổi cả kết quả lớp cũ. Một đại lượng gộp cũ và mới sẽ giấu đánh đổi ổn định–thích nghi; đại lượng chính cộng một ràng buộc riêng cho lớp cũ thì không.
+  - Giá phải trả: balanced novel nhiễu (1 ảnh rolled_pit = 3.3 điểm, 1 ảnh crease = 1.8 điểm), nên phải so theo cặp và đặt ngưỡng theo dao động đã đo.
+  - Camera gắn với lớp: Cramér's V 0.31; punching_hole 100% từ 3 camera, waist_folding 89% từ 2 camera, còn silk_spot, inclusion, crease trải đủ 8 camera (`00-data-gc10` §2.3). Biết trước tín hiệu camera nằm ở đâu thì đọc đúng hơn các lỗi của 08 và các cụm của 09.
+- Hệ quả: Q14.02 đóng bằng QD25; balanced novel được tính từ ảnh chụp bằng sổ mất điểm (10–14). Tiền đăng ký E09.07, E09.06 dùng QD25. `lab/README.vi.md` §3 ghi `05a` làm trước 08.
