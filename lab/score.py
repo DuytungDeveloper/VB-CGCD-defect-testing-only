@@ -90,17 +90,19 @@ def tier1_09(run, ks=(5, 10, 15, 20, 30)):
 def ledger(run):
     """Loss ledger (QD24; design fixed in 10-naming): for each image, whether it is still right after each step, from
     the snapshots of one run; true labels for scoring only. Columns are added by the notebooks 10-14.
-    Sets: 'test1' (novel test set), 'pool' (pool of session 1; its old images get NaN at 09 and 10).
+    Sets: 'test1' (novel test set), 'pool' (pool of session 1; its old images get NaN at 09 and 10, a value at 12).
     Columns: '09' the image's cluster has the image's class as pool owner (plurality class of the cluster in the pool,
     old classes included, ties to the lower id, as score09): many-to-one, a diagnostic, not a usable naming;
     '10' the image's cluster carries the image's class under pi_test (the pipeline's naming, QD15);
     '11' (test1 only, counterfactual) the classifier with the pass-F Gaussians (params_f) puts the image in the slot
-    of its named cluster, as if the pipeline stopped after pass F.
+    of its named cluster, as if the pipeline stopped after pass F;
+    '12' (pool only) the old/new filter of step 12 (keep): an old image is right when it is dropped, a novel image when
+    it is kept and its cluster carries its class (as '10'), i.e. it trains the slot named after its own class in pass S.
     Returns {set: DataFrame with y (true id), novel (bool), cluster, and one float column per step: 1 right, 0 wrong,
     NaN not defined}."""
     import pandas as pd
     b = snapshots(run)
-    _fresh(b, "11")
+    _fresh(b, "12")
     o4, o9, o10 = b["04"]["out"], b["09"]["out"], b["10"]["out"]
     off, K = int(o4["offset"]), int(b["04"]["meta"]["args"]["increment"])
     yp, ids = np.asarray(o4["true_pool_y"]).astype(int), np.asarray(o9["ids"]).astype(int)
@@ -122,6 +124,10 @@ def ledger(run):
     slot = np.asarray(st["clf"]._predict(jnp.asarray(st["z_test1"]), _jnp(st["params_f"]))[0])
     t, lut = out["test1"], np.asarray(o10["lut"])
     t["11"] = np.where(t["novel"], (slot == lut[t["y"].to_numpy()]).astype(float), np.nan)
+    p, keep = out["pool"], np.asarray(b["12"]["out"]["keep"]).astype(bool)
+    assert keep.shape == (len(p),), f"keep: one bool per pool image, got shape {keep.shape}"
+    named = name[p["cluster"].to_numpy()] == p["y"].to_numpy()
+    p["12"] = np.where(p["novel"], (keep & named).astype(float), (~keep).astype(float))
     return out
 
 
