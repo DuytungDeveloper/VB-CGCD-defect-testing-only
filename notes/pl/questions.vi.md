@@ -40,7 +40,6 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q05.01 [mở] D21: công thức CUB của upstream có n = 25 < d = 384; số CUB của paper đến từ cấu hình nào?
 - Q05.02 [mở] Phép chiếu học từ nhãn lớp cũ (LDA, hoặc làm trắng trong lớp) có tách được các lớp chồng lấn không? Đây là hướng sửa biểu diễn nếu giả thuyết chồng lấn của E09.03 đúng. Nguồn: CT2.
   - 2026-11-04: không gian con PCA của S0 giữ 0.84–0.94 khoảng cách giữa các tâm lớp mới, thấp nhất ở ba cặp của crease, rolled_pit, waist_folding (0.842–0.857), và giữ 0.53–0.69 phương sai trong lớp (`05-pca` §4.1, đo Euclid). [SUY LUẬN] Một phép chiếu học từ lớp cũ có thể còn ít thấy hướng phân biệt ba lớp này hơn PCA; phép kiểm phải đo riêng ba cặp này.
-- Q05.03 [mở] Các thành phần PCA đầu của S0 mã hoá camera (và cuộn thép) hay lớp lỗi? Đo η² (tỉ số tương quan, correlation ratio) của từng thành phần theo camera và theo lớp. Nếu camera chiếm các thành phần đầu, Gaussian ở 06–14 có thể gom ảnh theo camera; phân cụm ở 09 chạy trên đặc trưng thô nên cần đo riêng. E03.01 đã loại chuẩn hoá camera bằng trừ trung bình, nên câu này hỏi tín hiệu camera nằm ở đâu, không thử lại cách sửa đó. Làm ở `05a-camera` (QD24). Nguồn: `00-data-gc10` §2.2–2.4 (Cramér's V giữa lớp và camera 0.31).
 
 ### 06 Gaussian theo lớp (SVI)
 
@@ -72,6 +71,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q09.06 [mở] Ở bước 09, phương pháp nào cho nhãn giả tốt hơn k-means theo bộ đo tầng 1 (ứng viên: GMM trên PCA-64 hoặc covariance chéo, phân cụm phổ trên đồ thị kNN, HDBSCAN), và thứ hạng có giữ ở tầng 2 không? Siêu tham số không chỉnh trên pool có nhãn thật của lớp mới. Nguồn: QD18.
   - 2026-11-01: E03.02: probe k-NN (k = 20, cosine) gần như không đọc được lớp hiếm (crease 0/11 ở cả 4 bộ, rolled_pit 1–2/6) dù probe tuyến tính đọc được. [SUY LUẬN] Phương pháp dựa trên láng giềng gần (phân cụm phổ trên kNN, HDBSCAN) cần được kiểm riêng cho lớp hiếm trước khi xếp hạng.
 - Q09.12 [mở] k-means ở bước 09 (`n_init` 10) có ổn định theo thứ tự hàng của pool không? Ở r0 seed 4, cùng trạng thái RNG, chỉ đổi thứ tự hàng (do bước 04 xáo theo seed): ARI 0.73, inertia 82926 thành 82757, balanced accuracy lớp mới trên pool 0.32 thành 0.56, crease có cụm riêng (`04-loader` §3.3; một hoán vị). Cần đo trên 15 ảnh chụp × nhiều hoán vị: mức dao động; inertia thấp hơn có đi cùng balanced accuracy cao hơn không; tăng `n_init`, hoặc chọn nghiệm inertia thấp nhất qua nhiều thứ tự, có giúp không. Nếu dao động lớn, nó cũng ảnh hưởng cách đọc mọi kết quả theo seed (Q14.03) và thiết kế E09.06. Cấu hình nào thuộc thí nghiệm thì tiền đăng ký trước khi chạy trên pool lớp mới. Nguồn: `04-loader` (`3f6e08e`).
+- Q09.13 [mở] k-means ở bước 09 có chia silk_spot (và inclusion) theo camera hoặc cuộn thép không? Với 698 ảnh lớp mới, trong đặc trưng thô, phần chỉ do camera lớn hơn phần chỉ do lớp; camera giải thích 0.43 phương sai trong silk_spot, cuộn và camera cùng giải thích 0.61 (`05a-camera` §3.1, §4.1). Kiểm ở `09-cluster` bằng bảng cụm × camera và cụm × cuộn trên 15 ảnh chụp (camera, cuộn lấy từ tên file, không cần nhãn lớp). Nếu đúng, đây là một cơ chế của tranh cụm ở K = 5 (QD24) và là đầu vào cho thiết kế E09.06, E09.07. Nguồn: `05a-camera` (`75e1bf9`).
 
 ### 12 Bộ lọc cũ/mới
 
@@ -82,7 +82,6 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 ### 14 Đánh giá
 
 - Q14.01 [mở] `exp.py agg`: cột `paper` cần tra theo bộ dữ liệu (hiện luôn là số CIFAR).
-- Q14.02 [mở] Đưa balanced accuracy vào chỉ số chính (hiện chỉ có qua `cm_summary`).
 - Q14.03 [mở] S4_New ổn định, S5_New không: có đánh đổi giữa hai phiên? (r = −0.55, n = 5, không có ý nghĩa; E09.01)
 - Q14.04 [mở] Trên cấu hình paper, vì sao balanced accuracy của phân hoạch pool (tầng 1) cao hơn nhiều so với balanced novel cuối pipeline trên test (tầng 2), nhất là ở FT seed r1, trong khi trên `fz` hai con số gần nhau? Mất ở khâu nào: chuyển từ pool sang test, đặt tên cụm, hay bộ phân lớp 10 slot? Ảnh hưởng: tầng 1 có dùng được để sàng lọc phương pháp không (QD18). Nguồn: E09.05, mục Kết quả và Ghi chú (2026-10-20): so trên cùng seed 0–4, r0 và r1 bằng nhau ở tầng 1 nhưng cách xa nhau ở tầng 2.
   - 2026-11-01: E03.02 thêm mốc biểu diễn: probe `lr_bal` (có nhãn) đạt balanced novel 0.61 / 0.68 / 0.71 trên `ft` r0 / r1 / r2, cuối pipeline 0.39 / 0.29 / 0.36. Đặc trưng không phải chỗ mất chính; chỗ mất nằm ở các bước 09–14.
@@ -99,6 +98,11 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 - Q04.02 [xong] S0 không nhãn: điểm thứ ba của trục lượng nhãn.
   - Kết luận (2026-10-01): chạy được; khám phá lớp mới không cần nhãn S0 (E04.01). Đầu thấp của trục lượng nhãn sau đó đổi thành nhãn thật tối thiểu (QD16).
+
+### 05 PCA
+
+- Q05.03 [xong] Các thành phần PCA đầu của S0 mã hoá camera (và cuộn thép) hay lớp lỗi? Đo η² (tỉ số tương quan, correlation ratio) của từng thành phần theo camera và theo lớp. Nếu camera chiếm các thành phần đầu, Gaussian ở 06–14 có thể gom ảnh theo camera; phân cụm ở 09 chạy trên đặc trưng thô nên cần đo riêng. E03.01 đã loại chuẩn hoá camera bằng trừ trung bình, nên câu này hỏi tín hiệu camera nằm ở đâu, không thử lại cách sửa đó. Làm ở `05a-camera` (QD24). Nguồn: `00-data-gc10` §2.2–2.4 (Cramér's V giữa lớp và camera 0.31).
+  - Kết luận (2026-11-04): ở S0, các thành phần đầu mang lớp; với lớp mới, camera mang nhiều phương sai hơn lớp ở cả PCA-64 và đặc trưng thô, ở cả 3 FT seed; trong silk_spot, cuộn thép và camera cùng giải thích phần lớn phương sai (`05a-camera`, `75e1bf9`). Câu tiếp: Q09.13.
 
 ### 06 Gaussian theo lớp (SVI)
 
@@ -128,6 +132,11 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
   - Kết luận (2026-10-02): không; một cụm chỉ mang một tên, và hai cụm silk thừa lấy tên rolled_pit và crease (E09.03).
 - Q10.02 [bỏ] Ánh xạ nhãn giả động (dynamic pseudo-label mapping): pipeline chỉ phân cụm một lần mỗi phiên, không có gì để ánh xạ lại.
 
+### 14 Đánh giá
+
+- Q14.02 [xong] Đưa balanced accuracy vào chỉ số chính (hiện chỉ có qua `cm_summary`).
+  - Kết luận (2026-11-04): balanced novel ở tầng 2 là đại lượng chính, S1_Old là ràng buộc lớp cũ (QD25); tính từ ảnh chụp bằng sổ mất điểm (10–14).
+
 ## Nhật ký
 
 - 2026-10-04: mở dòng PL; gieo Q09.11, Q09.04, Q12.03, Q09.05 sau khảo sát tài liệu ngày 2026-10-03.
@@ -147,3 +156,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-04: thêm Q05.03 (camera, làm ở `05a`) và Q06.05 (vì sao det Σ < 1); ghi chú vào Q05.02; từ `05-pca` (`42c0ca4`).
 - 2026-11-04: đóng Q06.05 bằng `06-gauss-svi` (`4112807`).
 - 2026-11-04: đóng Q07.02 bằng `07-early-stop` (`0d6d7ad`).
+- 2026-11-04: QD25 đóng Q14.02 (đại lượng chính); `05a-camera` (`75e1bf9`) đóng Q05.03 và thêm Q09.13.
