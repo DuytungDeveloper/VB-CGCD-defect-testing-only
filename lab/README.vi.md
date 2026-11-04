@@ -93,7 +93,11 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
     2. code: chỉ lọc, lượt S học id cụm của ảnh được giữ (D12); bộ phân lớp của lượt F trùng id cụm ở 89.6–92.6% pool, chỉ 7–21 ảnh được giữ nằm ở khe mới khác, nên re-labeling của paper đổi ít nhãn lớp mới;
     3. so với nhãn thật: loại 39–48/50 ảnh cũ (lọt chủ yếu oil, water; theo seed) và 5–16/698 ảnh mới (inclusion 4–14/135, silk 0; inclusion → water 80/157 trên 15 ảnh chụp); cụm crease của r0 s2 từ 34/93 ảnh cũ còn 2/59; q quyết định ở 98.4–100% ảnh; bỏ log det (D25) đổi 22 ảnh mới bị loại và 4 ảnh cũ lọt trên 15 ảnh chụp; bộ lọc chỉ dùng ℓ lọt ×1.38, loại ×2.6;
     4. cột 12 của sổ: 80% ảnh mới bị loại nằm ở cụm sai tên; độ sạch nhãn của tập học 0.27–0.45 → 0.29–0.48 (+1.7 đến +3.1 điểm); balanced của pool đổi dưới 1 điểm.
-13. `13-gauss-s` [chưa có]: lượt S, SVI lại trên ảnh được giữ, khởi tạo từ tham số S0. Vẽ thêm Hình 2 của paper trên GC10: độ chính xác lớp cũ, lớp mới, toàn bộ và det trung bình theo bước, cho lượt F và lượt S (QD24, sửa 2026-11-05).
+13. `13-gauss-s` [có, commit `a4b9f7e`]: lượt S, SVI lại trên ảnh được giữ, khởi tạo từ tham số S0; Hình 2 của paper trên GC10 (QD24, sửa 2026-11-05). Bốn mục
+    1. kiểm: `rerun` bước 13 trùng từng bit; dừng ở bước 526; 5 khe cũ trùng `params0`;
+    2. ngân sách: lượt S dùng 48–64% tổng lr; max|μ| của khe mới bám tỷ lệ này trong 1 điểm; det cuối nằm ngay trên ngưỡng S;
+    3. quỹ đạo ở r0 s4 (bọc `calculate_metrics_on_covariances` ở mức class, ngay trong notebook): det khe mới giảm đơn điệu từ 1 (Q07.01); lượt F cắt ngưỡng S ở bước 541, det cũ ở 740; lớp mới 0% tới bước 50–100; All đạt đỉnh ở bước 462–484, gần điểm dừng; cùng ngân sách, bộ lọc đổi lớp cũ 0 ảnh, lớp mới +2; dừng ở 525 thay vì 1000 giữ 9 ảnh test cũ, mất 5 ảnh test mới (balanced novel −2.0);
+    4. qua 15 ảnh chụp: bước dừng đi theo độ tản của các cụm (Spearman với phương sai trung bình trong cụm +0.90 / +0.90 / +0.56; với det của lượt F +0.90 / +0.90 / +1.00).
 14. `14-eval` [chưa có]: đánh giá S1 (All/Old/New/S0test, M_f, M_d).
 
 Biến thể và phần thêm:
