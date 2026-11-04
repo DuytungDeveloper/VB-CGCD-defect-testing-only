@@ -80,6 +80,7 @@ QD01–QD15 (các dòng cũ) ở `notes/plan.vi.md` §4.
 - Bằng chứng nền: E02.04 (fine-tune giữ lớp cũ tốt hơn, ổn định qua FT seed; khám phá không ổn định; note LOG `gc10_ftseed0_km_evhung_d64_s4`).
 - Hệ quả: so sánh trên `ft` ghép cặp theo FT seed (r0–r2); atlas dùng `ft` r0, seed 4 (mode đa số). E09.04 giữ tiền đăng ký trên `fz`; thí nghiệm tương ứng trên `ft` (E09.05) tiền đăng ký riêng, và hướng phân cụm thừa xét theo kết quả trên `ft`.
 - Lưu ý: `fz` và `ft` khác nhau ở hai yếu tố cùng lúc (có fine-tune hay không; CLS hay pooler, D8); fine-tune trong code chỉ có cross-entropy (D3).
+- Sửa ngày 2026-11-04: "mode đa số" ở dòng Hệ quả tính theo S1_New: ở r0, seed 0, 1, 3, 4 có S1_New 56.5–57.5, seed 2 có 49.1 (notebook cũ `04_s1_discovery`, tag `nb-v1`). Theo tầng 1 ở bước 09, seed 4 thuộc nhóm thiểu số: crease có cụm riêng ở seed 0–2, không có ở seed 3, 4 (QD24).
 
 ### QD20 — Bố cục `lab/`, mã theo bước, khung notebook (2026-10-15)
 
@@ -154,3 +155,20 @@ QD01–QD15 (các dòng cũ) ở `notes/plan.vi.md` §4.
 - Thay cho: thứ tự chốt ngày 2026-10-20 (14a trên 15 ảnh chụp gốc → tiền đăng ký E09.06 → notebook 14a, 09b); quy tắc "notebook chỉ được tạo khi bước đó có câu hỏi hoặc thí nghiệm đang làm" ở `lab/README.vi.md` §1, nay chỉ áp cho notebook chữ cái.
 - Lý do: `lab/` là chỗ mổ xẻ model để hiểu toán và thử cải tiến; cần hiểu đủ từng bước, trên số đã đối chiếu, trước khi sửa bước nào.
 - Hệ quả: bàn mổ đã chốt cho bước 04–14 trên GC10 `ft` (QD21); còn thiếu `lab/data_io.py` cho bước 00; NEU và `fz` ở bước 04–14 chưa có ảnh chụp, làm khi một notebook cần. E09.06 vẫn là thí nghiệm kế tiếp của dòng PL, làm sau khi xong nền.
+
+### QD24 — Dựng notebook 05–14: ảnh chụp minh hoạ, sổ mất điểm, Q09.12 (2026-11-04)
+
+- Nội dung:
+  - Ảnh chụp: hình và giải thích dùng `gc10_v2_ft_r0_s4`. Từ bước 09, cell nào cần cơ chế của một cụm crease thì dùng `gc10_v2_ft_r0_s2`, chốt trước khi viết, không chọn lại theo kết quả. Số để kết luận tính trên cả 15 ảnh chụp `gc10_v2_ft_r<r>_s<N>`; mỗi minh hoạ ghi ảnh chụp đó đứng ở đâu trong 15. Kết luận về biểu diễn lấy FT seed làm đơn vị (n = 3), không lấy 15 ảnh chụp.
+  - Sổ mất điểm (loss ledger): bảng lớp × bước trên 15 ảnh chụp, mỗi ô là số ảnh còn đúng sau bước đó; đúng/sai lưu theo từng ảnh. Một hàm trong `lab/score.py`, viết ở notebook 10, bước đầu tiên mà cụm có tên; 11–14 mỗi notebook thêm cột. 14a chỉ đọc sổ.
+  - Q09.12 tách đôi: notebook 09 chỉ mô tả phần không dùng nhãn (phân bố inertia qua nhiều lần khởi tạo, ARI giữa các nghiệm, nghiệm của pipeline đứng ở đâu). Phần chấm chất lượng là E09.07 ("khởi tạo nhiều lần, giữ inertia thấp nhất"), tiền đăng ký với đại lượng chính chốt trước; làm sau khi xong nền, trước E09.06.
+  - Notebook 07 viết đúng thứ tự: luật dừng, hai nhánh và ngưỡng của lượt F, lượt S tính từ `params0`; 11 kiểm lượt F, 13 kiểm lượt S và vẽ quỹ đạo det theo bước.
+  - Notebook 05: bảy cell code; phần camera sang `05a`. Phần lớp mới trong không gian con S0 chỉ đo phương sai trong lớp và khoảng cách giữa các tâm lớp, không tính phần dư của từng ảnh hay chỉ số tách cũ/mới nào, để Q12.02 còn sạch.
+  - Tính mới: cải tiến ở giai đoạn này làm từng bước nhỏ, không cần đột phá; sau đó đọc thêm vài paper có hướng mới để vá những chỗ gây hại mà sổ mất điểm chỉ ra.
+- Thay cho: quy tắc tạm "Ý 6" trong file bàn giao ngày 2026-11-01 (chưa vào repo); trong QD23, câu "`04`–`14` trên ảnh chụp `gc10_v2_ft_r0_s4`" (nay: minh hoạ trên ảnh chụp đó, kết luận trên 15 ảnh chụp) và vai trò của 14a (nay: đọc sổ mất điểm).
+- Lý do:
+  - Ở K = 5, các lớp mới tranh nhau một số cụm cố định. Qua 15 ảnh chụp, waist_folding luôn sở hữu 1 cụm, rolled_pit không cụm nào, silk_spot 2–3 cụm; khi silk_spot chiếm 3 cụm (12/15), cụm còn lại về crease (4) hoặc inclusion (8); cả crease lẫn inclusion có cụm chỉ ở r0 s0, s1 (khoá `k5_owned_*` trong `metrics.json` của `gc10_e09_05_v2_*`). Một ảnh chụp không đại diện được cho cả 15. r0 s2 là đối chứng sát nhất của r0 s4: cùng silk_spot 3 cụm, cụm còn lại về crease thay vì inclusion.
+  - Chấm "khởi tạo nhiều lần" bằng nhãn thật ngay trong notebook là nhìn trước kết quả của một ứng viên cải tiến (`lab/README.vi.md` §9). E09.06 cũng chạy k-means, nên phải đứng trên k-means đã ổn định, để phần thắng do gộp cụm không lẫn với phần thắng do tối ưu.
+  - Ngưỡng dừng chỉ cần `params0` và code, như notebook cũ `04_s1_discovery` (tag `nb-v1`) đã tính; viết 07 sau 13 thì 13 phải giải thích luật dừng trước.
+  - Sổ mất điểm cho mọi bước một đại lượng chung. Ở bước 09 cụm chưa có tên, nên sổ bắt đầu ở 10.
+- Hệ quả: câu hỏi camera vào `questions.vi.md` khi viết 05; E09.07 vào danh mục thí nghiệm và rủi ro về đại lượng chính vào Q09.12 khi viết 09; `lab/README.vi.md` §3 và §9 sửa theo quyết định này.
