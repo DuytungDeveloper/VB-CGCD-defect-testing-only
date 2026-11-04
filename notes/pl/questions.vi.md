@@ -61,6 +61,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q08.02 [mở] Vì sao bộ phân lớp 10 slot đẩy nhiều ảnh inclusion sang lớp cũ, và bộ lọc cũng loại một phần ảnh inclusion của pool? Giả thuyết: nhiễu nhãn và đồng xuất hiện với water_spot (`00-data-gc10` §3.2 và §3.4; cũ: `01_data`, mục C1), lỗi nhỏ (Q03.03), hay tham số Gaussian gần khởi tạo (D23). Nguồn: `04_s1_discovery` (cell 7, 9; một seed).
   - 2026-10-24: inclusion là nhãn lớp mới kém tin cậy nhất, và một phần ảnh inclusion có hộp water_spot, một lớp cũ (`00-data-gc10` §3.2, §3.4). [SUY LUẬN] Một phần ảnh bị đẩy sang water_spot có thể đúng theo nội dung ảnh; chưa đối chiếu với chính các ảnh bị đẩy.
   - 2026-11-04: ở S0, quyết định của bộ phân lớp do số hạng bậc hai q = −½ xᵀ(Σ⁻¹ − I)x chi phối, và Σ − I lớn dần theo số bước Adam (`08-classifier` §3.1–3.3). [SUY LUẬN] Nếu khe mới ở S1 học ít bước hơn khe cũ, q của chúng nhỏ hơn và chúng thua khi tranh ảnh inclusion với khe cũ; kiểm ở 12, 14 bằng cùng phép tách.
+  - 2026-11-05: ở lượt F (`11-gauss-f` §4.2, `e46f92d`), trong các ảnh test lớp mới đúng ở bước 10 mà bộ phân lớp của lượt F đoán sai, 71–81% sang một khe mới khác và chỉ 19–29% sang khe cũ; khe cũ cướp chủ yếu inclusion → oil_spot (35/51 ảnh trên 15 ảnh chụp), không phải water_spot. [SUY LUẬN] Phần ảnh inclusion bị đẩy sang lớp cũ cần đo lại ở 14, trên bộ phân lớp cuối.
 
 ### 09 Phân cụm
 
@@ -90,6 +91,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q14.04 [mở] Trên cấu hình paper, vì sao balanced accuracy của phân hoạch pool (tầng 1) cao hơn nhiều so với balanced novel cuối pipeline trên test (tầng 2), nhất là ở FT seed r1, trong khi trên `fz` hai con số gần nhau? Mất ở khâu nào: chuyển từ pool sang test, đặt tên cụm, hay bộ phân lớp 10 slot? Ảnh hưởng: tầng 1 có dùng được để sàng lọc phương pháp không (QD18). Nguồn: E09.05, mục Kết quả và Ghi chú (2026-10-20): so trên cùng seed 0–4, r0 và r1 bằng nhau ở tầng 1 nhưng cách xa nhau ở tầng 2.
   - 2026-11-01: E03.02 thêm mốc biểu diễn: probe `lr_bal` (có nhãn) đạt balanced novel 0.61 / 0.68 / 0.71 trên `ft` r0 / r1 / r2, cuối pipeline 0.39 / 0.29 / 0.36. Đặc trưng không phải chỗ mất chính; chỗ mất nằm ở các bước 09–14.
   - 2026-11-05: ở mức cụm (k-means trên test), r0 hơn r1 7.2 điểm balanced theo tên của pipeline nhưng 1.6 theo cách đặt tên tối ưu cho balanced; kiểm chéo hai nửa, cách đó vẫn hơn tên của pipeline 6.7 điểm ở r1 (cụm do crease sở hữu trong pool mang tên inclusion ở r1 s0–s2). [SUY LUẬN] Cách đặt tên cân theo số ảnh là một phần chỗ mất của r1; kiểm ở 14 bằng dự đoán của bộ phân lớp (`10-naming` §3, `b2723cb`).
+  - 2026-11-05: nếu dừng pipeline sau lượt F (cột 11 của sổ mất điểm, phản thực tế), balanced mức cụm giảm 3.7 / 7.5 / 1.9 điểm (r0 / r1 / r2) so với cột 10; r1 mất nhiều nhất (114 ảnh trên 5 ảnh chụp, chủ yếu do chia lại giữa các khe mới). Cột 11 (0.421 / 0.311 / 0.386) đã gần mức cuối pipeline của E03.02 (`11-gauss-f` §4, `e46f92d`).
 
 ## Đã xong hoặc bỏ
 
@@ -178,3 +180,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-04: `09-cluster` (`8982942`): sửa ghi chú Q09.12 về thứ tự hàng; ghi phần không nhãn của Q09.12, Q09.13.
 - 2026-11-04: `09d-ownership` (`abbc3af`, kế hoạch `d282b37`) đóng Q09.13; ghi chú vào Q09.12, Q10.03.
 - 2026-11-05: `10-naming` (`b2723cb`) đóng Q10.03; ghi chú Q14.04.
+- 2026-11-05: `11-gauss-f` (`e46f92d`): ghi chú Q08.02, Q14.04.
