@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 for p in (str(ROOT), str(ROOT / "lab")):
     if p not in sys.path:
         sys.path.insert(0, p)
-from replay import load, snapshots, _fresh, predict_default, _jnp          # noqa: E402
+from replay import load, snapshots, _fresh, _component, _jnp              # noqa: E402
 from variants import v09a_overcluster               # noqa: E402
 
 
@@ -88,55 +88,80 @@ def tier1_09(run, ks=(5, 10, 15, 20, 30)):
 
 # ---------------------------------------------------------------- loss ledger (QD24; notebooks 10-14)
 def ledger(run):
-    """Loss ledger (QD24; design fixed in 10-naming): for each image, whether it is still right after each step, from
-    the snapshots of one run; true labels for scoring only. Columns are added by the notebooks 10-14.
-    Sets: 'test1' (novel test set), 'pool' (pool of session 1; its old images get NaN at 09 and 10, a value at 12).
-    Columns: '09' the image's cluster has the image's class as pool owner (plurality class of the cluster in the pool,
+    """Loss ledger (QD24) of one run from its snapshots (fresh up to step 14): ledger_state after step 14."""
+    _fresh(snapshots(run), "14")
+    return ledger_state(load(run, "14", check=False))
+
+
+def ledger_state(st):
+    """Loss ledger (QD24; design fixed in 10-naming): for each image, whether it is still right after each step, from a
+    state after step 14 (a run's snapshots through ledger(), or a state in memory, as E09.07 will build it);
+    true labels for scoring only. Columns are added by the notebooks 10-14.
+    Sets: 'test1' (novel test set); 'pool' (pool of session 1; its old images get NaN at 09 and 10, a value at 12);
+    'test_old' (old test set of session 1, the images of the Old row of the S1 table; at t1 the S0 test set).
+    Columns: '08' (test_old only) the S0 classifier (params0) puts the image in its own slot;
+    '09' the image's cluster has the image's class as pool owner (plurality class of the cluster in the pool,
     old classes included, ties to the lower id, as score09): many-to-one, a diagnostic, not a usable naming;
     '10' the image's cluster carries the image's class under pi_test (the pipeline's naming, QD15);
-    '11' (test1 only, counterfactual) the classifier with the pass-F Gaussians (params_f) puts the image in the slot
-    of its named cluster, as if the pipeline stopped after pass F;
+    '11' (counterfactual) the classifier with the pass-F Gaussians (params_f) puts the image in the slot of its named
+    cluster (test1) or in its own slot (test_old), as if the pipeline stopped after pass F;
     '12' (pool only) the old/new filter of step 12 (keep): an old image is right when it is dropped, a novel image when
-    it is kept and its cluster carries its class (as '10'), i.e. it trains the slot named after its own class in pass S.
-    Returns {set: DataFrame with y (true id), novel (bool), cluster, and one float column per step: 1 right, 0 wrong,
-    NaN not defined}."""
+    it is kept and its cluster carries its class (as '10'), i.e. it trains the slot named after its own class in pass S;
+    '14' the final classifier (params1) puts the image in the slot of its class, as the S1 table of step 14 scores it.
+    slot_<k> (test sets): the slot chosen by the classifier of column k, in the cluster space of the S1 table (lut):
+    below offset an old class, offset + c the slot of cluster c; it splits the errors into old->new and old->old,
+    new->old and new->new. The classifier is the run's own (st['predict'], as in steps 12 and 14).
+    Checks: column 14 reproduces the Novel and Old rows of the S1 table (acc1), column 08 the S0 table (acc0).
+    Returns {set: DataFrame with y (true id), novel (bool), cluster (test1, pool), one float column per step (1 right,
+    0 wrong, NaN not defined), and the slot columns}."""
     import pandas as pd
-    b = snapshots(run)
-    _fresh(b, "12")
-    o4, o9, o10 = b["04"]["out"], b["09"]["out"], b["10"]["out"]
-    off, K = int(o4["offset"]), int(b["04"]["meta"]["args"]["increment"])
-    yp, ids = np.asarray(o4["true_pool_y"]).astype(int), np.asarray(o9["ids"]).astype(int)
-    y1 = np.asarray(o4["true_test1_y"]).astype(int)
+    import jax.numpy as jnp
+    off, K = int(st["offset"]), int(st["args"].increment)
+    yp, ids = np.asarray(st["true_pool_y"]).astype(int), np.asarray(st["ids"]).astype(int)
+    y1, yo = np.asarray(st["true_test1_y"]).astype(int), np.asarray(st["true_test_old_y"]).astype(int)
+    assert (y1 >= off).all() and (yo < off).all(), "test1 holds the novel classes only, test_old the old ones only"
     n = np.zeros((int(max(yp.max(), y1.max())) + 1, K), dtype=int)
     np.add.at(n, (yp, ids), 1)                                       # pool: class x cluster
     owner = n.argmax(0)
-    name = np.array([off + o10["pi_test"][k] for k in range(K)])     # true id named by each cluster
+    name = np.array([off + st["pi_test"][k] for k in range(K)])      # true id named by each cluster
     out = {}
-    for s, y, cl in (("test1", y1, np.asarray(o9["cluster"].predict_raw(o4["test1_x"])).astype(int)), ("pool", yp, ids)):
+    for s, y, cl in (("test1", y1, np.asarray(st["cluster"].predict_raw(st["test1_x"])).astype(int)), ("pool", yp, ids)):
         nov = y >= off
         df = pd.DataFrame({"y": y, "novel": nov, "cluster": cl})
         df["09"] = np.where(nov, (owner[cl] == y).astype(float), np.nan)
         df["10"] = np.where(nov, (name[cl] == y).astype(float), np.nan)
         out[s] = df
-    import jax.numpy as jnp
-    st = load(run, "11", check=False)                                # workbench: classifier of step 08, params_f
-    predict_default(st["clf"])
-    slot = np.asarray(st["clf"]._predict(jnp.asarray(st["z_test1"]), _jnp(st["params_f"]))[0])
-    t, lut = out["test1"], np.asarray(o10["lut"])
-    t["11"] = np.where(t["novel"], (slot == lut[t["y"].to_numpy()]).astype(float), np.nan)
-    p, keep = out["pool"], np.asarray(b["12"]["out"]["keep"]).astype(bool)
+    clf, lut = st["clf"], np.asarray(st["lut"])
+    _component(st["predict"])(clf)                                   # the run's classifier, as in steps 12 and 14
+    slot = lambda key, z: np.asarray(clf._predict(jnp.asarray(z), _jnp(st[key]))[0]).astype(int)
+    t, o = out["test1"], pd.DataFrame({"y": yo, "novel": False})
+    zo = st["pca"].transform(st["test_old_x"])                       # as clf.test projects it (pre_processing)
+    for k, key in (("08", "params0"), ("11", "params_f"), ("14", "params1")):
+        o[f"slot_{k}"] = slot(key, zo)
+        o[k] = (o[f"slot_{k}"] == lut[yo]).astype(float)
+        if k != "08":
+            t[f"slot_{k}"] = slot(key, st["z_test1"])
+            t[k] = (t[f"slot_{k}"] == lut[y1]).astype(float)
+    out["test_old"] = o
+    p, keep = out["pool"], np.asarray(st["keep"]).astype(bool)
     assert keep.shape == (len(p),), f"keep: one bool per pool image, got shape {keep.shape}"
     named = name[p["cluster"].to_numpy()] == p["y"].to_numpy()
     p["12"] = np.where(p["novel"], (keep & named).astype(float), (~keep).astype(float))
+    assert np.array_equal(st["test_old_x"], st["test0_x"]), "t1: the old test set of session 1 is the S0 test set"
+    for col, df, acc, row in (("14", t, "acc1", "Novel"), ("14", o, "acc1", "Old"), ("08", o, "acc0", "All")):
+        right = int(df[col].sum())
+        assert round(st[acc][row] * len(df) / 100) == right, \
+            f"column {col}: {right}/{len(df)} right, but {acc} {row} = {st[acc][row]}"
     return out
 
 
-def ledger_summary(df, names, steps):
-    """Per novel class of a ledger set: images right after each step, and the flows between consecutive steps
-    (lost = right -> wrong, gained = wrong -> right); last row 'balanced' = mean recall of the novel classes per step."""
+def ledger_summary(df, names, steps, novel=True):
+    """Per class of a ledger set, the novel classes (novel=True) or the old ones (novel=False; set 'test_old'): images
+    right after each step, and the flows between consecutive steps (lost = right -> wrong, gained = wrong -> right);
+    last row 'balanced' = mean recall of those classes per step."""
     import pandas as pd
     rows = {}
-    for c, g in df[df["novel"]].groupby("y"):
+    for c, g in df[df["novel"] == novel].groupby("y"):
         r = {"n": len(g)}
         for i, s in enumerate(steps):
             r[s] = int(g[s].sum())
