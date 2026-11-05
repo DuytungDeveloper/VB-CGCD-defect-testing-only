@@ -197,6 +197,9 @@ measured: GC10 ft r0 s4 (lab/13-gauss-s.ipynb, a4b9f7e, 2026-11-05), Figure 2 of
         equality of Eq. 9-11. Stopping at 525 instead of 1000 keeps 9 of 241 old test images and loses 5 of 214 novel ones. One snapshot.
         Over the 15 default chains the stop step follows the spread of the learned clusters (Spearman with the mean within-cluster
         variance +0.90 / +0.90 / +0.56 per FT seed).
+measured (lab/14-eval.ipynb, 58a698e, 2026-11-05): at the S stop the novel mean det is 1.414-1.417 times the old one on 15/15 chains, so
+        the final classifier's log det term favours the old slots (D25). Against pass F, filter plus early stop (steps 12-13) give back
+        9-18 of 241 old test images per chain and cost a net 1-9 of 214 novel ones.
 
 ## D15. M_f is computed on a proxy set, not on D_l as defined
 paper:  Appendix C.2 defines M_f (forgetting) over the initially labeled dataset D_l.
@@ -205,6 +208,9 @@ code:   scripts/extract_vbcgcd.py takes M_f = accuracy on the S0 TEST set at sta
 impact: all M_f numbers in this repo are that proxy. Weak evidence that the paper does the same:
         our 5-seed S5_S0test mean is 84.74 and the paper's 91.68 - 6.94 = 84.74 exactly. One
         coincidence on one dataset; not proof.
+measured (lab/14-eval.ipynb, 58a698e, 2026-11-05, GC10 ft t1): M_f on D_l as defined (764 S0 training images) is 0.9-3.4 points over
+        the 15 default chains, below the proxy (1.7-6.2) on 14/15. The old slots never change in session 1, so both count images captured
+        by the novel slots (no image goes from wrong to right).
 
 ## D16. The old-class sample pool is never consumed: samples repeat across sessions
 paper:  Table 8 specifies 25 samples per known class per online session.
@@ -451,7 +457,10 @@ measured (lab/08-classifier.ipynb, 6cad5fa, 2026-11-04, GC10 ft, S0 test): dropp
 impact: none measured at S0. [INFERENCE] at S1 the new slots start at -1/2 log det = 0 against +0.4-0.7 for the old ones; checked at 12, 14.
 measured (lab/12-filter.ipynb, c331526, 2026-11-05, GC10 ft, filter of step 12): after pass F, -1/2 log det is 0.30-0.98 for the novel
         slots against 0.31-0.72 for the old ones, +0.34 to +0.37 on average for the best novel minus the best old slot. Dropping the term
-        changes 22 novel drops and 4 old leaks over 15 snapshots; the quadratic term is the largest one on 98.4-100% of the pool. Step 14: pending.
+        changes 22 novel drops and 4 old leaks over 15 snapshots; the quadratic term is the largest one on 98.4-100% of the pool.
+measured (lab/14-eval.ipynb, 58a698e, 2026-11-05, final classifier): the sign flips: -1/2 log det favours the OLD slots (best novel minus
+        best old -0.11 to -0.18 on 15/15), because the S stop leaves the novel slots sqrt(2) wider in mean det (D14). Dropping the term moves
+        1-9 test images per chain towards novel slots: -14 old test images and +0.57 balanced novel points over 15 chains.
 status: CANDIDATE: the paper does not say which formula was run; the code is the released implementation.
 
 ## Additional notes on the fine-tuning implementation
