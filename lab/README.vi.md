@@ -98,7 +98,11 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
     2. ngân sách: lượt S dùng 48–64% tổng lr; max|μ| của khe mới bám tỷ lệ này trong 1 điểm; det cuối nằm ngay trên ngưỡng S;
     3. quỹ đạo ở r0 s4 (bọc `calculate_metrics_on_covariances` ở mức class, ngay trong notebook): det khe mới giảm đơn điệu từ 1 (Q07.01); lượt F cắt ngưỡng S ở bước 541, det cũ ở 740; lớp mới 0% tới bước 50–100; All đạt đỉnh ở bước 462–484, gần điểm dừng; cùng ngân sách, bộ lọc đổi lớp cũ 0 ảnh, lớp mới +2; dừng ở 525 thay vì 1000 giữ 9 ảnh test cũ, mất 5 ảnh test mới (balanced novel −2.0);
     4. qua 15 ảnh chụp: bước dừng đi theo độ tản của các cụm (Spearman với phương sai trung bình trong cụm +0.90 / +0.90 / +0.56; với det của lượt F +0.90 / +0.90 / +1.00).
-14. `14-eval` [chưa có]: đánh giá S1 (All/Old/New/S0test, M_f, M_d).
+14. `14-eval` [có, commit `58a698e`]: đánh giá S1: bảng kết quả đo gì, và cuối pipeline điểm đi đâu (QD24, QD25). Bốn mục
+    1. kiểm: `rerun` bước 14 trùng từng bit; trên GC10 t1, test cũ của phiên 1 là test S0, nên dòng S0 = dòng Old, M_d = S1_New, M_f = S0 − S1_Old (đếm ảnh), final_All = S1_All (15/15);
+    2. code: 5 khe cũ của `params_f`, `params1` trùng `params0` từng bit (15/15), nên ở S1 lớp cũ chỉ mất do khe mới cướp ảnh; M_f trên D_l (định nghĩa của paper) 0.9–3.4 điểm, dưới proxy ở 14/15 (D15); ở bộ phân lớp cuối, log det nghiêng về khe cũ (Δb −0.11 đến −0.18), ngược dấu bước 12 (D25);
+    3. sổ mất điểm ở 14: balanced novel 0.394 / 0.292 / 0.362; T = 0.0244, B = 0.599 điểm (E09.07); từ 11 sang 14, mỗi ảnh chụp lấy lại 9–18 ảnh test cũ, mất ròng 1–9 ảnh mới; lỗi chéo nhóm gần như không do nhãn mơ hồ (có hộp của lớp đích: 33/411 mới→cũ, 0/203 cũ→mới);
+    4. theo bước (Q14.04): r1 bằng r0 ở tầng 1, thua 10.2 điểm ở cuối (7.2 ở pool→test và đặt tên, 3.8 ở lượt F); đặt tên theo dự đoán của bộ phân lớp (QD14, kiểm chéo) bù 6.2 điểm cho r1.
 
 Biến thể và phần thêm:
 - `05a-camera` [có, commit `75e1bf9`]: phân tích cho bước 05 (Q05.03), làm trước 08 (QD25); bốn mục
@@ -118,7 +122,7 @@ Biến thể và phần thêm:
   5. độ bất ổn theo lớp: hình dạng đổi theo FT seed (r1 dồn vào lớp hiếm, r2 vào inclusion);
   6. Q09.13: trong silk, camera và cuộn giải thích 0.87–0.92 thành viên cụm, mỗi yếu tố có ý nghĩa khi giữ yếu tố kia; inclusion 0.66–0.71;
   7. crease, r0 s2 so với r0 s4: trên cùng pool, cấu hình crease có inertia cao hơn 0.23–0.35% nhưng balanced accuracy tầng 1 0.56–0.57 so với 0.32–0.33.
-- `14a-loss-by-step` [chưa có]: phân tích, mất điểm ở khâu nào; Q14.04. Chỉ đọc sổ mất điểm: một hàm trong `score.py`, dựng dần từ notebook 10, mỗi notebook 11–14 thêm cột (QD24). Nguồn cũ: `04_s1_discovery` (cell 9: recall sau đặt tên và ở cuối pipeline, r0 s4).
+- `14a-loss-by-step` [bỏ, 2026-11-05]: chuỗi mất điểm theo bước (Q14.04) đã nằm trọn ở `14-eval` §4.1 (QD24, sửa 2026-11-05).
 - Dự kiến: `07a-no-early-stop` (Q07.03), `12a-relabel` (Q12.03).
 
 `04_s1_discovery` (tag `nb-v1`) đi xuyên các bước 09–14; nội dung chia vào notebook của từng bước khi làm tới bước đó.
@@ -129,7 +133,7 @@ Biến thể và phần thêm:
 - Ba loại:
   1. thay thế bước gốc, kết quả đổi (ví dụ `06a-closed-form` thay SVI);
   2. chèn thêm ngay sau bước gốc, kết quả đổi (ví dụ `09b-overcluster-merge` chạy sau phân cụm);
-  3. phân tích thêm cho bước gốc, kết quả không đổi (ví dụ `14a-loss-by-step`).
+  3. phân tích thêm cho bước gốc, kết quả không đổi (ví dụ `09d-ownership`).
 - Dòng **Vị trí** ở cell đầu của notebook chữ cái ghi ba điều: loại (thay thế, chèn, phân tích); vị trí trong thứ tự chạy; dựa trên notebook nào (khung ở mục 9).
 - Biến thể dựa trên một biến thể khác lấy chữ kế tiếp và ghi nguồn; không lồng chữ (`09c` ghi "dựa trên 09b", không đặt `09b1`).
 - Biến thể được chọn làm mặc định mới vẫn giữ chữ cái của nó; mục lục đánh dấu bản nào đang là mặc định.
@@ -143,7 +147,7 @@ Biến thể và phần thêm:
 Hiện có:
 - `replay.py`: bàn mổ (QD21; commit `737e8c4`, `a5c9545`, `86ed44d`, `3525e86`, `1253ce6`, `370cf86`). Mỗi bước 04–14 là một hàm `sNN(st)`; ảnh chụp ở `runs/<run>/snap/NN.pkl`. Chạy qua `exp.py`: `run --features <F> --seed <N>` (chuỗi mặc định), `run --from <run> --start NN --at NN=<hàm>` (biến thể). Phép kiểm QD21/C1–C4: `check` (C1), `check-resume` (C2), `check-crn` (C3), `check-hash` (C4); cả bốn đạt ngày 2026-10-20. Ảnh chụp gốc cho biến thể: 15 run `gc10_v2_ft_r<r>_s<N>` (chỉ có trên laptop). Lệnh `run` dừng nếu JAX không chạy trên GPU và ghi thiết bị vào meta của ảnh chụp. Bản đầu (hàm `replay()` cho notebook) đã xoá ngày 2026-10-21; bản gốc ở tag `nb-v1`. Hàm `rerun(run, k)` (commit `53d8603`, 2026-11-01) cho notebook 04–14: chạy lại bước k từ ảnh chụp của bước trước (bước 04 từ `new_state`), so từng khoá với ảnh chụp k theo quy tắc của C1 (rời rạc trùng tuyệt đối; số thực lệch ≤ 1e-6 × max|giá trị|), dừng nếu thiết bị khác thiết bị của ảnh chụp, báo nếu driver GPU khác `config.json`; không ghi file. Thử ngày 2026-11-01 trên `gc10_v2_ft_r0_s4`: 11/11 bước OK, mọi khoá trùng từng bit, dù driver đã đổi từ 617.42 sang 621.01.
 - `variants.py`: biến thể, mỗi hàm mang mã bước (`v09a_overcluster`; sau thêm `v09b_merge`…), cùng đầu vào/đầu ra với bước gốc; không nhận nhãn thật của pool. `replay.py run --at` tìm hàm ở đây. Quy tắc viết biến thể: docstring đầu file và mục 4.
-- `score.py`: bộ đo tầng 1, mỗi bước một hàm (`score09`; sau thêm `score10`, `score12`); `tier1_09` chạy K' cụm từ ảnh chụp của một run, lệnh `python lab/score.py 09 --from <run>` qua `exp.py`. Ngoài các lệnh kiểm của `replay.py`, đây là nơi duy nhất trong `lab/` đọc nhãn thật của pool, chỉ để chấm. Thay `pl_cluster.py` (xoá ngày 2026-10-21) sau khi tái lập tầng 1 của E09.05 ở 15/15 cặp (run `gc10_e09_05_v2_*`, commit `b81b78d`). Sổ mất điểm (QD24; commit `3aeb5ae`): `ledger(run)` trả đúng/sai từng ảnh của `test1` và `pool` theo cột bước (hiện 09, 10, 11, 12; cột 11 thêm ở `ae132c1`, cột 12 của tập `pool` ở `4f8166d`; notebook 13–14 thêm cột); `ledger_summary` gộp theo lớp, kèm luồng mất/được giữa hai cột liền nhau và hàng balanced.
+- `score.py`: bộ đo tầng 1, mỗi bước một hàm (`score09`; sau thêm `score10`, `score12`); `tier1_09` chạy K' cụm từ ảnh chụp của một run, lệnh `python lab/score.py 09 --from <run>` qua `exp.py`. Ngoài các lệnh kiểm của `replay.py`, đây là nơi duy nhất trong `lab/` đọc nhãn thật của pool, chỉ để chấm. Thay `pl_cluster.py` (xoá ngày 2026-10-21) sau khi tái lập tầng 1 của E09.05 ở 15/15 cặp (run `gc10_e09_05_v2_*`, commit `b81b78d`). Sổ mất điểm (QD24; commit `3aeb5ae`): `ledger(run)` trả đúng/sai từng ảnh của `test1`, `pool` và `test_old` theo cột bước (cột 08–12 và 14; cột 11 thêm ở `ae132c1`, cột 12 của tập `pool` ở `4f8166d`; cột 14, tập `test_old` và các cột khe được chọn `slot_<k>` ở `73e7fae`); `ledger_state(st)` tính sổ từ một trạng thái sau bước 14, dùng chung cho runner của E09.07; `ledger_summary` gộp theo lớp (lớp mới, hoặc lớp cũ với `novel=False`), kèm luồng mất/được giữa hai cột liền nhau và hàng balanced.
 - `data_io.py`: dữ liệu thô cho các notebook `00-data-*` (QD23; commit `8910925`, `2f6f1e5`). `images(dataset)`: bảng ảnh của file split, mỗi ảnh một dòng, theo thứ tự hàng của file đặc trưng; vai trò S0, reserve, S1, unused, test (mục 10). `objects(dataset, path)`: hộp lỗi trong XML của một ảnh, cùng quy tắc với `scripts/make_gc10_split.py`. `diagnostics(dataset)`: tính lại mục `diagnostics` của file split, trùng 466/75/6; đọc 2282 file XML trong khoảng 1 s nên không cần bộ nhớ đệm. Chỉ đọc file split và XML, không cần torch, jax. NEU thêm ở commit `beec7b9`: đường dẫn ảnh như `build()` của `feature_extractor/dino-neudet.py`, vai trò như `dataloaders/neudet.py`, XML tra theo tên file trong cả hai thư mục `annotations` (XML của ảnh train `crazing_240` nằm trong `validation/annotations`); `diagnostics("neudet")` cho 123/0/0. Không đặt tên `datasets.py` (sẽ che gói `datasets` của HuggingFace).
 - `landscape.py`: landscape của k-means ở bước 09 (QD26; commit `1adc3e2`): nhiều lần khởi tạo k-means++ đơn trên pool của một ảnh chụp, không đọc nhãn (chỉ `pool_x`, `ids`, `inertia`, `rng_in`; khoá `true_*` bỏ khi nạp). `singles(run, n)`: n lần khởi tạo đơn từ một luồng RNG riêng, 1 luồng OpenMP; `permuted(run, m)`: m lần chạy `n_init` 10 từ `rng_in` với hàng hoán vị; `decompose(run)`: tách `n_init` 10 của pipeline thành 10 lần khởi tạo đơn; `run_all`: chạy song song theo ảnh chụp. Cache trên máy ở `runs/<run>/landscape/` (git bỏ qua), khoá theo băm của ảnh chụp, code và tham số. Hàm phân tích không rút RNG: `keep_rule`, `canon`, `ari`, `ari_many`, `modes`, `assign`, `best_of_weights`, `good_turing`, `instability`; `modes_all` chạy `modes` song song (sửa ở commit `62f81a8`).
 
@@ -176,7 +180,7 @@ Quy tắc:
 
 Notebook cũ (đọc bằng `git show nb-v1:notes/nb/<tên>`):
 - `01_data` → `00-data-gc10` (mục A–D), `00-data-neu` (mục E).
-- `04_s1_discovery` → các bước 09–14; phần mất điểm theo khâu → `14a-loss-by-step`.
+- `04_s1_discovery` → các bước 09–14; phần mất điểm theo khâu → `14-eval` §4.1.
 - `12_cluster` → `09-cluster`.
 - `12b_cluster` → `09a-overcluster`; phần Bhattacharyya → `09b-overcluster-merge`.
 - Notebook tổng quan 00 của bố cục cũ: không làm.
