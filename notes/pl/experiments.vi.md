@@ -251,7 +251,7 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Cách chạy: 15 run qua `exp.py`, mỗi run một ảnh chụp, ghi mọi lần rút vào `metrics.json`; hàm tầng 2 trong `lab/score.py`, biến thể trong `lab/variants.py`; code viết sau 14 và commit trước khi chạy.
 - Tag: `gc10_e09_07_r<r>_s<N>`, r = 0–2, N = 0–4.
 
-### Tiền đăng ký, phần 2 (2026-11-05; commit: điền sau)
+### Tiền đăng ký, phần 2 (2026-11-05; commit: 8c92521)
 
 - Đã thấy thêm, sau phần 1 và trước mọi run của E09.07: `14-eval` (`58a698e`), mọi số của 15 chuỗi mặc định ở bước 10–14 (balanced theo bước, S1_Old, lỗi theo đích, cách đặt tên khi chấm). Chưa thấy: mọi phân hoạch best-of-1000.
 - Sửa đổi phần 1 (một chỗ; phần 1 ở trên giữ nguyên): T và B tính bằng SD gộp thay vì trung bình các SD theo FT seed.
