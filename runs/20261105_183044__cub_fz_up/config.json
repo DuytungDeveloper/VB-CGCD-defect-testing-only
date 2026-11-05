@@ -1,0 +1,32 @@
+{
+  "run_id": "20261105_183044__cub_fz_up",
+  "tag": "cub_fz_up",
+  "command": [
+    "env",
+    "FT_SEED=0",
+    "bash",
+    "-c",
+    "O=\"features/$(basename \"$EXP_RUN_DIR\")\"; mkdir -p \"$O\" && python -u feature_extractor/dino-cub200.py --output_dir \"$O\" --batch-size 128 --seed 0"
+  ],
+  "cwd": "/home/rito/projects/VB-CGCD-defect",
+  "started": "2026-11-05T18:30:44+07:00",
+  "git": {
+    "commit": "205d8353e2c874b36e6711930641ea1e430835be",
+    "dirty": false,
+    "dirty_files": []
+  },
+  "env": {
+    "id": "893900df6375",
+    "pip_freeze": "runs/envs/893900df6375.txt",
+    "conda_env": "vbcgcd",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU, 621.14"
+  },
+  "python": "3.12.14",
+  "host": "Rito",
+  "inputs_source": "none",
+  "inputs": {},
+  "warnings": [],
+  "finished": "2026-11-05T18:33:28+07:00",
+  "duration_min": 2.7,
+  "exit_code": 0
+}
