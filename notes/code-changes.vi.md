@@ -1,6 +1,6 @@
 # Thay đổi code so với upstream — VB-CGCD fork
 
-Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-10-19: thêm các thay đổi từ 1/10 tới 18/10; mã theo QD22 (mã cũ: `notes/old-codes.vi.md`); bảng đổi thành danh sách. Cập nhật 2026-10-20: `_check_09` của `lab/replay.py` và kết quả QD21/C1–C4 (§1c, §4); sửa ghi chú về các phép kiểm hồi quy của CT1 (§4). Cập nhật 2026-10-21: `lab/variants.py`, `lab/score.py`; xoá `lab/pl_cluster.py` và bản đầu của bàn mổ; phép kiểm GPU trong `replay.py run` (§1c, §4, §5). Cập nhật 2026-10-22: `lab/data_io.py` (§1c, §4, §5). Cập nhật 2026-10-24: `lab/00-data-gc10.ipynb` (§1c, §5). Cập nhật 2026-11-01: xoá `scripts/probe.py`, `scripts/vram_probe.py`, `scripts/ckpt_vs_data.py`; `lab/data_io.py` đọc NEU-DET; `lab/00-data-neu.ipynb`; sửa ô Kết quả của cell 0 trong `lab/00-data-gc10.ipynb` (§1c, §4, §5); `lab/01-preprocess.ipynb`, `lab/02-finetune.ipynb` (§1c, §5); `lab/score.py` thêm `tier1_03` cho E03.02 (§1c); `lab/03-features.ipynb` (§1c, §5). Cập nhật 2026-11-03: `rerun` trong `lab/replay.py` (§1c, §4). Cập nhật 2026-11-04: `lab/04-loader.ipynb`, `lab/05-pca.ipynb`, `lab/06-gauss-svi.ipynb`, `lab/07-early-stop.ipynb`, `lab/05a-camera.ipynb`, `lab/08-classifier.ipynb` (§1c, §5); `lab/landscape.py` (§1c, §4, §5); `lab/09-cluster.ipynb`, `lab/09d-ownership.ipynb` (§1c, §5). Cập nhật 2026-11-05: `lab/score.py` thêm `ledger`, `ledger_summary`; `lab/10-naming.ipynb` (§1c, §5); `lab/score.py` thêm cột 11 của `ledger`; `lab/11-gauss-f.ipynb` (§1c, §5); `lab/score.py` thêm cột 12 của `ledger`; `lab/12-filter.ipynb` (§1c, §5); `lab/13-gauss-s.ipynb` (§1c, §5); `lab/score.py` thêm cột 14, tập `test_old`, `ledger_state`; `lab/14-eval.ipynb` (§1c, §5).
+Mốc so sánh **duy nhất**: tag `upstream-baseline` (daihao42/VB-CGCD). Cập nhật 2026-10-19: thêm các thay đổi từ 1/10 tới 18/10; mã theo QD22 (mã cũ: `notes/old-codes.vi.md`); bảng đổi thành danh sách. Cập nhật 2026-10-20: `_check_09` của `lab/replay.py` và kết quả QD21/C1–C4 (§1c, §4); sửa ghi chú về các phép kiểm hồi quy của CT1 (§4). Cập nhật 2026-10-21: `lab/variants.py`, `lab/score.py`; xoá `lab/pl_cluster.py` và bản đầu của bàn mổ; phép kiểm GPU trong `replay.py run` (§1c, §4, §5). Cập nhật 2026-10-22: `lab/data_io.py` (§1c, §4, §5). Cập nhật 2026-10-24: `lab/00-data-gc10.ipynb` (§1c, §5). Cập nhật 2026-11-01: xoá `scripts/probe.py`, `scripts/vram_probe.py`, `scripts/ckpt_vs_data.py`; `lab/data_io.py` đọc NEU-DET; `lab/00-data-neu.ipynb`; sửa ô Kết quả của cell 0 trong `lab/00-data-gc10.ipynb` (§1c, §4, §5); `lab/01-preprocess.ipynb`, `lab/02-finetune.ipynb` (§1c, §5); `lab/score.py` thêm `tier1_03` cho E03.02 (§1c); `lab/03-features.ipynb` (§1c, §5). Cập nhật 2026-11-03: `rerun` trong `lab/replay.py` (§1c, §4). Cập nhật 2026-11-04: `lab/04-loader.ipynb`, `lab/05-pca.ipynb`, `lab/06-gauss-svi.ipynb`, `lab/07-early-stop.ipynb`, `lab/05a-camera.ipynb`, `lab/08-classifier.ipynb` (§1c, §5); `lab/landscape.py` (§1c, §4, §5); `lab/09-cluster.ipynb`, `lab/09d-ownership.ipynb` (§1c, §5). Cập nhật 2026-11-05: `lab/score.py` thêm `ledger`, `ledger_summary`; `lab/10-naming.ipynb` (§1c, §5); `lab/score.py` thêm cột 11 của `ledger`; `lab/11-gauss-f.ipynb` (§1c, §5); `lab/score.py` thêm cột 12 của `ledger`; `lab/12-filter.ipynb` (§1c, §5); `lab/13-gauss-s.ipynb` (§1c, §5); `lab/score.py` thêm cột 14, tập `test_old`, `ledger_state`; `lab/14-eval.ipynb` (§1c, §5); `feature_extractor/dino-cub200.py` thêm `@torch.no_grad()` theo QD27 (§1a, §5).
 
 Nguyên tắc: **mặc định trong code Python = hành vi upstream**. Wrapper phase 1 đặt
 `FT_BATCH_SIZE=32 FT_ACCUM=4` vì giới hạn 8 GB; cấu hình này đổi số ở mức nhỏ (PATCH 2).
@@ -9,7 +9,7 @@ Cách chia nhóm dựa trên `git diff --name-status upstream-baseline` (xem m�
 
 ---
 
-## 1a. Sửa file có sẵn của upstream (8 file)
+## 1a. Sửa file có sẵn của upstream (9 file)
 
 ### `feature_extractor/sl_finetuned_model.py`
 
@@ -38,6 +38,11 @@ Cách chia nhóm dựa trên `git diff --name-status upstream-baseline` (xem m�
   Lý do: Augmentation hai view. Ảnh đã transform sẵn ở `trans_func`, nên phải cài ở đây. Đổi số: chỉ khi bật.
 - nhánh `else` của `if (not args.finetuned)`: `select(FT_LABELED_IDX)` thay `filter(labels < 50)`; lọc theo `FT_FOLD`; bật augmentation theo `FT_AUG` / `FT_LAMBDA`
   Lý do: Sửa D9 (500 → 400 ảnh/lớp), tạo fold validation, tách augmentation khỏi λ. Đổi số: chỉ khi bật.
+
+### `feature_extractor/dino-cub200.py`
+
+- trên `infer_features_labels`: `@torch.no_grad()`, như PATCH 1 của `dino-cifar100.py` (QD27)
+  Lý do: `eval()` không tắt autograd; ở batch 128 bản upstream không vừa 8 GB. Đổi số: không, vì giá trị forward không phụ thuộc autograd. Không có phép hồi quy: bản upstream không chạy được trên máy 8 GB.
 
 ### `main.py`
 
@@ -332,7 +337,7 @@ Không chép danh sách vào đây (chép tay sẽ lệch, xem lỗi "12 file" c
 
     git diff --name-status upstream-baseline -- . ':(exclude)runs' ':(exclude)notes'
 
-Kiểm 2026-11-05, sau khi thêm `lab/14-eval.ipynb` (`58a698e`): **82 dòng = 8 `M` + 74 `A`**; trong 74 `A` có 26 file split ngân sách nhãn, `scripts/` có 13 file, `lab/` có 24 file. Lần kiểm trước (2026-11-05, sau khi thêm `lab/13-gauss-s.ipynb`): 81 dòng = 8 `M` + 73 `A`.
+Kiểm 2026-11-05, sau khi thêm `@torch.no_grad()` vào `feature_extractor/dino-cub200.py` (QD27): **83 dòng = 9 `M` + 74 `A`**; 74 `A` không đổi. Lần kiểm trước (2026-11-05, sau khi thêm `lab/14-eval.ipynb`, `58a698e`): 82 dòng = 8 `M` + 74 `A`; trong 74 `A` có 26 file split ngân sách nhãn, `scripts/` có 13 file, `lab/` có 24 file.
 Nếu lệnh cho số khác, tài liệu này đã lệch.
 
 ---
