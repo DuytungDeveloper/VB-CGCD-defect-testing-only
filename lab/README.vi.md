@@ -101,7 +101,7 @@ Bước 01–03 chạy một lần cho mỗi bộ đặc trưng; bước 04–14
 14. `14-eval` [có, commit `58a698e`]: đánh giá S1: bảng kết quả đo gì, và cuối pipeline điểm đi đâu (QD24, QD25). Bốn mục
     1. kiểm: `rerun` bước 14 trùng từng bit; trên GC10 t1, test cũ của phiên 1 là test S0, nên dòng S0 = dòng Old, M_d = S1_New, M_f = S0 − S1_Old (đếm ảnh), final_All = S1_All (15/15);
     2. code: 5 khe cũ của `params_f`, `params1` trùng `params0` từng bit (15/15), nên ở S1 lớp cũ chỉ mất do khe mới cướp ảnh; M_f trên D_l (định nghĩa của paper) 0.9–3.4 điểm, dưới proxy ở 14/15 (D15); ở bộ phân lớp cuối, log det nghiêng về khe cũ (Δb −0.11 đến −0.18), ngược dấu bước 12 (D25);
-    3. sổ mất điểm ở 14: balanced novel 0.394 / 0.292 / 0.362; T = 0.0244, B = 0.599 điểm (E09.07); từ 11 sang 14, mỗi ảnh chụp lấy lại 9–18 ảnh test cũ, mất ròng 1–9 ảnh mới; lỗi chéo nhóm gần như không do nhãn mơ hồ (có hộp của lớp đích: 33/411 mới→cũ, 0/203 cũ→mới);
+    3. sổ mất điểm ở 14: balanced novel 0.394 / 0.292 / 0.362; T = 0.0273, B = 0.615 điểm (SD gộp, §3.3; E09.07 phần 2); từ 11 sang 14, mỗi ảnh chụp lấy lại 9–18 ảnh test cũ, mất ròng 1–9 ảnh mới; lỗi chéo nhóm gần như không do nhãn mơ hồ (có hộp của lớp đích: 33/411 mới→cũ, 0/203 cũ→mới);
     4. theo bước (Q14.04): r1 bằng r0 ở tầng 1, thua 10.2 điểm ở cuối (7.2 ở pool→test và đặt tên, 3.8 ở lượt F); đặt tên theo dự đoán của bộ phân lớp (QD14, kiểm chéo) bù 6.2 điểm cho r1.
 
 Biến thể và phần thêm:
