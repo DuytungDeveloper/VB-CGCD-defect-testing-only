@@ -26,7 +26,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.04: phân cụm thừa trên `fz`: lớp hiếm có cụm riêng ở K' = 20 không? (2026-10-05 → 07; xong, LOẠI) — mục E09.04 dưới đây
 - E09.05: phân cụm thừa trên cấu hình paper (`ft`) (2026-10-07; xong, SỐNG) — mục E09.05 dưới đây
 - E09.06: gộp cụm con theo khoảng cách Bhattacharyya (chưa tiền đăng ký)
-- E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04; đã tiền đăng ký phần 1, chạy sau 14) — mục E09.07 dưới đây
+- E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04; đã tiền đăng ký phần 1, phần 2 ngày 2026-11-05; chạy sau 14) — mục E09.07 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
@@ -250,6 +250,40 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Chi phí ước lượng [suy luận]: 165.000 lần khởi tạo k-means; tối đa 330 lần chạy bước 10–14 (cả chuỗi 04–14 mất 2.3–2.5 phút theo `runs/INDEX.txt`); dưới một ngày máy.
 - Cách chạy: 15 run qua `exp.py`, mỗi run một ảnh chụp, ghi mọi lần rút vào `metrics.json`; hàm tầng 2 trong `lab/score.py`, biến thể trong `lab/variants.py`; code viết sau 14 và commit trước khi chạy.
 - Tag: `gc10_e09_07_r<r>_s<N>`, r = 0–2, N = 0–4.
+
+### Tiền đăng ký, phần 2 (2026-11-05; commit: điền sau)
+
+- Đã thấy thêm, sau phần 1 và trước mọi run của E09.07: `14-eval` (`58a698e`), mọi số của 15 chuỗi mặc định ở bước 10–14 (balanced theo bước, S1_Old, lỗi theo đích, cách đặt tên khi chấm). Chưa thấy: mọi phân hoạch best-of-1000.
+- Sửa đổi phần 1 (một chỗ; phần 1 ở trên giữ nguyên): T và B tính bằng SD gộp thay vì trung bình các SD theo FT seed.
+  - Công thức: s_p = √(Σ_r (n_r − 1) s_r² / Σ_r (n_r − 1)), với n_r = 5 và s_r là SD (ddof = 1) trong FT seed r. Đây là căn của trung bình bình phương trong nhóm của ANOVA một chiều, và là mẫu số của Cohen's d (Cohen 1988).
+  - Lý do: phần 1 lấy T là "dao động của một lần chạy". Với FT seed chọn ngẫu nhiên, độ lệch của một lần chạy so với trung bình FT seed của nó có phương sai bằng trung bình các σ_r², nên SD của nó là s_p. Trung bình các SD nhỏ hơn hoặc bằng s_p và không phải ước lượng chuẩn.
+  - Ý nghĩa: Δ ≥ T tương đương Cohen's d ≥ 1. Với hai lần chạy độc lập, biến thể thắng mặc định với xác suất Φ(1/√2) ≈ 0.76 (giả định chuẩn; McGraw & Wong 1992).
+  - Thời điểm và hướng: sửa sau khi thấy SD của chuỗi mặc định (dữ liệu phần 1 hẹn dùng), trước mọi run. T chặt hơn (0.0244 → 0.0273); B lỏng hơn 0.04 ảnh (0.599 → 0.615).
+  - Báo cáo kèm quyết định theo công thức phần 1 (Nosek et al. 2018).
+- Số (`14-eval` §3.1; balanced novel tính bằng `score.ledger_state`, tên QD15):
+  - T = 0.0273, cùng đơn vị tỉ lệ với Δ. SD theo FT seed: 0.0341 / 0.0071 / 0.0320. Tương đương trung bình 0.82 ảnh rolled_pit hoặc 1.5 ảnh crease mỗi ảnh chụp.
+  - B = 0.615 điểm %, cùng đơn vị với Δ_Old, tức 1.48 ảnh test cũ. SD theo FT seed: 0.415 / 0.629 / 0.754 (1.00 / 1.52 / 1.82 ảnh).
+  - Độ bất định của T (chỉ báo cáo): khoảng tin cậy 95% của σ là 0.0196–0.0451 (χ², 12 bậc tự do; gần đúng, vì r0 có hai đỉnh). Nếu Δ nằm trong khoảng này, kết luận ghi là nhạy với ngưỡng; quyết định vẫn theo T = 0.0273.
+  - Không đặt ngưỡng riêng cho từng FT seed, dù r1 dao động ít hơn hẳn (Bartlett χ² = 6.96, p = 0.03). Mỗi SD chỉ có 4 bậc tự do; khoảng tin cậy của σ ở r1 là 0.004–0.020.
+- Đại lượng cơ chế (chỉ báo cáo; hiệu theo cặp, trung bình theo lần rút, rồi theo seed, rồi theo FT seed, như Δ):
+  - M1: Δ balanced ở cột 10 của sổ (mức cụm, tên QD15).
+  - M2: Δ balanced ở cột 14 với tên QD14.
+    - Cách tính: Hungarian cân theo số ảnh trên chính `slot_14`, chấm trên cùng tập, như ACC của GCD (Vaze et al. 2022).
+    - Hạn chế: ở chuỗi mặc định, chấm trên cùng tập thổi phồng 0.7 / 4.7 / 1.0 điểm (`14-eval` §4.2); một phần triệt tiêu trong hiệu theo cặp.
+    - Quy tắc đọc: nếu Δ ≥ T mà M2 ≤ 0, hoặc Δ ≤ 0 mà M2 ≥ T, kết luận ghi rằng phần chênh nằm ở cách đặt tên khi chấm. Quyết định không đổi.
+  - M3: Δ bước dừng của lượt S, lấy từ dòng log `early_stop_flag` của lượt S (như `S1_estop_S`; không lấy từ sổ). M3 đo kênh ngân sách bước (`13` §4.1).
+- Phép kiểm toàn vẹn thêm, C4: ở mọi phân hoạch đã chạy 10–14, gained 08→14 = 0, và số ảnh đúng của S1_Old = số đúng ở 08 − lost 08→14 (`14-eval` §2.1, §3.1).
+- Dự đoán thêm [suy luận, xác suất chủ quan]:
+  - M1 cùng dấu với Δ ở ít nhất 2/3 FT seed (khoảng 65%);
+  - |M2 − Δ| ≥ 0.01 ở r1 (khoảng 50%);
+  - tương quan Spearman giữa Δ bước dừng và Δ_Old trên 15 ảnh chụp là âm (khoảng 65%).
+  - Dự đoán của phần 1 giữ nguyên.
+- Điểm yếu đã biết, không sửa:
+  - Δ_r > 0 ở ít nhất 2/3 FT seed đạt với xác suất 0.5 khi không có hiệu ứng;
+  - chỉ có 3 FT seed, nên khả năng khái quát hạn chế;
+  - T là ngưỡng thực tiễn (d ≥ 1), không phải phép kiểm thống kê;
+  - SE_MC chỉ đo nhiễu của các lần rút.
+- Không đổi: mọi thứ khác của phần 1.
 
 ### Ghi chú (2026-11-04, sau tiền đăng ký; không đổi phần tiền đăng ký)
 
