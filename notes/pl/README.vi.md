@@ -214,3 +214,37 @@ QD01–QD15 (các dòng cũ) ở `notes/plan.vi.md` §4.
   - `09d` cần landscape của 09: phần tính nằm trong `.py` dùng chung (§9: bộ đo viết một lần), có cache để `09d` không tính lại. Notebook được chạy lâu theo quyết định của Rito (2026-11-04).
 - Hệ quả: `experiments.vi.md` thêm E09.07 (tiền đăng ký phần 1); `questions.vi.md` ghi chú Q09.12, thêm Q10.03; `lab/README.vi.md` §9 bỏ giới hạn 5 phút; `lab/landscape.py` viết trước `09-cluster`; mục lục `lab/README.vi.md` §3 thêm `09c`, `09d` khi có notebook.
 - Sửa (2026-11-04, sau `09-cluster` §3.4b, `8982942`): ý "đổi thứ tự hàng cho cùng phân phối nghiệm như rút khởi tạo mới" (mục Nội dung, Q09.12) và phép thử đồ chơi ở mục Lý do không đúng khi trạng thái RNG cố định. Với u cố định, `searchsorted` chọn tâm ở các mức tích luỹ cố định, không lấy mẫu theo D² (ví dụ 7 điểm, trọng số 10, 5, 1, 1, 1, 1, 1: u = 0.5 chọn điểm nặng nhất 0.86 lần thay vì 0.50); trên r0 s4, KS D của inertia 0.087–0.089 so với mức nền 0.056–0.059. Phần còn đúng: khi thứ tự hàng và RNG cùng đổi (giữa các seed), việc chọn tâm là lấy mẫu theo D². Thiết kế E09.07 không dùng hoán vị hàng nên không đổi.
+
+### QD27 — Định vị paper, CUB-200 là dataset thứ hai, VB thật làm xương sống; phase 1 CUB; laptop dò hướng, server ra số (2026-11-05)
+
+- Nội dung:
+  - Định vị: paper là một phương pháp C-GCD chung, tạm giữ tên VB-CGCD. Benchmark: GC10 t1 (ca công nghiệp khó, benchmark chính của `lab/`), CUB-200 t5 (dataset thứ hai), CIFAR-100 t5 (hiệu chuẩn server với paper). Dataset của paper không cần là dữ liệu công nghiệp. Trục lượng nhãn (QD16) thành hướng dự bị, cùng Tiny-ImageNet.
+  - "VB" phải có thật: μ_k, Σ_k là biến ẩn có hậu nghiệm, đúng Eq. 7 của paper; code hiện ước lượng MLE với guide rỗng (D11) và gần như không rời khởi tạo (D23). Xương sống gồm hai biến thể; mỗi biến thể được tiền đăng ký và trình suy dẫn kèm nguồn trước khi viết code:
+    - `06b-vb-s0` (E06.04): S0 có nhãn; tiên nghiệm Normal–Inverse-Wishart liên hợp, hậu nghiệm dạng đóng, phân lớp bằng phân phối dự đoán Student-t (Bayesian QDA; Murphy 2012 §4.6; Srivastava, Gupta & Frigyik 2007, JMLR). Siêu tham số của tiên nghiệm chọn bằng empirical Bayes trên S0, không nhìn test.
+    - `09e-vbgmm` (E09.08, trải 09–13): phiên không nhãn bằng VB-GMM (Bishop 2006 §10.2; Corduneanu & Bishop 2001): trách nhiệm mềm thay nhãn cứng; trọng số Dirichlet là nút khối xác suất giữa nhóm cũ và nhóm mới; thành phần cũ nhận hậu nghiệm S0 làm tiên nghiệm; Σ của thành phần mới có tiên nghiệm phân cấp lấy từ các lớp cũ. Biến thể thay lượt F, bộ lọc (D12), lượt S và luật dừng (D14). Cập nhật CAVI dạng đóng; SVI (Hoffman, Blei, Wang & Paisley 2013, JMLR) là bản ngẫu nhiên của cùng các cập nhật, cùng điểm bất động. Chốt khi tiền đăng ký E09.08: thành phần cũ cố định hay cập nhật; E12.01 và `12a` còn là thí nghiệm riêng hay chỉ là ablation; cách đặt tên cụm khi chấm nhánh VB (QD15 đặt tên theo k-means).
+  - Thứ tự: E09.07 (GC10) song song với phase 1 CUB; rồi E06.04 → E09.06 (`09b`, cũng là khởi tạo cho `09e`) → E09.08. Đưa vào fork bằng cờ opt-in, mặc định = upstream, kiểm hồi quy trùng số; bảng chính chạy trên server.
+  - Phase 1 CUB theo cấu hình upstream (`feature_extractor/dino-cub200.py`, dataset HF `cassiekang/cub200_dataset`), thêm một sửa không đổi đầu ra: `@torch.no_grad()` khi trích đặc trưng (commit "dino-cub200.py: no_grad at extraction ...", như `dino-cifar100.py`). Lệnh:
+
+    ```bash
+    python scripts/exp.py run cub_fz_up --inputs - -- env FT_SEED=0 bash -c 'O="features/$(basename "$EXP_RUN_DIR")"; mkdir -p "$O" && python -u feature_extractor/dino-cub200.py --output_dir "$O" --batch-size 128 --seed 0'
+    for r in 0 1 2; do python scripts/exp.py run cub_ft_up_r$r --inputs - -- env FT_SEED=$r FT_EPOCHS=10 FT_BATCH_SIZE=32 FT_ACCUM=4 bash -c 'O="features/$(basename "$EXP_RUN_DIR")"; mkdir -p "$O" && FT_CKPT_PATH="$O/ft_ckpt.pt" python -u feature_extractor/dino-cub200.py --finetuned --output_dir "$O" --batch-size 128 --seed "$FT_SEED"'; done
+    ```
+
+    Giữ `--batch-size 128` (D17). FT seed 0, 1, 2: paper ghi seed 0 (D4), luật ≥ 3 FT seed. Run trên laptop ngày 2026-11-05: `20261105_183044__cub_fz_up`, `20261105_183328__cub_ft_up_r0`, `20261105_185533__cub_ft_up_r1`, `20261105_191720__cub_ft_up_r2`; run `20261105_182726__cub_fz_up` hỏng trước khi trích (torch.hub bị GitHub API trả 403, giới hạn lượt).
+  - Lưu ý khi chạy phase 1 CUB trên máy khác:
+    - torch.hub gọi GitHub API để kiểm tra fork khi chưa có cache; bị 403 thì clone `https://github.com/facebookresearch/dino` vào `$(python -c "import torch;print(torch.hub.get_dir())")/facebookresearch_dino_main` rồi chạy lại.
+    - `scripts/check_phase1.py` viết cứng cho CIFAR-100; không dùng cho CUB.
+    - Ghi dòng `trainable params` trong log phase 1: số này cho biết BOFT chạy factor nào (A5). Chỉ ghi, không loại run theo số này.
+    - Nhãn dựng bằng `np.unique` trên chuỗi "A photo of a ...", nên 100 lớp cơ sở là 100 tên đầu theo thứ tự chữ cái, không phải mã 001–100 của CUB. Code không ghim revision của dataset HF; ghi revision lúc tải.
+    - Fine-tune dùng mọi ảnh train của 100 lớp cơ sở, trong khi bộ nạp t5 chỉ coi `num_labeled` = 2500 ảnh là có nhãn: cùng loại rò như D9. Giữ nguyên để tái lập; bản không rò làm sau, theo cách `FT_LABELED_IDX` của CIFAR-100.
+    - Trước khi đọc kết quả t5: đếm các lớp có ít ảnh train hơn `num_labeled/base + num_known_inc` (D16, D22).
+  - Vai trò hai máy: laptop dò hướng cải tiến; server ra số chính thức, kết luận cuối trên tập xác nhận đã khoá. Không so số giữa hai máy: mặc định và biến thể chạy trên cùng máy, cùng bộ đặc trưng; server chạy lại baseline của mình. Một cải tiến chỉ chuyển cho server khi hiệu vượt rõ ngưỡng B qua đủ các chuỗi và đạt phép kiểm cơ chế đã chốt trước; siêu tham số chọn lại trên server bằng cùng quy tắc.
+  - CUB vào `lab/` bằng một biến thể bước 04 trong `lab/variants.py`, không sửa `dataloaders/`: mã băm của bước 04 phủ cả thư mục đó, sửa sẽ làm cũ mọi ảnh chụp GC10.
+- Thay cho: định vị ngày 2026-09-30 (khám phá loại lỗi liên tục, có trục lượng nhãn; chưa có mã QD), nay là phương pháp C-GCD chung với trục lượng nhãn là dự bị; mục 5 (dataset) của doc chiến lược ngày 2026-11-05 trong Project.
+- Lý do:
+  - Mục 5 của paper tự nêu hai hạn chế: phụ thuộc chất lượng phân cụm ban đầu (gợi ý "adaptive mixture models") và ước lượng hiệp phương sai khi ít mẫu (gợi ý "hierarchical Bayesian priors"). VB-GMM với tiên nghiệm phân cấp nhắm thẳng vào cả hai.
+  - CUB là nơi hạn chế (2) nặng nhất: bỏ SVI làm CUB rơi còn 27.06 ở S5 (paper Bảng 5), và khoảng cách giữa M_d và UpperBound lớn nhất trong bốn dataset (56.46 so với 79.65, paper Bảng 3).
+  - E06.03 cho thấy ước lượng điểm, nhãn cứng và bộ lọc là chưa đủ: Gaussian dạng đóng khớp đúng cụm đã lẫn ảnh cũ nên bộ lọc để lọt ít nhất 16/50 ảnh cũ trên GC10 (`notes/improvement-1.vi.md` §4). Hậu nghiệm đầy đủ cộng trách nhiệm mềm là bước tiếp theo có nguyên lý.
+  - GC10 chỉ có 5 lớp mới và balanced novel nhiễu (QD25), nên kết luận về phương pháp cần thêm một dataset chuẩn.
+  - E06.03 đổi dấu giữa các bộ đặc trưng (GC10 và NEU tăng, CIFAR-100 giảm), nên độ lớn của một cải tiến phụ thuộc bộ đặc trưng; vì vậy không so số giữa hai máy.
+- Hệ quả: danh mục `experiments.vi.md` thêm E06.04, E09.08 khi tiền đăng ký; `lab/README.vi.md` §3 thêm `06b`, `09e` khi có notebook; `notes/code-changes.vi.md` ghi sửa `no_grad` của `dino-cub200.py`; doc chiến lược trong Project cập nhật mục 5 theo QD này.
