@@ -26,7 +26,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.04: phân cụm thừa trên `fz`: lớp hiếm có cụm riêng ở K' = 20 không? (2026-10-05 → 07; xong, LOẠI) — mục E09.04 dưới đây
 - E09.05: phân cụm thừa trên cấu hình paper (`ft`) (2026-10-07; xong, SỐNG) — mục E09.05 dưới đây
 - E09.06: gộp cụm con theo khoảng cách Bhattacharyya (chưa tiền đăng ký)
-- E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04; đã tiền đăng ký phần 1, phần 2 ngày 2026-11-05; chạy sau 14) — mục E09.07 dưới đây
+- E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04 → 11; xong: không đủ lớn, Δ = 0.0148 < T = 0.0273; giữ `n_init` 10) — mục E09.07 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
@@ -291,3 +291,37 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Đã thấy sau tiền đăng ký, trước mọi run (không dùng nhãn): landscape của `09-cluster` (`8982942`); ví dụ nghiệm pipeline ở nhóm sâu nhất ở 7/15 ảnh chụp, best-of-10 rơi vào nhóm đó với xác suất 0.11–0.70. Tiền đăng ký chốt trước khi có các số này.
 - Đã thấy sau tiền đăng ký, trước mọi run (có nhãn, `09d-ownership`, `abbc3af`): oracle loại (c) ở 15/15 ảnh chụp; trên cùng pool r0, cấu hình crease có inertia cao hơn 0.23–0.35% nhưng balanced accuracy tầng 1 cao hơn (0.56–0.57 so với 0.32–0.33). Kế hoạch của `09d` chốt ở `d282b37`, sau tiền đăng ký E09.07 (`1ce3233`).
 - 2026-11-05: T và B của phần 2 được tính chính thức bằng code ở `14-eval` §3.3 (commit 3efbca2), từ sổ mất điểm của 15 chuỗi mặc định: T = 0.02728 (SD theo FT seed 0.03406 / 0.00711 / 0.03198), B = 0.61545 điểm (0.41494 / 0.62928 / 0.75377). Làm tròn ra đúng số đã ghi ở phần 2 (0.0273, 0.615), nên quyết định dùng hai số đó. Công thức phần 1 cho 0.02438 và 0.59933. Khoảng tin cậy 95% của σ: T 0.0196–0.0450, B 0.441–1.016. Bartlett: T χ² = 6.94, p = 0.031; B χ² = 1.22, p = 0.544. Phần 2 ghi khoảng của T là 0.0196–0.0451 và Bartlett χ² = 6.96, p = 0.03, tính tay từ các SD đã làm tròn; số đúng là số ở đây.
+
+### Kết quả (2026-11-11; run `gc10_e09_07_r0_s0`–`gc10_e09_07_r2_s4`, code `aab1178`; số in từ `python lab/score.py e0907-summary`)
+
+- Toàn vẹn: C1–C4 đạt ở 15/15 run (`checks_ok` = 1; `e0907_summary` không đọc kết quả khi thiếu). T và B tính lại từ khoá `ref_*`: 0.02728 và 0.61545, làm tròn đúng số đã tiền đăng ký.
+- Quyết định (11 lần rút mỗi ảnh chụp): Δ = 0.01480 (T = 0.0273); Δ_r = 0.0243 / 0.0015 / 0.0186, dương ở 3/3 FT seed; Δ_Old = −0.0201 điểm (B = 0.615); SE_MC = 0.00200 (Δ) và 0.0295 (Δ_Old). Không ranh giới nào nằm trong 2·SE_MC, nên không thêm lần rút.
+  - Theo ngưỡng phần 2: KHÔNG ĐỦ LỚN (0 < Δ < T). Theo công thức phần 1 (0.0244, 0.599): cũng không đủ lớn.
+  - Δ nằm dưới cận dưới khoảng tin cậy của σ (0.0196), nên kết luận không nhạy với ngưỡng.
+- Đại lượng cơ chế (trung bình, rồi theo FT seed r0 / r1 / r2): M1 = 0.01371 (0.0340 / −0.0042 / 0.0114); M2 = 0.01234 (0.0203 / 0.0031 / 0.0136); M3 = +7.32 bước (+26.4 / −2.3 / −2.1).
+- Báo cáo phụ:
+  - riêng k = 0: Δ = 0.01637, Δ_Old = −0.0553;
+  - biến thể đổi phân hoạch ở 161/165 lần rút;
+  - theo FT seed: S1_New +0.80 / +0.11 / +3.25 điểm; S1_All +0.26 / +0.09 / +1.58 điểm; balanced accuracy 10 lớp +0.0110 / +0.0010 / +0.0098; Δ_Old −0.226 / +0.068 / +0.098 điểm;
+  - tầng 1 (`bal_acc_hungarian` trên pool) của nghiệm giữ sau 10 / 100 / 1000 lần khởi tạo: r0 0.5006 / 0.5674 / 0.5717; r1 0.4688 / 0.4590 / 0.4591; r2 0.3895 / 0.3816 / 0.3810;
+  - Spearman giữa inertia và balanced novel trên các phân hoạch đã chạy: trung bình theo FT seed −0.534 / −0.283 / −0.386; âm ở 14/15 ảnh chụp (trừ r1 s2, +0.48);
+  - chưa tổng hợp (có trong `metrics.json` của 15 run): recall từng lớp mới kèm khoảng Wilson, số cụm sở hữu, M_f.
+- Dự đoán:
+  - ở k = 0 biến thể đổi phân hoạch ở ít nhất 8/15 ảnh chụp: đúng (hiệu của k = 0 khác 0 ở 14/15 ảnh chụp; đếm tay từ bảng);
+  - Δ > 0: đúng. Δ ≥ T: sai;
+  - Spearman âm ở ít nhất 2/3 FT seed: đúng (3/3);
+  - M1 cùng dấu với Δ ở ít nhất 2/3 FT seed: đúng (r0, r2; r1 trái dấu);
+  - |M2 − Δ| ≥ 0.01 ở r1: sai (0.0016);
+  - Spearman giữa Δ bước dừng và Δ_Old trên 15 ảnh chụp là âm: đúng (−0.69; tính tay từ bảng in 4 chữ số).
+
+### Đánh đổi
+
+- r0: tầng 1 tăng 7.1 điểm (0.5006 lên 0.5717) nhưng balanced novel ở tầng 2 chỉ tăng 2.4 điểm. Cùng lúc, lượt S dừng muộn hơn 26 bước và S1_Old giảm 0.23 điểm: phần thắng ở lớp mới đi kèm phần mất ở lớp cũ, vẫn trong B.
+- r1, r2: tầng 1 giảm nhẹ (−0.010, −0.009) trong khi tầng 2 không giảm (r2 tăng 0.019). Tầng 1 và tầng 2 xếp hạng khác nhau, như ở E09.05.
+- Trong từng ảnh chụp, inertia thấp hơn đi với balanced novel cao hơn, nhưng hiệu trung bình chỉ khoảng 0.54 T (tính tay) và gần 0 ở r1.
+
+### Kết luận
+
+- Không đủ lớn theo quy tắc: giữ `n_init` 10; E09.06 chạy trên k-means mặc định; bỏ hướng "thêm khởi tạo" ở bước 09 (điều kiện bỏ ý tưởng).
+- Câu hỏi kèm theo của Q09.12: trong cùng ảnh chụp, phân hoạch có inertia thấp hơn thường cho balanced novel cao hơn (Spearman âm ở 14/15 ảnh chụp), nhưng tối ưu sâu hơn không vượt được dao động của một lần chạy.
+- Hạ tầng nhiều lần rút (`multi_init`, `tier2_e0907`) dùng lại được cho E09.06.
