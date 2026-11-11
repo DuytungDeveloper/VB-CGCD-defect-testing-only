@@ -76,3 +76,42 @@ def v09c_multi_init(st, m=1000):
     print(f"v09c_multi_init: m={m} sizes={np.bincount(ids, minlength=k).tolist()} inertia={j} "
           f"inertia_after_10={kept[min(10, m)][2]} min_single={inertias.min()}")
     return dict(ids=ids, cluster=cl, inertia=j)
+
+
+CUB_T5 = dict(dataset="cub200", base=100, increment=20, num_classes=200, num_dim=384)   # upstream run.sh; QD27
+
+
+def v04a_cub_t5(st):
+    """04a Sessions of the CUB-200 t5 protocol, cut down to what steps 05-08 and the first online session need (QD27;
+    E06.04). It calls main.Dataloader with load_mode t5, so the split is the one of dataloaders/cub200.py
+    (StrictPerClassIncrementalLoader: 100 base classes, 25 labeled images each; 20 novel classes per session with 25
+    images each, plus 5 images of every seen class). The loader builds all six sessions at once, so the global RNG
+    leaves this step in the state main.py has before the PCA of S0.
+    In: args (dataset cub200, base 100, increment 20; args.load_mode is not read). Out: the keys of step 04 for S0 and
+    session 1: s0_x, s0_y, pool_x, test0_x, test1_x, test_old_x, test_all_x, offset, and the true_* labels.
+    Not a variant for --at: it returns true_* keys, which the runner refuses from a variant (_check_out), and
+    replay.new_state accepts load_mode t1 only. A runner calls it directly, in place of s04_loader, after setting the
+    seeds in the order of main.py; the default s05-s08 then run on its output.
+    Known properties of this split (notes of 2026-11-05): base classes are the first 100 names in alphabetical order;
+    the pool of old images is not consumed between sessions (D16); the fine-tuned features have seen every training
+    image of the base classes, also the old images of the pool (leak of the D9 kind)."""
+    import main
+    from types import SimpleNamespace
+    a = st["args"]
+    assert a.dataset == "cub200" and (a.base, a.increment) == (CUB_T5["base"], CUB_T5["increment"]), "CUB-200 t5: base 100, increment 20"
+    tr, te, te_old, te_all = (list(it) for it in main.Dataloader(SimpleNamespace(**{**vars(a), "load_mode": "t5"})))
+    assert len(tr) == 6 and len(te) == 6, f"t5: S0 and five online sessions, got {len(tr)} and {len(te)}"
+    y = lambda d: np.asarray(d._y)
+    out = dict(s0_x=tr[0]._x, s0_y=y(tr[0]), pool_x=tr[1]._x, test0_x=te[0]._x, test1_x=te[1]._x,
+               test_old_x=te_old[1]._x, test_all_x=te_all[1]._x, offset=a.base,
+               true_pool_y=y(tr[1]), true_test0_y=y(te[0]), true_test1_y=y(te[1]),
+               true_test_old_y=y(te_old[1]), true_test_all_y=y(te_all[1]))
+    n0 = np.bincount(out["s0_y"].astype(int), minlength=a.base)
+    yp = out["true_pool_y"].astype(int)
+    assert set(np.unique(out["s0_y"]).astype(int)) == set(range(a.base)) and n0.min() == n0.max(), "S0: every base class, same count"
+    assert np.array_equal(out["true_test0_y"], out["true_test_old_y"]) and set(np.unique(out["true_test1_y"]).astype(int)) == \
+        set(range(a.base, a.base + a.increment)), "test sets of S0 and of session 1"
+    print(f"v04a_cub_t5: S0 {len(out['s0_y'])} images = {a.base} classes x {n0[0]}; pool 1 {len(yp)} images "
+          f"({int((yp < a.base).sum())} old, {int((yp >= a.base).sum())} novel); test S0 {len(out['true_test0_y'])}, "
+          f"novel test {len(out['true_test1_y'])}, all test {len(out['true_test_all_y'])}")
+    return out
