@@ -20,6 +20,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E06.01: CT1, tiên nghiệm co Inverse-Wishart tối ưu qua SVI (2026-10-01; xong, LOẠI: tiên nghiệm gần như vô hiệu, D23) — `notes/improvement-1.vi.md`
 - E06.02: CT1, tăng ngân sách bước: lr ×10, ×100 (2026-10-01; xong: xác nhận D23) — `notes/improvement-1.vi.md` §3.1
 - E06.03: CT1, ước lượng dạng đóng (Ledoit–Wolf), cờ `--estimator closed`, biến thể `06a-closed-form` (2026-10-02; xong: trượt tiêu chí 2b, giữ cờ opt-in) — `notes/improvement-1.vi.md`
+- E06.04: phiên đầu bằng hậu nghiệm NIW và dự đoán Student-t, biến thể `06b-vb-s0`, GC10 và CUB (2026-11-11; đã tiền đăng ký, chưa chạy) — mục E06.04 dưới đây
 - E09.01: D18, bảng 2×2 (GMM hay k-means, `n_init` 1 hay 10), CIFAR-100 (2026-09-19; xong: số lần khởi tạo quyết định độ chính xác; chọn k-means `n_init` 10) — D18
 - E09.02: GC10 đóng băng, GMM `n_init` 10 thay k-means (2026-09-30; xong, LOẠI; kết luận sửa ngày 2026-10-02) — note LOG `gc10_frozen_gmm10_evhung_d64_s4`
 - E09.03: CT2, bảng chéo cụm × lớp thật trên pool S1, GC10 đóng băng (2026-10-02; xong: lớp hiếm bị nuốt vì không sở hữu cụm nào) — `notes/improvement-2.vi.md`
@@ -93,6 +94,76 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - rolled_pit không xếp loại được: chỉ có 6 ảnh test, probe 3/6. Không kết luận gì về lớp này từ tập test hiện tại.
 - [SUY LUẬN] Fine-tune trên lớp cũ không làm lớp mới dễ tách hơn theo đường thẳng (`fz` 0.672 nằm giữa ba bộ `ft`). PCA-64 của bước 05 có thể mất tới 11 điểm (r1, r2) nhưng không mất ở r0. k-NN thua hẳn probe tuyến tính ở lớp hiếm, nên các phương pháp phân cụm dựa trên láng giềng gần (Q09.06) cần được kiểm riêng cho lớp hiếm.
 - Đã thấy các số này trước khi tiền đăng ký E09.06; E09.06 phải ghi điều này.
+
+## E06.04 — Hậu nghiệm NIW và dự đoán Student-t ở phiên đầu (QD27)
+
+### Tiền đăng ký (2026-11-11)
+
+- Câu hỏi: thay bộ phân lớp phiên đầu bằng hậu nghiệm Normal–Inverse-Wishart (NIW) và phân phối dự đoán Student-t có tăng độ chính xác test phiên đầu không, trên GC10 (n = 130–184 mỗi lớp, d = 64) và CUB (n = 25 mỗi lớp, d = 384)?
+- Vì sao có thí nghiệm này: nó là nền của E09.08 (QD27). Thành phần cũ của VB-GMM là hậu nghiệm này, và tiên nghiệm của lớp mới lấy từ nó. Code hiện ước lượng MLE với guide rỗng (D11) và gần như đứng ở khởi tạo (D23).
+- Nền lý thuyết (Murphy 2012 §4.6.3; Murphy 2007; Gelman et al. 2013, BDA3 §3.6):
+  - Tiên nghiệm NIW(m0, κ0, ν0, Ψ0) liên hợp với Gaussian. Với n mẫu, trung bình x̄, ma trận tán xạ S: κn = κ0 + n; νn = ν0 + n; mn = (κ0 m0 + n x̄)/κn; Ψn = Ψ0 + S + (κ0 n/κn)(x̄ − m0)(x̄ − m0)ᵀ.
+  - Kỳ vọng hậu nghiệm của Σ là Ψn/(νn − d − 1). Phân phối dự đoán là Student-t bậc νn − d + 1, tâm mn, ma trận tỉ lệ Ψn(κn + 1)/(κn(νn − d + 1)).
+  - Phiên đầu là Bayes chính xác: hậu nghiệm này là nghiệm tối ưu của ELBO (Eq. 7 của paper), không phải xấp xỉ. Phần biến phân nằm ở E09.08. Đây là Bayesian QDA đã có (Geisser 1964; Srivastava, Gupta & Frigyik 2007), là thành phần nền, không phải đóng góp mới.
+- Dữ liệu:
+  - GC10: 15 ảnh chụp `gc10_v2_ft_r<r>_s<N>`, r = 0–2, N = 0–4 (chuỗi mặc định, QD21); đặc trưng PCA sau bước 05.
+  - CUB: 15 chuỗi lab t5 trên đặc trưng `ft` r0–r2, seed 0–4, bước 04–08, tạo sau tiền đăng ký này bằng biến thể bước 04 trong `lab/variants.py`; không sửa `dataloaders/` (QD27).
+- Bốn nhánh, cùng đặc trưng PCA và cùng tập test trong từng chuỗi:
+  - A0: mặc định (SVI của pipeline, bước 06–08).
+  - A1: E06.03, ước lượng dạng đóng với Ledoit–Wolf về đẳng hướng; dùng lại `classifier/closed_form.py`.
+  - A2: NIW, phân lớp bằng Gaussian plug-in với trung bình mn và hiệp phương sai Ψn/(νn − d − 1).
+  - A3: NIW, phân lớp bằng phân phối dự đoán Student-t.
+  - Mọi nhánh lấy argmax log mật độ với tiên nghiệm lớp đều, như pipeline.
+- Tiên nghiệm của A2 và A3:
+  - m0 = trung bình toàn cục của ảnh S0 có nhãn; κ0 = 0.01.
+  - Ψ0 = (ν0 − d − 1)·Σ_gộp, với Σ_gộp là hiệp phương sai gộp trong lớp của mọi lớp cơ sở (tổng tán xạ chia cho N − C). Khi đó kỳ vọng tiên nghiệm của Σ bằng Σ_gộp, và ν0 lớn cho đúng LDA.
+  - ν0 chung cho mọi lớp, chọn trong từng chuỗi trên lưới ν0 − d − 1 ∈ {2, 5, 10, 25, 50, 100, 250, 1000, 5000, 100000}.
+  - Luật chọn: cực đại tổng, trên mọi ảnh S0 có nhãn, của log mật độ dự đoán Student-t của ảnh đó khi bỏ chính nó ra (leave-one-out). Ảnh bị bỏ được rút khỏi cả lớp của nó lẫn Σ_gộp. Hoà thì lấy ν0 lớn hơn. Không đọc test, không đọc pool.
+  - Vì sao không chọn bằng hợp lý biên như bản nháp ngày 2026-11-11: với κ0 nhỏ, số hạng dự đoán tiên nghiệm của một mẫu xấp xỉ κ0^(d/2)·(2π)^(−d/2)·E[|Σ|^(−1/2)], không đo độ khớp nhưng tăng mạnh khi ν0 nhỏ: log E[|Σ|^(−1/2)] − log |Σ_gộp|^(−1/2) = (d/2)·ln(2/(ν0 − d − 1)) + lnΓ((ν0 + 1)/2) − lnΓ((ν0 − d + 1)/2). Hợp lý biên nhạy với tiên nghiệm mơ hồ là điều đã biết (O'Hagan 1995; Berger & Pericchi 1996); chọn theo dự đoán: Geisser & Eddy 1979. BDA7 và Quadratic Bayes cũng chọn siêu tham số bằng kiểm định chéo (Srivastava, Gupta & Frigyik 2007).
+  - Luật này vẫn là "empirical Bayes trên S0, không nhìn test" của QD27.
+- Đại lượng chính: D = độ chính xác test phiên đầu của A3 trừ của A0 (điểm %), hiệu trong từng chuỗi; D_r = trung bình trên 5 seed của FT seed r; D = trung bình D_r trên 3 FT seed. Tính riêng cho GC10 và cho CUB. Đơn vị: FT seed (n = 3).
+- Quy tắc quyết định, cho từng dataset:
+  - Đạt: D ≥ 1 điểm và D_r > 0 ở ít nhất 2/3 FT seed.
+  - Bác: D ≤ 0.
+  - Không đủ lớn: các trường hợp còn lại.
+  - Không dùng ngưỡng theo SD của baseline: SD gộp của S0_All ở A0 nhỏ hơn 0.5 điểm trên cả hai dataset, nên ngưỡng 1 điểm đã chặt hơn 2 SD. Trên GC10, 1 điểm bằng 2.41 ảnh trong 241 ảnh test lớp cũ.
+- Hệ quả:
+  - CUB đạt và GC10 không bị bác: A3 là biểu diễn lớp cũ cho E09.08.
+  - CUB bị bác: không dùng hậu nghiệm NIW làm lớp cũ trên CUB; rà lại chiến lược trước khi tiền đăng ký E09.08.
+  - A3 không đạt nhưng A2 − A0 đạt theo cùng tiêu chí: ghi "tiên nghiệm đạt, Student-t không". E09.08 vẫn đi tiếp, vì bước E của VB-GMM dùng dạng bậc hai (Bishop 2006, Eq. 10.64), không dùng Student-t.
+  - Các trường hợp khác: báo cáo; quyết định về E09.08 lấy ở lần rà chiến lược sau E06.04 và E09.06.
+- Báo cáo phụ (không dùng để quyết định):
+  - A1 − A0, A2 − A0, A3 − A2, tính như D;
+  - balanced accuracy, recall từng lớp, recall thấp nhất;
+  - SD (ddof = 1) giữa 5 seed của từng nhánh trong từng FT seed (thước ổn định);
+  - log mật độ dự đoán trung bình của lớp đúng trên test, cho A2 và A3;
+  - tách cũ/mới ở tầng 1: AUROC trên pool phiên 1, điểm là log mật độ lớn nhất trong các lớp cũ, nhãn thật chỉ để chấm, cho cả bốn nhánh. Trên CUB con số này lạc quan, vì ảnh cũ trong pool đã nằm trong tập fine-tune (rò kiểu D9);
+  - bản tiên nghiệm bỏ-một-lớp (Ψ0 của lớp k lấy Σ gộp của các lớp khác): ν0 nó chọn và độ chính xác của A2, A3 theo nó. Dùng để hiệu chuẩn tiên nghiệm cho lớp mới ở E09.08;
+  - ν0 được chọn ở từng chuỗi, và đường cong leave-one-out trên cả lưới.
+- Cơ chế, cách đọc chốt trước:
+  - ν0 ở biên trên của lưới: dữ liệu không đòi hiệp phương sai riêng từng lớp; A2 và A3 khi đó gần trùng LDA.
+  - ν0 ở biên dưới: tiên nghiệm gần như không được dùng.
+  - Log mật độ test của A3 phải cao hơn của A2 (Aitchison 1975); nếu không, kiểm lại cài đặt trước khi đọc kết quả.
+  - Student-t có bậc tự do nhỏ so với d gần như bất biến khi nhân tỉ lệ ma trận, nên A3 có thể kém A2 về độ chính xác dù hơn về mật độ.
+- Phép kiểm toàn vẹn; chỉ đọc kết quả khi cả ba đạt:
+  - C1: A0 trùng `acc0` của ảnh chụp ở 15/15 chuỗi GC10; trên CUB, A0 của chuỗi lab trùng S0_All của run `cub_base_ft_r<r>_s<N>` cùng FT seed và seed, ở 15/15.
+  - C2: trên dữ liệu thật của một chuỗi mỗi dataset, log hợp lý biên bằng tổng log dự đoán tuần tự (lệch tương đối ≤ 1e-8); leave-one-out tính nhanh trùng tính trực tiếp ở một lớp (≤ 1e-8).
+  - C3: A1 trùng kết quả của `--estimator closed` trên cùng đặc trưng (nhãn dự đoán trùng hẳn).
+- Nếu C1–C3 không đạt: không đọc kết quả, sửa lỗi rồi chạy lại một lần, ghi lý do.
+- Đã thấy trước tiền đăng ký này:
+  - S0_All của A0 trên 15 chuỗi mặc định GC10 và 15 run CUB upstream (`50d72f3`);
+  - E06.03 trên GC10 `fz` và CIFAR-100 (`notes/improvement-1.vi.md`);
+  - giả lập Gaussian ngoài repo (dữ liệu tự sinh cỡ CUB và cỡ GC10), dùng để chọn luật leave-one-out và tiên nghiệm gộp mọi lớp; không phải dữ liệu dự án.
+  - Chưa thấy: mọi số của A1, A2, A3 trên `ft` của GC10 và trên CUB; tham số phiên đầu của A0 trên CUB.
+- Dự đoán [suy luận, xác suất chủ quan]:
+  - GC10: D > 0 (khoảng 60%); D ≥ 1 (khoảng 40%);
+  - CUB: D > 0 (khoảng 55%); D ≥ 1 (khoảng 40%);
+  - |A3 − A2| < 0.5 điểm: GC10 (khoảng 85%), CUB (khoảng 60%); trên CUB, A3 có thể thấp hơn A2;
+  - CUB: A1 thấp hơn A2 (khoảng 75%).
+- Điểm yếu đã biết, không sửa: D_r > 0 ở ít nhất 2/3 FT seed đạt với xác suất 0.5 khi không có hiệu ứng; chỉ có 3 FT seed; đặc trưng thật không Gaussian; trên GC10, trần do nhãn của S0 khoảng 92.5% (Q08.03).
+- Ngoài phạm vi: chạy cả chuỗi với lớp cũ từ A3 (tầng 2); chọn κ0; VB-GMM (E09.08); gộp cụm (E09.06).
+- Cách chạy: biến thể `06b-vb-s0` (trải 06–08) trong `lab/variants.py`; runner trong `lab/score.py`; mỗi chuỗi một run qua `exp.py`, ghi mọi số vào `metrics.json`; code commit trước khi chạy.
+- Tag: `gc10_e06_04_r<r>_s<N>` và `cub_e06_04_r<r>_s<N>`, r = 0–2, N = 0–4.
 
 ## E09.04 — Phân cụm thừa: lớp hiếm có cụm riêng không? (Q09.11)
 
