@@ -97,7 +97,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 
 ## E06.04 — Hậu nghiệm NIW và dự đoán Student-t ở phiên đầu (QD27)
 
-### Tiền đăng ký (2026-11-11)
+### Tiền đăng ký (2026-11-11; commit: df2e846)
 
 - Câu hỏi: thay bộ phân lớp phiên đầu bằng hậu nghiệm Normal–Inverse-Wishart (NIW) và phân phối dự đoán Student-t có tăng độ chính xác test phiên đầu không, trên GC10 (n = 130–184 mỗi lớp, d = 64) và CUB (n = 25 mỗi lớp, d = 384)?
 - Vì sao có thí nghiệm này: nó là nền của E09.08 (QD27). Thành phần cũ của VB-GMM là hậu nghiệm này, và tiên nghiệm của lớp mới lấy từ nó. Code hiện ước lượng MLE với guide rỗng (D11) và gần như đứng ở khởi tạo (D23).
@@ -318,7 +318,7 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 
 ## E09.06 — Phân cụm thừa rồi gộp bằng Bayes factor NIW (Q09.11, QD25, QD27)
 
-### Tiền đăng ký (2026-11-12)
+### Tiền đăng ký (2026-11-12; commit: 61b9eb9)
 
 - Câu hỏi: ở bước 09, phân cụm pool thành K' = 20 cụm con rồi gộp về đúng 5 cụm bằng Bayes factor dưới tiên nghiệm Normal–Inverse-Wishart (NIW) có tăng balanced novel ở tầng 2 không, khi S1_Old không giảm quá B?
 - Vì sao có thí nghiệm này:
