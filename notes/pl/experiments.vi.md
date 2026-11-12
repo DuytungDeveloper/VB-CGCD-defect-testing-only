@@ -26,7 +26,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.03: CT2, bảng chéo cụm × lớp thật trên pool S1, GC10 đóng băng (2026-10-02; xong: lớp hiếm bị nuốt vì không sở hữu cụm nào) — `notes/improvement-2.vi.md`
 - E09.04: phân cụm thừa trên `fz`: lớp hiếm có cụm riêng ở K' = 20 không? (2026-10-05 → 07; xong, LOẠI) — mục E09.04 dưới đây
 - E09.05: phân cụm thừa trên cấu hình paper (`ft`) (2026-10-07; xong, SỐNG) — mục E09.05 dưới đây
-- E09.06: gộp cụm con theo khoảng cách Bhattacharyya (chưa tiền đăng ký)
+- E09.06: phân cụm thừa K' = 20 rồi gộp về 5 cụm bằng Bayes factor NIW, biến thể `09a` + `09b`, GC10 (2026-11-12; đã tiền đăng ký, chưa chạy) — mục E09.06 dưới đây
 - E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04 → 11; xong: không đủ lớn, Δ = 0.0148 < T = 0.0273; giữ `n_init` 10) — mục E09.07 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 
@@ -315,6 +315,95 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - So trên cùng tập seed: dòng balanced accuracy ở mục Kết quả lấy tầng 1 trên seed 0–9 nhưng tầng 2 trên seed 0–4. Tầng 1 tính lại trên seed 0–4 (khoá `k5_bal_acc_hungarian` trong `metrics.json` của `gc10_pl01b_r<r>_s<N>` và `gc10_pl01_s<N>`): r0/r1/r2 0.469/0.469/0.399, `fz` 0.374. Số trên seed 0–9 ở mục Kết quả giữ nguyên.
 - Trên cùng 5 seed, r0 và r1 bằng nhau ở tầng 1 (0.469) nhưng cách nhau 10.2 điểm ở tầng 2 (39.4 so với 29.2). [suy luận] Phần r1 mất nằm sau phân hoạch pool: chuyển từ pool sang test, đặt tên cụm, hoặc các bước 11–14 (Q14.04). Điều này củng cố quy tắc của QD18: thứ hạng ở tầng 1 phải được xác nhận ở tầng 2.
 - Bước tiếp, cập nhật mục Kết luận: E09.06 gộp cụm con tới đúng k = 5 cụm vì k đã biết, không dùng ngưỡng gộp; quy tắc quyết định đặt ở tầng 2. K' vẫn phải chốt trước khi chạy.
+
+## E09.06 — Phân cụm thừa rồi gộp bằng Bayes factor NIW (Q09.11, QD25, QD27)
+
+### Tiền đăng ký (2026-11-12)
+
+- Câu hỏi: ở bước 09, phân cụm pool thành K' = 20 cụm con rồi gộp về đúng 5 cụm bằng Bayes factor dưới tiên nghiệm Normal–Inverse-Wishart (NIW) có tăng balanced novel ở tầng 2 không, khi S1_Old không giảm quá B?
+- Vì sao có thí nghiệm này:
+  - Phần lớn điểm của lớp mới mất ở khâu khám phá, không ở đặc trưng (E03.02: probe `lr_bal` 0.61–0.71 trên `ft`, pipeline 0.29–0.39).
+  - E09.05 (SỐNG): ở K' = 20, rolled_pit và crease có cụm riêng ở 2/3 FT seed; chưa gộp thì tầng 1 giảm (r0: 0.497 ở K' = 5, 0.413 ở K' = 20). Gộp về đúng k = 5 vì k đã biết, không dùng ngưỡng gộp (E09.05, Ghi chú 2026-10-20).
+  - E09.07: tối ưu k-means sâu hơn ở K = 5 không đủ lớn, nên E09.06 chạy trên k-means mặc định (`n_init` 10).
+  - QD27: `09b` cũng là khởi tạo dự kiến cho VB-GMM (`09e`, E09.08).
+- Giả thuyết [suy luận]: ở K = 5, lớp hiếm bị nuốt vì thiếu sức chứa (E09.03–E09.05). Ở K' = 20 chúng có cụm riêng; một phép gộp ráp các mảnh của lớp lớn (silk_spot, inclusion) trước sẽ giữ được cụm đó khi về lại 5 cụm, nên nhãn giả của lớp hiếm tốt hơn và balanced novel ở tầng 2 tăng. Giả thuyết ngược: xem Rủi ro chính.
+- Tiêu chí gộp đổi so với kế hoạch cũ (dòng danh mục và quy tắc Sống của E09.04, 2026-10-05, trước E06.04: khoảng cách Bhattacharyya, ngưỡng hiệu chỉnh trên lớp cơ sở; ngưỡng đã bỏ ở Ghi chú 2026-10-20 của E09.05): tiêu chí chính là Bayes factor NIW; Bhattacharyya xuống nhánh chỉ báo cáo.
+  - Log Bayes factor của phép gộp hai cụm a, b là ln p(X_a ∪ X_b) − ln p(X_a) − ln p(X_b), với p(X) là hợp lý biên dưới NIW (Murphy 2007, eq. 266; `niw.log_evidence`). Gộp tham lam theo Bayes factor là mỗi bước chọn phép gộp làm tổng log hợp lý biên của phân hoạch giảm ít nhất.
+  - Vì k đã biết, chỉ cần thứ tự gộp. Mỗi bước giảm đúng một cụm, nên phần hằng trong log hợp lý biên của mỗi cụm, (d/2)·ln κ0 + (ν0/2)·ln|Ψ0| − ln Γ_d(ν0/2), có mặt như nhau ở mọi cặp ứng viên và triệt tiêu khi xếp hạng. Không siêu tham số nào được chọn bằng hợp lý biên (điều E06.04 đã tránh); ν0 lấy bằng leave-one-out như E06.04.
+  - Cùng phép so "một cụm hay hai cụm" bằng hợp lý biên có trong Bayesian Hierarchical Clustering (Heller & Ghahramani 2005, kèm trọng số tiên nghiệm của Dirichlet process), trong phép thử merge của split–merge cho DPMM (Jain & Neal 2004; Chang & Fisher 2013) và trong DeepDPM (Ronen et al. 2022).
+  - Cơ chế [suy luận]: log Bayes factor trừ phần mất độ khớp khi hai cụm dùng chung một Gaussian (với Σ cố định, đúng bằng chi phí Ward theo Mahalanobis, ½·h·Δμᵀ Σ⁻¹ Δμ, với h = n_a·n_b/(n_a + n_b)), và cộng phần thưởng vì bớt một bộ tham số (riêng phần trung bình là (d/2)·ln h, từ công thức đóng khi κ0 ≪ n). Phần mất độ khớp nhỏ khi một trong hai cụm nhỏ, nên vẫn nghiêng về nuốt cụm nhỏ (hiệu ứng đồng đều; Xiong, Wu & Chen 2009); phần thưởng tăng theo h, nên kéo về phía ráp các mảnh lớn. Ward thuần (Ward 1963) chỉ có phần mất độ khớp, đo bằng Euclid. Bhattacharyya không phụ thuộc cỡ cụm, nhưng so một Σ co mạnh về tiên nghiệm (cụm nhỏ) với một Σ lấy từ dữ liệu (cụm lớn).
+  - Giả lập ngoài repo (pool tự sinh cỡ GC10, không phải dữ liệu dự án): Bayes factor giữ cụm của lớp hiếm nhiều nhất trong bốn tiêu chí; Bhattacharyya chỉ số hạng trung bình có balanced trên pool ngang hoặc hơn Bayes factor chút ít; Ward cho lại kết quả như K = 5.
+- Đã thấy trước tiền đăng ký này:
+  - E03.02 (Kết luận của E03.02 yêu cầu ghi điều này), E09.03, E09.04, E09.05;
+  - tầng 1 của các phân hoạch K' = 5–30 trên 15 ảnh chụp (khoá `k*_` trong `metrics.json` của `gc10_e09_05_v2_*`; QD24);
+  - E09.07 (mọi số), `09-cluster`, `09d-ownership` (gồm sổ Ward và kết luận Q09.13), `10-naming` đến `14-eval`;
+  - E06.04 (mọi số, gồm `off_lc` = 10 ở 15/15 chuỗi GC10);
+  - giả lập ngoài repo nói trên, dùng để chọn Bayes factor.
+  - Chưa thấy: mọi phân hoạch đã gộp trên dữ liệu thật; mọi số tầng 2 của phân hoạch dựng từ K' = 20.
+- Dữ liệu: 15 ảnh chụp `gc10_v2_ft_r<r>_s<N>`, r = 0–2, N = 0–4 (chuỗi mặc định, QD21). Bước 04–08 giữ nguyên; chỉ đổi bước 09; bước 10–14 chạy code mặc định.
+- Biến thể (`09a` rồi `09b`):
+  - `09a`: `v09a_overcluster` (đã có trong `lab/variants.py`; dùng cho tầng 1 của E09.05 trên bàn mổ v2): `KMeansCluster` với K' = 20, `n_init` 10, trên 768 chiều thô của pool, rút RNG toàn cục. Giữ không gian thô để giữ đúng điều kiện của E09.05.
+  - `09b`: `v09b_merge` (viết sau tiền đăng ký này): gộp tích tụ 20 cụm con về đúng 5 cụm trong không gian PCA-64 của bước 05 (`z_pool`). Mỗi bước gộp cặp có log Bayes factor lớn nhất, rồi tính lại hợp lý biên của cụm vừa gộp.
+  - Tiên nghiệm, chung cho mọi cụm: m0 = trung bình của `z_pool`; κ0 = 0.01; ν0 = d + 1 + off; Ψ0 = off·Σ_gộp, với Σ_gộp là hiệp phương sai gộp trong lớp của 5 lớp cơ sở trên ảnh S0 có nhãn (tổng tán xạ chia cho N − C, như E06.04).
+  - off chọn trong từng ảnh chụp bằng leave-one-out trên S0 với tiên nghiệm bỏ-một-lớp (`niw.loo_curve(..., loo_class=True)` rồi `niw.choose`), đúng luật cho ra `off_lc` ở E06.04. Lý do: cụm mới là lớp không có trong Σ_gộp, đúng tình huống mà tiên nghiệm bỏ-một-lớp giả lập.
+  - Vì sao gộp trong PCA-64: trong 768 chiều thô, Σ_gộp ước từ 764 ảnh S0 nên suy biến (hạng tối đa 764 − 5 = 759 < 768; tính tay từ `n_use` của `splits/gc10_split.json`), và Ψ0 không xác định dương. Bước 11–13 cũng mô hình hoá cụm bằng Gaussian trong chính PCA-64. Giá phải trả: xem Rủi ro thứ hai.
+  - Ảnh test (cho bước 10): tâm gần nhất trong 20 tâm của `09a` (768 chiều, như `predict_raw` mặc định), rồi theo ánh xạ cụm con → cụm gộp. Cụm gộp đánh số 0–4 theo thứ tự xuất hiện đầu tiên trong pool.
+  - `09b` không đọc nhãn pool, không đọc test, không rút RNG; trả `ids` và `cluster` (có `predict_raw`) như bước 09 (`_check_09`).
+- Thiết kế (lặp phép so trong cùng ảnh chụp, như E09.07; QD26):
+  - Mỗi ảnh chụp có 11 lần rút. Lần k = 0: RNG toàn cục đặt về `rng_in` của bước 09 (phép so một lần chạy của QD25). Lần k = 1–10: RNG toàn cục đặt về trạng thái của `np.random.RandomState(906000 + 1000·r + 100·N + k)`.
+  - Trong mỗi lần rút, nhánh mặc định (bước 09 mặc định: `KMeansCluster`, K = 5, `n_init` 10) và nhánh biến thể (`09a` rồi `09b`) bắt đầu từ cùng trạng thái RNG đó (số ngẫu nhiên chung, CRN).
+  - Mỗi phân hoạch khác nhau (so ảnh pool và ảnh test sau khi đánh lại số cụm) chạy tiếp bước 10–14 một lần, trong cùng tiến trình, từ trạng thái của ảnh chụp sau bước 08; phân hoạch trùng dùng lại kết quả. Hợp lệ như ở E09.07: sau bước 09 không bước nào rút RNG toàn cục, và SVI dùng `PRNGKey(0)`.
+- Đại lượng chính (QD25; cách so như E09.07): balanced novel ở tầng 2 (trung bình recall của 5 lớp mới trên 214 ảnh test lớp mới, tên cụm QD15).
+  - D_i = trung bình theo các lần rút của (balanced novel của biến thể − của mặc định) ở ảnh chụp i.
+  - Δ_r = trung bình D_i trên 5 seed của FT seed r; Δ = trung bình Δ_r trên 3 FT seed. Đơn vị: FT seed (n = 3).
+  - Ràng buộc lớp cũ: Δ_Old, tính cùng cách với S1_Old (241 ảnh test lớp cũ, cuối phiên S1).
+  - Sai số Monte Carlo như E09.07: SE_MC = √(Σ_i s_i²/K)/15, với s_i là SD (ddof = 1) của hiệu giữa các lần rút ở ảnh chụp i và K là số lần rút.
+- Ngưỡng: T = 0.0273 (đơn vị tỉ lệ, như Δ) và B = 0.615 điểm % (như Δ_Old), đúng hai số của E09.07 phần 2 (SD gộp giữa các seed của chuỗi mặc định; `14-eval` §3.3). Runner tính lại hai số này từ các khoá `ref_*`; số tính lại phải làm tròn ra đúng như trên.
+- Quy tắc quyết định:
+  - Chấp nhận: Δ ≥ T, Δ_r > 0 ở ít nhất 2/3 FT seed, và Δ_Old ≥ −B → `09a` + `09b` (K' = 20, Bayes factor NIW) thành bước 09 mặc định của dòng PL; E09.08 khởi tạo VB-GMM từ phân hoạch này.
+  - Bác: Δ ≤ 0, hoặc Δ_Old < −B → giữ bước 09 mặc định.
+  - Không đủ lớn: các trường hợp còn lại (0 < Δ < T, hoặc Δ ≥ T nhưng Δ_r > 0 ở dưới 2/3 FT seed) → giữ bước 09 mặc định; báo cáo.
+  - Nếu Δ hoặc Δ_Old cách một ranh giới quyết định (T, 0, −B) dưới 2·SE_MC: thêm 10 lần rút (k = 11–20, cùng công thức seed) cho cả 15 ảnh chụp, một lần duy nhất, rồi quyết theo 21 lần rút.
+  - Sau E09.06: rà lại chiến lược trước khi tiền đăng ký E09.08 (chiến lược 2026-11-05 §4).
+- Điều kiện bỏ ý tưởng (điều kiện bỏ mũi A, tức hướng cải tiến khám phá ở bước 09, của chiến lược 2026-11-05 §4, viết thành phép đo):
+  - Lớp c có cụm riêng ở một cặp (seed, lần rút) nếu best(c) ≥ 50% trên phân hoạch pool đã gộp (định nghĩa của E09.04: rolled_pit ≥ 9/17 ảnh, crease ≥ 16/32 ảnh). Trong FT seed r, lớp c giữ cụm nếu điều này đúng ở ít nhất một nửa số cặp (seed, lần rút) của r (28/55 với 11 lần rút; 53/105 nếu thêm lần rút).
+  - Bỏ: E09.06 không được chấp nhận, và cả crease lẫn rolled_pit đều giữ cụm ở dưới 2/3 FT seed → bỏ mũi A; chuyển sang đặc trưng mức vùng lỗi (Q03.03) hoặc nhãn thật tối thiểu (trục lượng nhãn; QD16, QD27).
+  - Không bỏ: E09.06 không được chấp nhận nhưng ít nhất một lớp hiếm giữ cụm ở ít nhất 2/3 FT seed → ghi rằng nút thắt nằm sau bước 09 (bước 10–14), là phần việc của E09.08 (trách nhiệm mềm thay nhãn cứng).
+- Báo cáo phụ (không dùng để quyết định):
+  - kết quả riêng của k = 0;
+  - M1: Δ balanced ở cột 10 của sổ (mức cụm, tên QD15); M3: Δ bước dừng của lượt S (`stop_S`); cả hai tính như Δ;
+  - S1_New, S1_All, M_f, balanced accuracy 10 lớp; recall từng lớp mới kèm khoảng Wilson (Wilson 1927);
+  - sau gộp (nhãn pool chỉ để chấm): tỉ lệ cặp (seed, lần rút) mà crease, rolled_pit có cụm riêng, và mà chúng sở hữu ít nhất một cụm; số cụm silk_spot sở hữu; độ thuần của phép gộp (tỉ lệ bước gộp nối hai cụm có cùng lớp đông nhất);
+  - tầng 1 (`score09`: `bal_acc_hungarian`, số cụm sở hữu, best) của sáu phân hoạch trong mỗi lần rút: K = 5 mặc định, K' = 20 chưa gộp, gộp Bayes factor, và ba nhánh dưới đây;
+  - ba nhánh chỉ báo cáo, trên cùng 20 cụm con, chỉ chấm ở tầng 1, không chạy bước 10–14; mỗi bước gộp cặp có chi phí nhỏ nhất rồi tính lại cụm vừa gộp:
+    - Ward trong 768 chiều thô: chi phí n_a·n_b/(n_a + n_b)·‖μ_a − μ_b‖², tức mức tăng inertia (Ward 1963);
+    - Bhattacharyya đầy đủ (Eq. 9 của paper) giữa hai Gaussian kỳ vọng hậu nghiệm NIW (trung bình mn, hiệp phương sai Ψn/(νn − d − 1)) trong PCA-64, cùng tiên nghiệm với `09b`;
+    - như trên, chỉ số hạng trung bình ⅛·Δμᵀ Σ̄⁻¹ Δμ, với Σ̄ = (Σ_a + Σ_b)/2;
+  - off của từng ảnh chụp; inertia ở K = 5 và K' = 20; số phân hoạch khác nhau đã chạy 10–14.
+- Phép kiểm toàn vẹn; chỉ đọc kết quả khi cả năm đạt:
+  - C1: ở k = 0, nhánh mặc định cho đúng `ids` và id test của ảnh chụp, inertia lệch tương đối ≤ 1e-6, và các số ở bước 14 của chuỗi mặc định (kết quả rời rạc trùng hẳn; số thực lệch tương đối ≤ 1e-6), ở 15/15 ảnh chụp (như C1 của E09.07).
+  - C2: ở k = 0, phân hoạch K' = 20 của `09a` trùng số tầng 1 đã lưu của `gc10_e09_05_v2_r<r>_s<N>` (cùng hàm, cùng `rng_in`): `k20_inertia` lệch tương đối ≤ 1e-6, `k20_owned_*` và `k20_best_*` trùng hẳn, ở 15/15 ảnh chụp.
+  - C3: mọi phân hoạch chạy 10–14 qua `_check_09`.
+  - C4: ở mọi phân hoạch đã chạy 10–14, gained 08→14 = 0, và số ảnh đúng của S1_Old = số đúng ở 08 − lost 08→14 (như C4 của E09.07).
+  - C5: mỗi phân hoạch gộp có đúng 5 cụm không rỗng, và mỗi cụm con nằm trong đúng một cụm gộp (cả pool lẫn test); ở mọi bước gộp của `09b`, cặp được chọn có log Bayes factor lớn nhất khi tính lại trực tiếp bằng `niw.log_evidence` trên mọi cặp hiện có, và giá trị dùng để chọn trùng giá trị tính lại (lệch ≤ 1e-6 nat); off trùng `off_lc` của run `gc10_e06_04_r<r>_s<N>`.
+- Nếu C1–C5 không đạt: không đọc kết quả, sửa lỗi rồi chạy lại một lần, ghi lý do.
+- Dự đoán [suy luận, xác suất chủ quan]:
+  - với mỗi lớp crease, rolled_pit: trong các cặp (seed, lần rút) mà lớp có cụm riêng ở K' = 20 chưa gộp, sau gộp vẫn còn ở ít nhất một nửa (khoảng 60%);
+  - silk_spot sở hữu đúng 1 cụm sau gộp ở hơn một nửa số cặp (seed, lần rút) (khoảng 55%);
+  - M1 > 0 (khoảng 65%);
+  - Δ > 0 (khoảng 55%); Δ ≥ T (khoảng 30%). Tầng 1 và tầng 2 từng xếp hạng ngược nhau (E09.05, Ghi chú 2026-10-20; E09.07, Đánh đổi).
+- Rủi ro chính [suy luận]: các cụm con của silk_spot là nhóm camera/cuộn thật (Q09.13: trong silk, camera và cuộn giải thích 0.87–0.92 thành viên cụm; `09d-ownership` §6), không phải mảnh cắt của một Gaussian; crease ở r1, r2 cũng chia theo cuộn. Khi đó Bayes factor có thể giữ các nhóm silk riêng và gộp cụm lớp hiếm vào waist_folding trước. Dấu hiệu: sau gộp, silk sở hữu từ 2 cụm trở lên và lớp hiếm mất cụm riêng. Ba nhánh chỉ báo cáo cho biết hiện tượng đó riêng của Bayes factor hay chung cho mọi tiêu chí gộp.
+- Rủi ro thứ hai [suy luận]: PCA-64 fit trên S0 làm mất một phần tách tuyến tính của lớp mới (E03.02, Kết luận: tới 11 điểm ở r1, r2, không mất ở r0), nên phép gộp có thể nối những cụm con mà không gian thô còn tách được. Thiết kế không tách riêng yếu tố không gian (Ward chạy trong không gian thô nhưng khác cả tiêu chí). Nếu lớp hiếm mất cụm riêng sau gộp ở r1, r2 mà không mất ở r0, kết luận ghi là chưa tách được hai nguyên nhân.
+- Điểm yếu đã biết, không sửa:
+  - Δ_r > 0 ở ít nhất 2/3 FT seed đạt với xác suất 0.5 khi không có hiệu ứng; chỉ có 3 FT seed;
+  - T là ngưỡng thực tiễn (d ≥ 1), không phải phép kiểm thống kê; SE_MC chỉ đo nhiễu của các lần rút;
+  - tiên nghiệm bỏ-một-lớp mới được kiểm trên lớp cơ sở (E06.04), chưa kiểm trên lớp mới;
+  - gộp tham lam không bảo đảm cực đại toàn cục của tổng log hợp lý biên;
+  - K' = 20 lấy từ quy tắc của E09.05, không chỉnh.
+- Ngoài phạm vi: CUB (cần bàn mổ nhiều phiên; thiết kế riêng, chưa có quyết định); ước lượng K (Q09.02); VB-GMM (E09.08); K' khác 20; chọn κ0; tầng 2 cho các nhánh chỉ báo cáo.
+- Chi phí ước lượng [suy luận, từ thời gian của E09.07: 30–51 phút mỗi ảnh chụp theo `config.json` của 15 run]: khoảng 8–10 giờ cho 15 ảnh chụp.
+- Cách chạy: biến thể trong `lab/variants.py` (`v09a_overcluster` đã có, `v09b_merge` mới); hàm tầng 2 `tier2_e0906` và bảng quyết định `e0906-summary` trong `lab/score.py`, dùng lại `_tail_0907`, `_measures_0907`, `score09`; 15 run qua `exp.py`, mỗi run một ảnh chụp, ghi mọi lần rút vào `metrics.json`; code viết sau tiền đăng ký và commit trước khi chạy.
+- Tag: `gc10_e09_06_r<r>_s<N>`, r = 0–2, N = 0–4.
 
 ## E09.07 — Nhiều lần khởi tạo k-means, giữ inertia thấp nhất (Q09.12, QD24, QD26)
 
