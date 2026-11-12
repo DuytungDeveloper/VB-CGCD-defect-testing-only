@@ -16,6 +16,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 from clustering.kmeans import KMeansCluster
 from landscape import canon
+from niw import K0, loo_curve, choose, class_stats, prior_cov, log_evidence
 
 
 def v09a_overcluster(st, k=20):
@@ -115,3 +116,121 @@ def v04a_cub_t5(st):
           f"({int((yp < a.base).sum())} old, {int((yp >= a.base).sum())} novel); test S0 {len(out['true_test0_y'])}, "
           f"novel test {len(out['true_test1_y'])}, all test {len(out['true_test_all_y'])}")
     return out
+
+
+# ---------------------------------------------------------------- E09.06: merge the sub-clusters of 09a back to increment
+class MergedCluster:
+    """Cluster model of 09b for steps 10-14: nearest of the sub-cluster centres of 09a (predict_raw of the sub-cluster
+    model, raw features), then the map sub-cluster -> merged cluster."""
+
+    def __init__(self, sub_cluster, mapping):
+        self.sub_cluster, self.mapping = sub_cluster, np.asarray(mapping, dtype=np.int64)
+        self.num_classes = int(self.mapping.max()) + 1
+
+    def predict_raw(self, features):
+        return self.mapping[np.asarray(self.sub_cluster.predict_raw(features)).astype(int)]
+
+
+def merge_prior(st):
+    """NIW prior of every cluster in 09b (E09.06): m0 = mean of z_pool, k0 = niw.K0, nu0 = d + 1 + off,
+    Psi0 = off * pooled within-class covariance of the labeled S0 classes (all classes), with off chosen by
+    leave-one-out on S0 under the leave-one-class-out prior (niw.loo_curve(..., loo_class=True), niw.choose: the rule
+    of off_lc in E06.04). Reads z_s0, s0_y (labels of S0, not of the pool) and z_pool. Returns a dict."""
+    z0, y0 = np.asarray(st["z_s0"], np.float64), np.asarray(st["s0_y"]).astype(int)
+    off = choose(loo_curve(z0, y0, loo_class=True))
+    cs = class_stats(z0, y0)
+    d = cs["d"]
+    return dict(m0=np.asarray(st["z_pool"], np.float64).mean(0), k0=K0, nu0=d + 1 + off, psi0=off * prior_cov(cs, 0),
+                off=int(off), d=d)
+
+
+def agglomerate(n_sub, k, pair_cost):
+    """Greedy merge of the sub-clusters 0..n_sub-1 down to k groups: at each step the pair of current groups with the
+    lowest pair_cost(members_a, members_b) is merged (ties: the first pair in sorted order). Costs are cached by the
+    member tuples, so a cached value can never be stale. Returns (list of member lists, steps), steps = list of
+    (members_a, members_b, cost) in merge order."""
+    groups, cache, steps = {i: (i,) for i in range(n_sub)}, {}, []
+    while len(groups) > k:
+        keys, best = sorted(groups), None
+        for i, a in enumerate(keys):
+            for b in keys[i + 1:]:
+                key = (groups[a], groups[b])
+                if key not in cache:
+                    cache[key] = float(pair_cost(groups[a], groups[b]))
+                if best is None or cache[key] < best[0]:
+                    best = (cache[key], a, b)
+        c, a, b = best
+        steps.append((groups[a], groups[b], c))
+        groups[a] = tuple(sorted(groups[a] + groups.pop(b)))
+    return list(groups.values()), steps
+
+
+def merge_costs(st, sub_ids, prior):
+    """Pair costs of the merge rules of E09.06 over member tuples of sub-clusters (lower = merge first):
+    bf = minus the log Bayes factor of NIW marginal likelihoods (niw.log_evidence; Murphy 2007, eq. 266) in z_pool;
+    ward = n_a n_b / (n_a + n_b) |mu_a - mu_b|^2 on the raw pool features (Ward 1963);
+    bhatt = Bhattacharyya distance (paper Eq. 9) between the NIW posterior-mean Gaussians (mean m_n, covariance
+    Psi_n / (nu_n - d - 1)) in z_pool; bhatt_mean = its mean term only. Returns {rule: pair_cost}."""
+    z, x = np.asarray(st["z_pool"], np.float64), np.asarray(st["pool_x"], np.float64)
+    sub_ids = np.asarray(sub_ids).astype(int)
+    m0, k0, nu0, psi0, d = (prior[key] for key in ("m0", "k0", "nu0", "psi0", "d"))
+    idx = lambda g: np.flatnonzero(np.isin(sub_ids, g))
+    ev, gauss = {}, {}
+
+    def evid(g):
+        if g not in ev:
+            ev[g] = log_evidence(z[idx(g)], m0, k0, nu0, psi0)
+        return ev[g]
+
+    def post(g):
+        if g not in gauss:
+            zz = z[idx(g)]
+            n, xb = len(zz), zz.mean(0)
+            psin = psi0 + (zz - xb).T @ (zz - xb) + (k0 * n / (k0 + n)) * np.outer(xb - m0, xb - m0)
+            gauss[g] = ((k0 * m0 + n * xb) / (k0 + n), psin / (nu0 + n - d - 1))
+        return gauss[g]
+
+    def bhatt(a, b, mean_only):
+        (ma, ca), (mb, cb) = post(a), post(b)
+        L = np.linalg.cholesky((ca + cb) / 2)
+        dm = np.linalg.solve(L, ma - mb)
+        t = dm @ dm / 8
+        if mean_only:
+            return t
+        ld = lambda c: 2 * np.log(np.diag(np.linalg.cholesky(c))).sum()
+        return t + 0.5 * (2 * np.log(np.diag(L)).sum() - 0.5 * (ld(ca) + ld(cb)))
+
+    def ward(a, b):
+        ia, ib = idx(a), idx(b)
+        na, nb = len(ia), len(ib)
+        return na * nb / (na + nb) * ((x[ia].mean(0) - x[ib].mean(0)) ** 2).sum()
+
+    return {"bf": lambda a, b: -(evid(tuple(sorted(a + b))) - evid(a) - evid(b)), "ward": ward,
+            "bhatt": lambda a, b: bhatt(a, b, False), "bhatt_mean": lambda a, b: bhatt(a, b, True)}
+
+
+def merged_ids(sub_ids, groups):
+    """Map sub-cluster -> merged cluster, merged clusters numbered by first appearance in the pool."""
+    sub_ids = np.asarray(sub_ids).astype(int)
+    first = {i: np.flatnonzero(sub_ids == i)[0] if (sub_ids == i).any() else len(sub_ids) for i in range(sub_ids.max() + 1)}
+    order = sorted(groups, key=lambda g: min(first[i] for i in g))
+    mapping = np.empty(sub_ids.max() + 1, dtype=np.int64)
+    for new, g in enumerate(order):
+        mapping[list(g)] = new
+    return mapping
+
+
+def v09b_merge(st, rule="bf", prior=None):
+    """09b Merge the sub-clusters of 09a back to increment clusters (E09.06, pre-registered at 61b9eb9): greedy
+    agglomeration, at each step the pair with the largest log Bayes factor under the NIW prior of merge_prior (rule
+    "bf"; "ward", "bhatt", "bhatt_mean" are the report-only rules, tier 1 only). Test images: nearest sub-cluster
+    centre (raw features), then the map. No pool labels, no test data, no RNG.
+    In: sub_ids, sub_cluster (09a), z_pool, pool_x, z_s0, s0_y. Out: ids, cluster (MergedCluster), merge_steps,
+    merge_off; prior can be passed to skip the leave-one-out (same snapshot)."""
+    prior = prior or merge_prior(st)
+    sub = np.asarray(st["sub_ids"]).astype(int)
+    groups, steps = agglomerate(sub.max() + 1, st["args"].increment, merge_costs(st, sub, prior)[rule])
+    mapping = merged_ids(sub, groups)
+    print(f"v09b_merge: rule={rule} off={prior['off']} sizes={np.bincount(mapping[sub]).tolist()}")
+    return dict(ids=mapping[sub], cluster=MergedCluster(st["sub_cluster"], mapping), merge_steps=steps,
+                merge_off=prior["off"])
