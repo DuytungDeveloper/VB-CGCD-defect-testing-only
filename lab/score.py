@@ -6,6 +6,9 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py 03                                             E03.02: linear probes on the GC10 features
   python lab/score.py e0907 --from <v2 run> [--k-first 0 --k-last 10 --m 1000]   E09.07, one snapshot (exp.py)
   python lab/score.py e0907-summary                                  E09.07: decision table from the 15 runs
+  python lab/score.py e0604 --from <gc10 v2 run> | --dataset cub200 --features F --ft R --seed S [--checks-only]
+                                                                     E06.04, one chain (exp.py)
+  python lab/score.py e0604-summary                                  E06.04: decision table from the 30 runs
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -485,19 +488,272 @@ def e0907_summary(T=0.0273, B=0.615):
     return df
 
 
+def _gauss_logpdf64(z, means, covs):
+    """(len(z), C) Gaussian log densities in float64, without the constant -d/2 log(2 pi) (same for every class)."""
+    out = np.empty((len(z), len(means)))
+    for k, (m, c) in enumerate(zip(means, covs)):
+        L = np.linalg.cholesky(np.asarray(c, np.float64))
+        out[:, k] = -np.log(np.diag(L)).sum() - 0.5 * (np.linalg.solve(L, (z - m).T) ** 2).sum(0)
+    return out
+
+
+def _branch_scores(name, pred, lp_true, yt, base):
+    """acc, balanced accuracy, lowest recall over the base classes; mean test log density of the true class."""
+    rec = np.array([(pred[yt == c] == c).mean() for c in range(base)])
+    out = {f"acc_{name}": 100.0 * float((pred == yt).mean()), f"bal_{name}": 100.0 * float(rec.mean()),
+           f"rmin_{name}": 100.0 * float(rec.min())}
+    if lp_true is not None:
+        out[f"logd_{name}"] = float(np.mean(lp_true))
+    return out, rec
+
+
+def tier2_e0604(dataset, run=None, features=None, ft=None, seed=None, checks_only=False):
+    """E06.04 (notes/pl/experiments.vi.md, pre-registration 2026-11-11) on one chain: session 0 by four branches on the
+    same PCA features and test set. A0 default (params0 of step 06, argmax over all num_classes slots as mngmm);
+    A1 E06.03 (mngmm._fit_closed: sample mean + Ledoit-Wolf, as --estimator closed); A2 NIW, Gaussian plug-in of the
+    posterior mean; A3 NIW, Student-t predictive (lab/niw.py). NIW prior: m0 = mean of S0, kappa0 = niw.K0,
+    Psi0 = off * pooled within-class covariance of all base classes; off = nu0 - d - 1 chosen on the S0 rows by
+    leave-one-out (niw.loo_curve, niw.choose). Test labels and pool labels are read for scoring only.
+    gc10: state after step 08 of the snapshot run gc10_v2_ft_r<r>_s<N>. cub200: v04a_cub_t5, then the default steps
+    05-08, seeded as main.py; the state after 08 is saved to <run dir>/state08.pkl (git ignores *.pkl).
+    Keys: acc_, bal_, rmin_ (base classes), logd_ (mean log density of the true class) per branch A0..A3 and A0base
+    (A0 with argmax over the base slots only); A0_unseen (A0 test images given to a slot not yet seen); auroc_<branch>
+    (pool of session 1, old = positive, score = highest log density over the base classes); off, loo_<off>;
+    off_lc, loolc_<off>, acc_A2lc, acc_A3lc (prior from the other classes); d23_* (A0 parameters against the sample
+    statistics); C1_ok, C3_ok, C2_ok (C2 only in the chain r0 s0), checks_ok. Per-class recalls go to recall.json.
+    Checks: C1 A0 equals acc0 of the snapshot (gc10) or S0_All of the run cub_base_ft_r<r>_s<N> (cub200), as numbers
+    of correct images; C2 log evidence = sequential predictive for one class (relative 1e-8) and fast leave-one-out =
+    direct recomputation over all S0 rows at the chosen off (relative 1e-8); C3 A1 labels equal an independent float64
+    recomputation (closed_form_params, Cholesky log densities over all slots). checks_only: compute and print the
+    checks only, return no result."""
+    import niw
+    from sklearn.metrics import roc_auc_score
+    from replay import new_state, make_args, _git
+    from variants import v04a_cub_t5, CUB_T5
+    t0 = time.time()
+    run_dir = Path(os.environ["EXP_RUN_DIR"]) if os.environ.get("EXP_RUN_DIR") else None
+    if run_dir is not None and _git()["dirty"]:
+        raise SystemExit("e0604: commit the code first (same dirty rule as scripts/exp.py)")
+    if dataset == "gc10":
+        assert run and features is None and ft is None and seed is None, "gc10: --from <snapshot run> only"
+        st = load(run, "08", check=False)      # new_state first: imports torch, jax, main in the order of the v2 runs
+        blobs = snapshots(run)
+        _fresh(blobs, "08")
+        tag = re.search(r"_r(\d+)_s(\d+)$", _run_dir(run).name)
+        r, N = int(tag.group(1)), int(tag.group(2))
+        assert N == st["args"].seed and st["args"].dataset == "gc10", "run name, seed and dataset must agree"
+    else:
+        assert features and ft is not None and seed is not None and not run, "cub200: --features, --ft and --seed"
+        r, N = ft, seed
+        st = new_state(make_args(features, seed, CUB_T5))
+        import torch, jax
+        torch.manual_seed(seed); np.random.seed(seed); jax.random.PRNGKey(seed)     # main.py order
+        st.update(v04a_cub_t5(st))
+        chain(st, None, start="05", upto="08")
+    import jax
+    import jax.numpy as jnp
+    device = jax.default_backend()
+    assert device == "gpu" or os.environ.get("REPLAY_ALLOW_CPU") == "1", f"JAX runs on {device}, not on the GPU (A1)"
+    if run_dir is not None:
+        m_ = re.search(r"_r(\d+)_s(\d+)$", run_dir.name)
+        assert m_ and (int(m_.group(1)), int(m_.group(2))) == (r, N), f"run folder {run_dir.name} is not r{r} s{N}"
+    a, clf = st["args"], st["clf"]
+    base = a.base
+    z0, y0 = np.asarray(st["z_s0"], np.float64), np.asarray(st["s0_y"]).astype(int)
+    zt, yt = np.asarray(st["z_test0"], np.float64), np.asarray(st["true_test0_y"]).astype(int)
+    zp, yp = np.asarray(st["z_pool"], np.float64), np.asarray(st["true_pool_y"]).astype(int)
+    assert set(np.unique(y0)) == set(range(base)) and set(np.unique(yt)) <= set(range(base))
+    old = (yp < base).astype(int)
+    out, rec, chk = {"dataset": dataset, "ft": r, "seed": N}, {}, {}
+
+    # A0: the pipeline's session-0 classifier
+    p0 = _jnp(st["params0"])
+    pred, lp = (np.asarray(v) for v in clf._predict(jnp.asarray(st["z_test0"]), p0))
+    lpp = np.asarray(clf._predict(jnp.asarray(st["z_pool"]), p0)[1])
+    n_ok = int((pred == yt).sum())
+    if dataset == "gc10":
+        ref = int(round(st["acc0"]["All"] * len(yt) / 100))
+        ref_src = "acc0 of the snapshot"
+    else:
+        f = sorted((ROOT / "runs").glob(f"*__cub_base_ft_r{r}_s{N}/metrics.json"))
+        assert len(f) == 1, f"cub_base_ft_r{r}_s{N}: {len(f)} runs"
+        ref = int(round(json.loads(f[0].read_text())["S0_All"] * len(yt) / 100))
+        ref_src = f"S0_All of {f[0].parent.name}"
+    chk["C1_ok"] = int(n_ok == ref)
+    print(f"e0604 C1: A0 {n_ok}/{len(yt)} correct, {ref_src} {ref}/{len(yt)} -> {'OK' if chk['C1_ok'] else 'FAIL'}")
+
+    # A1: E06.03 through the pipeline's own code
+    clf.global_params, clf.label_offset = None, 0
+    with contextlib.redirect_stdout(io.StringIO()):
+        p1 = clf._fit_closed(st["z_s0"], st["s0_y"], None, "e0604")
+    pred1, lp1 = (np.asarray(v) for v in clf._predict(jnp.asarray(st["z_test0"]), p1))
+    lpp1 = np.asarray(clf._predict(jnp.asarray(st["z_pool"]), p1)[1])
+    from classifier.closed_form import closed_form_params
+    q1, _ = closed_form_params(z0, y0, list(range(base)), prev=None, num_classes=a.num_classes)
+    ind = _gauss_logpdf64(zt, q1["class_means"], q1["class_covs"]).argmax(1)
+    chk["C3_mismatch"] = int((ind != pred1).sum())
+    chk["C3_ok"] = int(chk["C3_mismatch"] == 0)
+    print(f"e0604 C3: A1 against the float64 recomputation, {chk['C3_mismatch']} labels differ -> {'OK' if chk['C3_ok'] else 'FAIL'}")
+
+    # A2, A3: NIW posterior, off by leave-one-out on the S0 rows
+    curve = niw.loo_curve(z0, y0)
+    off = niw.choose(curve)
+    model = niw.fit(z0, y0, off)
+    if r == 0 and N == 0:
+        stc = niw.class_stats(z0, y0)
+        x = z0[y0 == stc["classes"][0]]
+        args_ev = (stc["m0"], niw.K0, stc["d"] + 1 + off, off * niw.prior_cov(stc, 0))
+        ev, sq = niw.log_evidence(x, *args_ev), niw.log_sequential(x, *args_ev)
+        direct, d, k0 = 0.0, stc["d"], niw.K0
+        for i in range(len(z0)):                # each S0 row: statistics without it, posterior of its own class only
+            keep = np.arange(len(z0)) != i
+            s_i = niw.class_stats(z0[keep], y0[keep])
+            k = int(np.where(s_i["classes"] == y0[i])[0][0])
+            n, dm = s_i["n"][k], s_i["mean"][k] - s_i["m0"]
+            psi = off * niw.prior_cov(s_i, k) + s_i["scatter"][k] + (k0 * n / (k0 + n)) * np.outer(dm, dm)
+            L = np.linalg.cholesky(psi)
+            q = (np.linalg.solve(L, z0[i] - (k0 * s_i["m0"] + n * s_i["mean"][k]) / (k0 + n)) ** 2).sum()
+            direct += niw._t_logpdf(q, 2 * np.log(np.diag(L)).sum(), k0 + n, d + 1 + off + n, d)
+        fast = niw.loo_curve(z0, y0, (off,))[0]
+        chk["C2_ev_rel"], chk["C2_loo_rel"] = abs(ev - sq) / abs(ev), abs(fast - direct) / abs(direct)
+        chk["C2_ok"] = int(chk["C2_ev_rel"] <= 1e-8 and chk["C2_loo_rel"] <= 1e-8)
+        print(f"e0604 C2: evidence vs sequential {chk['C2_ev_rel']:.1e}, fast vs direct leave-one-out "
+              f"{chk['C2_loo_rel']:.1e} (off {off}) -> {'OK' if chk['C2_ok'] else 'FAIL'}")
+    chk["checks_ok"] = int(chk["C1_ok"] and chk["C3_ok"] and chk.get("C2_ok", 1))
+    if checks_only:
+        print(f"e0604: checks only, {'all OK' if chk['checks_ok'] else 'FAILED'} ({time.time() - t0:.0f} s)")
+        return chk
+
+    lg, lt = niw.log_density(model, zt, "gauss"), niw.log_density(model, zt, "t")
+    lgp, ltp = niw.log_density(model, zp, "gauss"), niw.log_density(model, zp, "t")
+    cls = model["classes"]
+    idx = np.arange(len(yt))
+    for name, pr, lpt, lpool in (("A0", pred, lp[idx, yt], lpp[:, :base]),
+                                 ("A0base", lp[:, :base].argmax(1), lp[idx, yt], lpp[:, :base]),
+                                 ("A1", pred1, lp1[idx, yt], lpp1[:, :base]),
+                                 ("A2", cls[lg.argmax(1)], lg[idx, yt], lgp),
+                                 ("A3", cls[lt.argmax(1)], lt[idx, yt], ltp)):
+        s, rec[name] = _branch_scores(name, pr, lpt, yt, base)
+        out.update(s)
+        out[f"auroc_{name}"] = float(roc_auc_score(old, lpool.max(1)))
+    out["A0_unseen"] = int((pred >= base).sum())
+    out["off"] = off
+    out.update({f"loo_{o}": float(v) for o, v in zip(niw.OFFS, curve)})
+    curve_lc = niw.loo_curve(z0, y0, loo_class=True)
+    out["off_lc"] = niw.choose(curve_lc)
+    out.update({f"loolc_{o}": float(v) for o, v in zip(niw.OFFS, curve_lc)})
+    m_lc = niw.fit(z0, y0, out["off_lc"], loo_class=True)
+    for name, kind in (("A2lc", "gauss"), ("A3lc", "t")):
+        out[f"acc_{name}"] = 100.0 * float((m_lc["classes"][niw.log_density(m_lc, zt, kind).argmax(1)] == yt).mean())
+    means = np.asarray(st["params0"]["class_means"])[:base]
+    covs = np.asarray(st["params0"]["class_covs"])[:base]
+    xb = np.stack([z0[y0 == c].mean(0) for c in range(base)])
+    ev0 = np.linalg.eigvalsh(covs.astype(np.float64))
+    out["d23_rmu_med"] = float(np.median(np.linalg.norm(means, axis=1) / np.linalg.norm(xb, axis=1)))
+    out["d23_eig_min"], out["d23_eig_max"] = float(ev0.min()), float(ev0.max())
+    out.update(chk)
+    print(f"e0604: {dataset} r{r} s{N} | off {off} | off_lc {out['off_lc']} | " +
+          " | ".join(f"{b} {out[f'acc_{b}']:.2f}" for b in ("A0", "A1", "A2", "A3")) +
+          f" | checks {'OK' if chk['checks_ok'] else 'FAILED'} ({time.time() - t0:.0f} s)")
+    if run_dir is not None:
+        (run_dir / "recall.json").write_text(json.dumps({k: v.tolist() for k, v in rec.items()}) + "\n")
+        if dataset == "cub200":
+            import pickle
+            keep = ("s0_y", "z_s0", "z_test0", "true_test0_y", "z_pool", "true_pool_y", "pca", "acc0")
+            state = {k: st[k] for k in keep}
+            state["params0"] = {k: np.asarray(v)[:base] for k, v in st["params0"].items()}
+            state["meta"] = dict(_git(), args=vars(a), device=device, note="E06.04: state after step 08, base slots only")
+            (run_dir / "state08.pkl").write_bytes(pickle.dumps(state, protocol=pickle.HIGHEST_PROTOCOL))
+    return out
+
+
+def e0604_summary():
+    """Decision table of E06.04 from the runs gc10_e06_04_r<r>_s<N> and cub_e06_04_r<r>_s<N>, r = 0-2, N = 0-4.
+    D = acc A3 - acc A0 per chain, D_r = mean over the 5 seeds, D = mean of D_r; the rule of the pre-registration
+    (accept: D >= 1 point and D_r > 0 in >= 2/3 FT seeds; reject: D <= 0; else not large enough), the same rule for
+    A2 - A0, and the report numbers. Refuses to read results unless every run has checks_ok = 1 and C2 ran in r0 s0."""
+    import pandas as pd
+    import niw
+    rule = lambda D, Dr: "accept" if D >= 1 and (Dr > 0).sum() >= 2 else "reject" if D <= 0 else "not large enough"
+    branches = ("A0", "A0base", "A1", "A2", "A3")
+    res = {}
+    for ds, pre in (("gc10", "gc10"), ("cub200", "cub")):
+        rows = []
+        for r in range(3):
+            for N in range(5):
+                f = sorted((ROOT / "runs").glob(f"*__{pre}_e06_04_r{r}_s{N}/metrics.json"))
+                assert len(f) == 1, f"{pre}_e06_04_r{r}_s{N}: {len(f)} runs with metrics"
+                m_ = json.loads(f[0].read_text())
+                assert m_.get("checks_ok") == 1 and "acc_A3" in m_, f"{pre} r{r} s{N}: checks failed or no result, not read"
+                assert (r, N) != (0, 0) or m_.get("C2_ok") == 1, f"{pre} r0 s0: C2 did not run or failed"
+                rows.append({**{k: v for k, v in m_.items() if not isinstance(v, str)}, "ft": f"r{r}", "seed": N})
+        df = pd.DataFrame(rows)
+        for b in ("A1", "A2", "A3"):
+            df[f"D_{b}"] = df[f"acc_{b}"] - df["acc_A0"]
+        df["D_A3_A2"] = df["acc_A3"] - df["acc_A2"]
+        by = df.groupby("ft").mean(numeric_only=True)
+        sd = df.groupby("ft")[[f"acc_{b}" for b in branches]].std(ddof=1)
+        pd.set_option("display.width", 250)
+        print(f"\n===== {ds}")
+        print(df[["ft", "seed", "off", "off_lc", "acc_A0", "acc_A1", "acc_A2", "acc_A3", "D_A3", "A0_unseen"]]
+              .to_string(index=False, float_format=lambda v: f"{v:.2f}"))
+        cols = ["D_A3", "D_A2", "D_A1", "D_A3_A2"] + [f"{k}_{b}" for k in ("bal", "rmin") for b in ("A0", "A1", "A2", "A3")] + \
+               ["logd_A2", "logd_A3"] + [f"auroc_{b}" for b in ("A0", "A1", "A2", "A3")] + \
+               ["acc_A0base", "acc_A2lc", "acc_A3lc", "d23_rmu_med", "d23_eig_min", "d23_eig_max"]
+        print("\nmean by FT seed:")
+        print(by[cols].T.to_string(float_format=lambda v: f"{v:.4f}"))
+        print("\nSD (ddof 1) over the 5 seeds, accuracy of each branch:")
+        print(sd.T.to_string(float_format=lambda v: f"{v:.3f}"))
+        pooled = float(np.sqrt((sd["acc_A0"] ** 2).mean()))
+        D3, D2 = by["D_A3"], by["D_A2"]
+        grid = niw.OFFS
+        print(f"\npooled SD of acc A0 = {pooled:.3f} points | off at the upper edge of the grid in "
+              f"{int((df['off'] == max(grid)).sum())}/15 chains, at the lower edge in {int((df['off'] == min(grid)).sum())}/15 | "
+              f"logd A3 > logd A2 in {int((df['logd_A3'] > df['logd_A2']).sum())}/15 chains")
+        print(f"D (A3 - A0) = {D3.mean():.3f} points, D_r = {' / '.join(f'{v:.3f}' for v in D3)}, "
+              f"positive in {int((D3 > 0).sum())}/3 FT seeds -> {rule(D3.mean(), D3)}")
+        print(f"A2 - A0 = {D2.mean():.3f} points, D_r = {' / '.join(f'{v:.3f}' for v in D2)} -> {rule(D2.mean(), D2)}")
+        res[ds] = (rule(D3.mean(), D3), rule(D2.mean(), D2))
+    (c3, c2), (g3, _) = res["cub200"], res["gc10"]
+    if c3 == "accept" and g3 != "reject":
+        verdict = "A3 is the representation of the old classes for E09.08"
+    elif c3 == "reject":
+        verdict = "CUB rejected: no NIW posterior as old classes on CUB; review the strategy before pre-registering E09.08"
+    elif c2 == "accept":
+        verdict = "prior accepted, Student-t not: E09.08 goes on (its E-step uses the quadratic form, not the Student-t)"
+    else:
+        verdict = "report only; the decision on E09.08 waits for the strategy review after E06.04 and E09.06"
+    print(f"\nconsequence (pre-registration): {verdict}")
+    return res
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907: first draw")
     p.add_argument("--k-last", type=int, default=10, help="e0907: last draw")
     p.add_argument("--m", type=int, default=1000, help="e0907: single inits per draw (10 = check C1 only)")
+    p.add_argument("--dataset", default="gc10", choices=["gc10", "cub200"], help="e0604")
+    p.add_argument("--features", help="e0604 cub200: features/<run_id>/<model>")
+    p.add_argument("--ft", type=int, help="e0604 cub200: FT seed of the features")
+    p.add_argument("--seed", type=int, help="e0604 cub200: seed of the chain")
+    p.add_argument("--checks-only", action="store_true", help="e0604: print the checks C1-C3 only, no result")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary") or o.run, "steps 09 and e0907 need --from <run>"
+    assert o.step in ("03", "e0907-summary", "e0604-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+        "steps 09, e0907 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
+        return
+    if o.step == "e0604-summary":
+        e0604_summary()
+        return
+    if o.step == "e0604":
+        out = tier2_e0604(o.dataset, o.run, o.features, o.ft, o.seed, o.checks_only)
+        if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
+            (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
     out = tier1_03() if o.step == "03" else tier1_09(o.run, o.ks) if o.step == "09" else \
         tier2_e0907(o.run, o.k_first, o.k_last, o.m)
