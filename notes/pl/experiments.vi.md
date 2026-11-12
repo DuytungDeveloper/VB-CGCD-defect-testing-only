@@ -20,7 +20,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E06.01: CT1, tiên nghiệm co Inverse-Wishart tối ưu qua SVI (2026-10-01; xong, LOẠI: tiên nghiệm gần như vô hiệu, D23) — `notes/improvement-1.vi.md`
 - E06.02: CT1, tăng ngân sách bước: lr ×10, ×100 (2026-10-01; xong: xác nhận D23) — `notes/improvement-1.vi.md` §3.1
 - E06.03: CT1, ước lượng dạng đóng (Ledoit–Wolf), cờ `--estimator closed`, biến thể `06a-closed-form` (2026-10-02; xong: trượt tiêu chí 2b, giữ cờ opt-in) — `notes/improvement-1.vi.md`
-- E06.04: phiên đầu bằng hậu nghiệm NIW và dự đoán Student-t, biến thể `06b-vb-s0`, GC10 và CUB (2026-11-11; đã tiền đăng ký, chưa chạy) — mục E06.04 dưới đây
+- E06.04: phiên đầu bằng hậu nghiệm NIW và dự đoán Student-t, biến thể `06b-vb-s0`, GC10 và CUB (2026-11-11 → 12; xong: ĐẠT cả hai, D = +1.91 GC10, +1.59 CUB; A3 là lớp cũ cho E09.08) — mục E06.04 dưới đây
 - E09.01: D18, bảng 2×2 (GMM hay k-means, `n_init` 1 hay 10), CIFAR-100 (2026-09-19; xong: số lần khởi tạo quyết định độ chính xác; chọn k-means `n_init` 10) — D18
 - E09.02: GC10 đóng băng, GMM `n_init` 10 thay k-means (2026-09-30; xong, LOẠI; kết luận sửa ngày 2026-10-02) — note LOG `gc10_frozen_gmm10_evhung_d64_s4`
 - E09.03: CT2, bảng chéo cụm × lớp thật trên pool S1, GC10 đóng băng (2026-10-02; xong: lớp hiếm bị nuốt vì không sở hữu cụm nào) — `notes/improvement-2.vi.md`
@@ -164,6 +164,45 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - Ngoài phạm vi: chạy cả chuỗi với lớp cũ từ A3 (tầng 2); chọn κ0; VB-GMM (E09.08); gộp cụm (E09.06).
 - Cách chạy: biến thể `06b-vb-s0` (trải 06–08) trong `lab/variants.py`; runner trong `lab/score.py`; mỗi chuỗi một run qua `exp.py`, ghi mọi số vào `metrics.json`; code commit trước khi chạy.
 - Tag: `gc10_e06_04_r<r>_s<N>` và `cub_e06_04_r<r>_s<N>`, r = 0–2, N = 0–4.
+
+### Kết quả (2026-11-12; run `gc10_e06_04_r0_s0`–`cub_e06_04_r2_s4`, code `60bbef6`, commit run `7b97b22`; số in từ `python lab/score.py e0604-summary`)
+
+- Toàn vẹn: `checks_ok` = 1 ở 30/30 run; C2 đạt ở r0 s0 của cả hai dataset (GC10: 1.5e-15 và 8.4e-16; CUB: 4.9e-14 và 4.2e-16); C1 trùng mốc (GC10 206/241, CUB 2513/2929 ở r0 s0); C3 không có nhãn khác.
+- SD gộp của độ chính xác A0 giữa các seed: 0.448 điểm (GC10), 0.179 điểm (CUB); đúng câu "nhỏ hơn 0.5 điểm" của tiền đăng ký.
+- Quyết định:
+  - GC10: D = +1.909 điểm; D_r = 2.573 / 2.905 / 0.249, dương ở 3/3 FT seed: ĐẠT. A2 − A0 = +1.770: ĐẠT.
+  - CUB: D = +1.586 điểm; D_r = 1.325 / 1.598 / 1.837, dương ở 3/3 FT seed: ĐẠT. A2 − A0 = +1.600: ĐẠT.
+  - Hệ quả (theo tiền đăng ký): A3 là biểu diễn lớp cũ cho E09.08.
+- ν0 − d − 1 được chọn: GC10 10 ở 13/15 chuỗi, 25 ở 2/15; CUB 250 ở 15/15. Không chuỗi nào dính biên lưới. Bản bỏ-một-lớp: GC10 10; CUB 100 (r0, r1) và 250 (r2).
+- Báo cáo phụ (trung bình theo FT seed r0 / r1 / r2):
+  - A3 − A2: GC10 +0.25 / −0.17 / +0.33; CUB −0.01 / 0.00 / −0.03 điểm.
+  - A1 − A0: GC10 +1.91 / +1.66 / −1.49; CUB −1.66 / −2.08 / −1.71 điểm.
+  - Balanced accuracy A0 → A3: GC10 85.93 → 88.28, 85.35 → 88.59, 86.63 → 87.09; CUB 86.05 → 87.32, 86.17 → 87.76, 85.59 → 87.43.
+  - Recall thấp nhất A0 → A3: GC10 69.6 → 69.3, 72.2 → 69.6, 66.3 → 66.7; CUB 31.3 → 40.7, 32.0 → 30.7, 25.3 → 41.3.
+  - SD giữa 5 seed, A0 / A3: GC10 0.371 / 0.371, 0.455 / 0.541, 0.508 / 0.473; CUB 0.227 / 0.129, 0.180 / 0.147, 0.112 / 0.178.
+  - Log mật độ test của lớp đúng: A3 > A2 ở 15/15 chuỗi mỗi dataset.
+  - AUROC tách cũ/mới trên pool phiên 1 (A0 / A1 / A2 / A3): GC10 0.34 / 0.87 / 0.87 / 0.87, 0.25 / 0.90 / 0.89 / 0.89, 0.24 / 0.88 / 0.87 / 0.88; CUB 0.76 / 0.85 / 0.79 / 0.79, 0.75 / 0.84 / 0.79 / 0.79, 0.76 / 0.86 / 0.79 / 0.79.
+  - Tiên nghiệm bỏ-một-lớp, độ chính xác A3: GC10 87.72 / 87.88 / 86.81; CUB 86.79 / 87.35 / 87.31.
+  - A0 không đẩy ảnh test nào vào khe chưa thấy (`A0_unseen` = 0 ở 30/30), nên A0 và `A0base` trùng nhau.
+  - D23 trên CUB, đo trực tiếp: trung vị ‖μ_k‖/‖x̄_k‖ = 0.0107; trị riêng của Σ_k trong 0.85–1.82. Trên GC10: 0.009, trị riêng 0.82–1.34.
+- Dự đoán: GC10 D > 0 và D ≥ 1: đúng cả hai; CUB D > 0 và D ≥ 1: đúng cả hai; |A3 − A2| < 0.5 ở GC10 và CUB: đúng; CUB A1 thấp hơn A2: đúng.
+- Cơ chế: log mật độ A3 > A2 ở 15/15, đúng như chốt trước; ν0 không ở biên.
+
+### Đánh đổi
+
+- GC10 phụ thuộc FT seed: ở r2, D_r chỉ +0.25 điểm (khoảng 0.6 ảnh test, tính tay) và 3/5 chuỗi có D ≤ 0; mức +1.91 đến chủ yếu từ r0, r1. CUB đều: mọi chuỗi trong khoảng +1.09 đến +2.01.
+- Leave-one-out chọn hai chế độ ngược nhau. Tỉ trọng tiên nghiệm off/(off + n), tính tay: GC10 khoảng 10/160, gần hiệp phương sai riêng từng lớp; CUB khoảng 250/275, gần một hiệp phương sai chung (LDA).
+- Phân lớp và tách cũ/mới kéo về hai phía trên CUB: A3 hơn A1 khoảng 3.3 điểm độ chính xác (tính tay) nhưng kém 0.05–0.07 AUROC. [SUY LUẬN] Co mạnh về Σ gộp làm lớp cũ rộng hơn, nên giải thích được cả ảnh mới. Mức co tốt nhất cho phân lớp chưa chắc tốt nhất cho khám phá ở E09.08.
+- Độ ổn định theo SD giữa các seed không tốt hơn A0. Mức tăng trên GC10 không nằm ở lớp yếu nhất; trên CUB recall thấp nhất tăng ở r0, r2 nhưng giảm ở r1.
+- Student-t không thêm gì vào độ chính xác (A3 − A2 trong ±0.35 điểm), dù luôn hơn về log mật độ. Phần có ích ở phiên đầu là tiên nghiệm.
+
+### Kết luận
+
+- ĐẠT trên cả GC10 và CUB: A3 (hậu nghiệm NIW, dự đoán Student-t, ν0 chọn bằng leave-one-out) là biểu diễn lớp cũ cho E09.08.
+- A2 về bản chất là co hiệp phương sai về Σ gộp (gần RDA, Friedman 1989); đóng góp mới không nằm ở phiên đầu mà phải nằm ở phần liên tục của E09.08.
+- Mang sang E09.08: (1) mức co của thành phần cũ là một núm đánh đổi giữa phân lớp và tách cũ/mới, phải đo chứ không giả định; (2) tiên nghiệm lấy từ các lớp khác dự đoán gần bằng tiên nghiệm gộp (CUB thấp hơn 0.3–0.6 điểm, tính tay), ủng hộ tiên nghiệm phân cấp cho lớp mới.
+- Giới hạn: số laptop, cần server chạy lại (QD27); chỉ phiên đầu; n = 3 FT seed; AUROC trên CUB lạc quan vì rò kiểu D9.
+- Theo chiến lược 2026-11-05 §4: rà lại toàn bộ chiến lược sau E06.04 và E09.06; bước tiếp theo là E09.06.
 
 ## E09.04 — Phân cụm thừa: lớp hiếm có cụm riêng không? (Q09.11)
 
