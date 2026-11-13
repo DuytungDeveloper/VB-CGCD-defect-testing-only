@@ -38,6 +38,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 ### 05 PCA
 
 - Q05.01 [mở] D21: công thức CUB của upstream có n = 25 < d = 384; số CUB của paper đến từ cấu hình nào?
+  - 2026-11-13: dự đoán sụp của D21 sai. Lưới `cub_base_ft` (15 run, `50d72f3`, agg `c251cd7`) chạy đủ, không run nào sụp, dù dùng cùng cờ optimizer và luật dừng với 5 run NEU d384 đã sụp (tag `archive-2026-10-02`); chi tiết ở dòng measured 2026-11-13 của D21. Câu hỏi còn mở ở dạng mới: vì sao NEU sụp còn CUB thì không, dù n/d của CUB thấp hơn. Chưa có cơ chế đã kiểm.
 - Q05.02 [mở] Phép chiếu học từ nhãn lớp cũ (LDA, hoặc làm trắng trong lớp) có tách được các lớp chồng lấn không? Đây là hướng sửa biểu diễn nếu giả thuyết chồng lấn của E09.03 đúng. Nguồn: CT2.
   - 2026-11-04: không gian con PCA của S0 giữ 0.84–0.94 khoảng cách giữa các tâm lớp mới, thấp nhất ở ba cặp của crease, rolled_pit, waist_folding (0.842–0.857), và giữ 0.53–0.69 phương sai trong lớp (`05-pca` §4.1, đo Euclid). [SUY LUẬN] Một phép chiếu học từ lớp cũ có thể còn ít thấy hướng phân biệt ba lớp này hơn PCA; phép kiểm phải đo riêng ba cặp này.
 
