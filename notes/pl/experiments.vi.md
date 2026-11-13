@@ -26,7 +26,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.03: CT2, bảng chéo cụm × lớp thật trên pool S1, GC10 đóng băng (2026-10-02; xong: lớp hiếm bị nuốt vì không sở hữu cụm nào) — `notes/improvement-2.vi.md`
 - E09.04: phân cụm thừa trên `fz`: lớp hiếm có cụm riêng ở K' = 20 không? (2026-10-05 → 07; xong, LOẠI) — mục E09.04 dưới đây
 - E09.05: phân cụm thừa trên cấu hình paper (`ft`) (2026-10-07; xong, SỐNG) — mục E09.05 dưới đây
-- E09.06: phân cụm thừa K' = 20 rồi gộp về 5 cụm bằng Bayes factor NIW, biến thể `09a` + `09b`, GC10 (2026-11-12; đã tiền đăng ký, chưa chạy) — mục E09.06 dưới đây
+- E09.06: phân cụm thừa K' = 20 rồi gộp về 5 cụm bằng Bayes factor NIW, biến thể `09a` + `09b`, GC10 (2026-11-12 → 13; xong: CHẤP NHẬN, Δ = 0.064, Δ_Old = −0.53 điểm; rolled_pit vẫn mất cụm) — mục E09.06 dưới đây
 - E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04 → 11; xong: không đủ lớn, Δ = 0.0148 < T = 0.0273; giữ `n_init` 10) — mục E09.07 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 
@@ -404,6 +404,43 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Chi phí ước lượng [suy luận, từ thời gian của E09.07: 30–51 phút mỗi ảnh chụp theo `config.json` của 15 run]: khoảng 8–10 giờ cho 15 ảnh chụp.
 - Cách chạy: biến thể trong `lab/variants.py` (`v09a_overcluster` đã có, `v09b_merge` mới); hàm tầng 2 `tier2_e0906` và bảng quyết định `e0906-summary` trong `lab/score.py`, dùng lại `_tail_0907`, `_measures_0907`, `score09`; 15 run qua `exp.py`, mỗi run một ảnh chụp, ghi mọi lần rút vào `metrics.json`; code viết sau tiền đăng ký và commit trước khi chạy.
 - Tag: `gc10_e09_06_r<r>_s<N>`, r = 0–2, N = 0–4.
+
+### Kết quả (2026-11-13; run `gc10_e09_06_r0_s0`–`gc10_e09_06_r2_s4` (commit `994656a`) và `gc10_e09_06x_r0_s0`–`gc10_e09_06x_r2_s4` (commit kế tiếp); code `6996b57`; số in từ `python lab/score.py e0906-summary`)
+
+- Toàn vẹn: `checks_ok` = 1 ở 30/30 run (C1, C2 ở 15 run có lần rút 0; C3, C4, C5 ở cả 30). off = 10 ở 15/15 ảnh chụp, trùng `off_lc` của E06.04. Ngưỡng tính lại: T 0.02728, B 0.61545, làm tròn đúng hai số đã tiền đăng ký.
+- Sau 11 lần rút: Δ = 0.0655, Δ_Old = −0.5533 điểm, cách −B dưới 2·SE_MC (SE_MC 0.0569). Theo quy tắc: thêm 10 lần rút (k = 11–20) cho cả 15 ảnh chụp, một lần.
+- Sau 21 lần rút:
+  - Δ = 0.0642 ≥ T; Δ_r = 0.0080 / 0.1122 / 0.0724, dương ở 3/3 FT seed; Δ_Old = −0.5295 điểm ≥ −B; SE_MC = 0.0036 (Δ), 0.0425 (Δ_Old); không ranh giới nào trong 2·SE_MC. Quyết định: CHẤP NHẬN.
+  - Ghi chú: Δ_Old cách −B 0.0855 điểm, còn 2·SE_MC = 0.085 điểm (tính tay); nằm ngay ngoài vùng phải thêm lần rút. Quy tắc chỉ cho thêm một lần.
+  - Hệ quả (theo tiền đăng ký): `09a` + `09b` thành bước 09 mặc định của dòng PL; E09.08 khởi tạo VB-GMM từ phân hoạch này.
+- Điều kiện bỏ ý tưởng: không áp dụng (chấp nhận). Số cặp (seed, lần rút) có cụm riêng sau gộp, trên 105 mỗi FT seed (cần 53): crease 88 / 65 / 44; rolled_pit 1 / 2 / 0.
+- Báo cáo phụ (theo FT seed r0 / r1 / r2):
+  - M1 (Δ balanced cột 10): 0.0519 / 0.1263 / 0.1199, trung bình 0.0994. M3 (Δ bước dừng của lượt S): 16.2 / 44.7 / 52.6, trung bình 37.85 bước.
+  - Δ_Old: −0.138 / −0.553 / −0.897 điểm. Δ S1_New: −2.38 / +9.15 / +0.89; Δ S1_All: −1.19 / +4.01 / −0.06 điểm; Δ balanced 10 lớp: 0.0033 / 0.0535 / 0.0315. Δ M_f = −Δ S1_Old (acc0 chung hai nhánh).
+  - Riêng k = 0: Δ 0.0625, Δ_Old −0.4426 điểm.
+  - Tầng 1 (`bal_acc_hungarian` trên pool): mặc định 0.501 / 0.470 / 0.391; K' = 20 chưa gộp 0.410 / 0.407 / 0.381; Bayes factor 0.556 / 0.525 / 0.515; Ward 0.558 / 0.432 / 0.412; Bhattacharyya 0.302 / 0.299 / 0.313; Bhattacharyya chỉ số hạng trung bình 0.258 / 0.248 / 0.205.
+  - Tỉ lệ cặp (seed, lần rút) có cụm riêng / sở hữu ít nhất một cụm, gộp 315 cặp: crease: mặc định 0.473 / 0.476; K' = 20 0.594 / 0.994; Bayes factor 0.625 / 0.641; Ward 0.317 / 0.330; Bhattacharyya 0.095 / 0.187; chỉ số hạng trung bình 0.000 / 0.057. rolled_pit: mặc định 0 / 0; K' = 20 0.644 / 0.679; Bayes factor 0.010 / 0.010; Ward và Bhattacharyya 0.003; chỉ số hạng trung bình 0.
+  - Độ thuần của phép gộp Bayes factor: 0.523 / 0.566 / 0.622. Số cụm silk_spot sở hữu sau gộp: 2.06 / 2.02 / 2.10. Mỗi ảnh chụp chạy 38–42 phân hoạch khác nhau qua bước 10–14.
+- Dự đoán:
+  - crease còn cụm riêng sau gộp ở 0.615 số cặp có cụm ở K' = 20 (ít nhất một nửa): đúng; rolled_pit 0.015: sai.
+  - silk_spot sở hữu đúng 1 cụm ở hơn một nửa số cặp: sai (0 cặp).
+  - M1 > 0: đúng. Δ > 0: đúng. Δ ≥ T: đúng (đã đặt khoảng 30%).
+- Rủi ro chính: xảy ra với rolled_pit, không với crease. silk_spot giữ khoảng 2 cụm ở mọi FT seed; rolled_pit mất cụm ở mọi tiêu chí gộp (≤ 0.010), nên hiện tượng chung cho mọi phép gộp về k = 5, không riêng Bayes factor.
+- Rủi ro thứ hai (PCA-64): rolled_pit mất cụm ở cả ba FT seed, không riêng r1, r2; số cặp crease giữ cụm giảm từ r0 tới r2 (88, 65, 44). Chưa tách được tiêu chí gộp với không gian gộp.
+
+### Đánh đổi
+
+- Mức tăng đến từ r1, r2. Ở r0, Δ_r chỉ 0.008 dù tầng 1 tăng 0.055 (0.501 → 0.556, tính tay): tầng 1 và tầng 2 lại xếp hạng khác nhau.
+- Lớp cũ trả giá: Δ_Old trung bình −0.53 điểm; riêng r2 là −0.90, vượt B nếu xét một FT seed (quy tắc xét trung bình). [SUY LUẬN] Lượt S dừng muộn hơn trung bình 38 bước (M3), Gaussian lớp mới nở rộng hơn và lấn sang lớp cũ, đúng cơ chế Hình 2 của paper; chưa kiểm bằng sổ mất điểm.
+- Balanced tăng nhưng độ chính xác thường không tăng đều: ở r0, S1_New giảm 2.4 và S1_All giảm 1.2 điểm. [SUY LUẬN] Phần lợi ở crease (lớp hiếm, trọng số lớn trong balanced) được trả bằng lớp đông.
+- rolled_pit: ở K' = 20 có cụm riêng 64% số cặp, sau mọi phép gộp còn tối đa 1%. [SUY LUẬN] Gộp về đúng k = 5 trong khi silk_spot giữ 2 mode (camera/cuộn, Q09.13) làm mất chỗ của lớp nhỏ nhất.
+- Đổi tiêu chí sang Bayes factor là đúng: Ward ngang Bayes factor ở r0 nhưng thấp hơn ở r1, r2; hai bản Bhattacharyya kém cả mặc định ở tầng 1.
+
+### Kết luận
+
+- CHẤP NHẬN (số laptop, QD27): `09a` + `09b` (K' = 20, Bayes factor NIW) là bước 09 mặc định của dòng PL; E09.08 khởi tạo VB-GMM từ phân hoạch này.
+- Giới hạn: Δ_Old sát −B và r2 trả giá lớn; rolled_pit không được cứu; mức tăng dựa vào r1, r2; n = 3 FT seed.
+- Mang sang E09.08 [SUY LUẬN]: (1) với k cố định, lớp nhỏ nhất bị gộp mất khi một lớp có nhiều mode; ứng viên: cho phép nhiều thành phần mỗi lớp rồi gộp nhãn, hoặc tiên nghiệm Dirichlet không ép cụm đều; (2) kiểm cơ chế lớp cũ mất điểm (bước dừng của lượt S) bằng sổ mất điểm trước khi thiết kế; (3) rà lại chiến lược trước khi tiền đăng ký E09.08 (chiến lược 2026-11-05 §4).
 
 ## E09.07 — Nhiều lần khởi tạo k-means, giữ inertia thấp nhất (Q09.12, QD24, QD26)
 
