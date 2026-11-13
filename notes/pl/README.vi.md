@@ -62,6 +62,7 @@ QD01–QD15 (các dòng cũ) ở `notes/plan.vi.md` §4.
 - Khi giấy và `.md` lệch nhau, `.md` đúng. `.md` phải tự đủ, không trỏ sang sổ giấy.
 - Công cụ khác (Obsidian, tablet) không chứa số liệu hay trạng thái dự án.
 - Xem lại cách ghi sau hai tuần dùng thử.
+- Sửa ngày 2026-11-13 (hết hai tuần dùng thử): sổ giấy thành nhật ký khoa học, mỗi lần ghi một khối có ngày với năm mục Hỏi / Đoán / Thấy / Nghĩ / Ý, thay cho mục B/E/I. Đoán ghi trước khi thấy kết quả; ghi sau thì nói rõ là ghi sau. Phần còn lại giữ nguyên: `.md` vẫn là bản chuẩn.
 
 ### QD18 — Notebook theo ba lớp; thứ tự làm mới (2026-10-06)
 
@@ -191,6 +192,9 @@ QD01–QD15 (các dòng cũ) ở `notes/plan.vi.md` §4.
   - Giá phải trả: balanced novel nhiễu (1 ảnh rolled_pit = 3.3 điểm, 1 ảnh crease = 1.8 điểm), nên phải so theo cặp và đặt ngưỡng theo dao động đã đo.
   - Camera gắn với lớp: Cramér's V 0.31; punching_hole 100% từ 3 camera, waist_folding 89% từ 2 camera, còn silk_spot, inclusion, crease trải đủ 8 camera (`00-data-gc10` §2.3). Biết trước tín hiệu camera nằm ở đâu thì đọc đúng hơn các lỗi của 08 và các cụm của 09.
 - Hệ quả: Q14.02 đóng bằng QD25; balanced novel được tính từ ảnh chụp bằng sổ mất điểm (10–14). Tiền đăng ký E09.07, E09.06 dùng QD25. `lab/README.vi.md` §3 ghi `05a` làm trước 08.
+- Sửa ngày 2026-11-13, sau E09.06 (`b06586c`), trước tiền đăng ký E09.08:
+  - Trên GC10 t1, T = 0.0273 và B = 0.615 (`14-eval` §3.3, chốt ở E09.07 phần 2) giữ cố định làm cỡ hiệu ứng tối thiểu, không tính lại khi mặc định của dòng PL đổi sang `09a` + `09b` (E09.06). Lý do: vạch trôi theo từng biến thể được nhận thì các thí nghiệm không còn so được với nhau; σ ước lượng từ 3 FT seed vốn rộng (khoảng tin cậy 95% 0.0196–0.0451, E09.07), tính lại chỉ thêm nhiễu vào vạch. Tiền đăng ký in kèm SD giữa các seed của mặc định mới để kiểm. CUB tính T, B riêng (QD28).
+  - Hiệu tích luỹ so với upstream đo trên lần rút mới, bằng một nhánh upstream trong E09.08, không dùng lại các lần rút 0–20 của E09.06: lần rút đã dùng để quyết định cho ước lượng thiên lạc quan. Câu "đã đạt +2T" chỉ dùng sau T2 hoặc khi có số server.
 
 ### QD26 — Bước 09: notebook không nhãn và notebook có nhãn, landscape dùng chung, E09.07 lặp phép so trong ảnh chụp; notebook được chạy lâu (2026-11-04)
 
@@ -296,3 +300,8 @@ QD01–QD15 (các dòng cũ) ở `notes/plan.vi.md` §4.
   - Ảnh CUB trùng ImageNet, tập pretrain của DINO (không nhãn): trang của bộ dữ liệu (Caltech) có cảnh báo; một đối chiếu bằng MD5 tìm 23 cặp trùng với tập test, danh sách của nhóm Spatial Transformer Networks có 22 (Guo Pei, 2016). Khi có danh sách, báo cáo kết quả CUB cả có và không có các ảnh này.
   - Sổ mất điểm (`score.ledger_state`) và notebook đang giả định t1 (assert tập test cũ của phiên 1 trùng test S0); bản theo phiên làm sau QD28.
 - Hiện trạng (2026-11-13): thiết kế đã duyệt; chưa có code.
+- Sửa ngày 2026-11-13, sau khi có 15 run mốc C1 (`9f57983`), trước khi có code `lab/sessions.py` và trước mọi số E09.08 trên CUB:
+  - A6 trên CUB t5: 15 run mốc trùng hẳn 15 run `cub_km_evhung_ft` ở cả 46 khoá `metrics.json` (`notes/reproducibility-issues.md` A6, `ca844f6`): cờ tất định không lật kết quả in ra nào trên CUB t5.
+  - Báo cáo phụ thêm balanced M_d (trung bình theo phiên của balanced accuracy lớp mới), chỉ để báo cáo; M_d vẫn là đại lượng chính. Test CUB gần cân (ít nhất 11 ảnh mỗi lớp) nên hai số gần nhau; balanced M_d chặn ảnh hưởng của lớp ít ảnh và cùng kiểu với thước của GC10.
+  - Bản CUB không rò, chi tiết hoá dòng Hệ quả ở trên: (1) thêm `FT_LABELED_IDX` vào `feature_extractor/dino-cub200.py` như `dino-cifar100.py` (hiện chỉ CIFAR có), chỉ mục 25 ảnh mỗi lớp tính qua hoán vị D17 (shard gộp theo thứ tự chuỗi); kiểm hồi quy: không đặt biến thì đặc trưng trùng từng bit bản cũ, đặt biến thì tập ảnh fine-tune trùng tập S0 của bộ nạp; thiết kế trình duyệt trước khi viết code; (2) phase 1 lại r0–r2; (3) 15 chuỗi mặc định trên đặc trưng mới, T, B của CUB tính trên 15 chuỗi này (bộ dùng để quyết định E09.08), số trên bộ có rò chỉ báo cáo; (4) một chuỗi đủ S0–S5 của bàn mổ so `main.py` theo tiêu chí C1; (5) ghi cỡ rò ở cấp phiên (S0_All, M_d, S5_S0test, số ảnh giữ), vì ảnh rò chính là ảnh cũ trong pool của mọi phiên (D16).
+  - Trên CUB, mặc định của bước 09 vẫn là k-means upstream; `09a` + `09b` trên CUB và cách chọn K' hoãn tới sau kết quả E09.08 trên GC10. Lý do [suy luận]: gần nửa pool CUB là ảnh cũ và bộ lọc giữ gần hết; `09b` gộp mọi cụm con về cụm mới nên không đánh vào lỗi này, còn thành phần cũ của E09.08 thì có. Nếu sau đó vẫn làm, K' chốt bằng quy tắc không dùng nhãn trước khi chạy (tỉ lệ K'/K = 4, hoặc số ảnh mỗi cụm con như GC10); không chọn K' bằng tầng 1 trên chính các phiên sẽ đo.
