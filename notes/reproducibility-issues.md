@@ -124,6 +124,11 @@ The GPU driver also changed in between: 616.92 on 2026-10-05, 617.42 on 2026-10-
 `main.py` does not set the flag, so its runs repeat only up to this noise. `lab/replay.py` v2 sets it
 (QD21); its check against `main.py` runs (QD21/C1) compares the parameters within 1e-6 of their largest value.
 
+Measured again on 2026-11-13, CUB-200 t5, with `main.py` (QD28 C1): the 15 runs `cub_km_evhung_det_ft`
+(flag set, commit `9f57983`) and the 15 runs `cub_km_evhung_ft` (flag not set, commit `338f042`) with the
+same FT seed and seed have the same `metrics.json` at all 46 keys, to the bit, in 15/15 pairs. Only printed
+results are compared: `main.py` does not save the parameters, so the 1e-7 noise above is not measured on CUB.
+
 ---
 
 # Part B — Patches
