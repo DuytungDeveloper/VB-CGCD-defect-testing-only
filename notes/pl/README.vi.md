@@ -248,3 +248,51 @@ QD01–QD15 (các dòng cũ) ở `notes/plan.vi.md` §4.
   - GC10 chỉ có 5 lớp mới và balanced novel nhiễu (QD25), nên kết luận về phương pháp cần thêm một dataset chuẩn.
   - E06.03 đổi dấu giữa các bộ đặc trưng (GC10 và NEU tăng, CIFAR-100 giảm), nên độ lớn của một cải tiến phụ thuộc bộ đặc trưng; vì vậy không so số giữa hai máy.
 - Hệ quả: danh mục `experiments.vi.md` thêm E06.04, E09.08 khi tiền đăng ký; `lab/README.vi.md` §3 thêm `06b`, `09e` khi có notebook; `notes/code-changes.vi.md` ghi sửa `no_grad` của `dino-cub200.py`; doc chiến lược trong Project cập nhật mục 5 theo QD này.
+
+### QD28 — Bàn mổ nhiều phiên (giao thức t5) cho CUB-200 và CIFAR-100; đại lượng quyết định trên CUB; bản CUB không rò (2026-11-13)
+
+- Nội dung:
+  - File mới `lab/sessions.py`. Không sửa `chain`, `new_state` và các hàm bước của `lab/replay.py`, nên 15 ảnh chụp gốc GC10 không cũ. Phạm vi: t5 (CUB-200: 100 lớp cơ sở + 5 phiên × 20 lớp; CIFAR-100: 50 + 5 × 10); t1 là trường hợp riêng một phiên, chỉ dùng cho C0. Giao thức như QD21 (k-means, `--hungarian_on eval`, S0 có nhãn, mngmm, SVI); riêng `load_mode` nhận t1 hoặc t5, qua `new_state_sessions` của file mới.
+  - Bước. Phần S0 chạy một lần: 04 nạp mọi phiên (thay `v04a_cub_t5`), 05 fit PCA trên S0 rồi chiếu mọi tập của mọi phiên, 06–08 mặc định. Mỗi phiên i = 1…5 chạy nguyên các hàm `s09`–`s14` trên một khung nhìn phiên (session view):
+    - `offset` = base + (i−1)·increment; `pool_x`, `z_pool`, `true_pool_y` lấy từ pool của phiên i; `test1_x`, `z_test1`, `true_test1_y` từ test của các lớp mới ở phiên i; `test_old_x`, `test_all_x` (và `true_*`) từ test của mọi lớp trước phiên i và của mọi lớp tới phiên i; `test0_x`, `true_test0_y` là test S0, không đổi.
+    - `params0` = mô hình sau phiên i−1 (S0 khi i = 1).
+    - `lut` của phiên i = `lut` của phiên i−1 cộng ánh xạ của phiên i, như `to_cluster` của `main.py`; chỉ bước 10 có hàm bọc làm việc này.
+    - Khung nhìn thêm khoá `session` và `seen` cho biến thể cần biết đang ở phiên nào.
+  - Ảnh chụp: `snap/04.pkl` … `08.pkl`, rồi `S<i>_<NN>.pkl` với i = 1–5, NN = 09–14. Mảng có trục đầu là khe lớp chỉ lưu các khe khác mô hình trước đó; các khe chưa gặp ở S0 lưu dạng khởi tạo. Lý do: một `class_covs` đủ 200 khe × 384² ở float32 nặng 118 MB, 20 khe nặng 11.8 MB; lưu đủ khoảng 1.3 GB mỗi chuỗi CUB, lưu phần khác khoảng 0.25 GB (tính tay).
+  - Chuỗi băm theo (phiên, bước): h(S_i.k) = băm(h(bước trước), mã phiên, code của bước k như QD21). Biến thể ở bước k áp cho mọi phiên, nên làm cũ ảnh chụp từ S1.k trở đi; biến thể chỉ cho một phiên viết `--at S<i>.<NN>=...`.
+  - RNG chung: đặt lại ở lối vào 04, 05 và S_i.09 của mọi phiên. [suy luận từ code] Phân hoạch ở 09 chỉ phụ thuộc đặc trưng gốc của pool và RNG toàn cục; SVI chỉ dùng RNG của JAX và 10–14 không rút RNG toàn cục, nên nhiễu GPU (A6) và biến thể ở 06–08, 11–14 không đổi phân hoạch của các phiên sau.
+  - GPU chạy chế độ tất định như QD21. Run qua `exp.py`; console log cùng định dạng `main.py`; `metrics.json` do `scripts/extract_vbcgcd.py` tạo (bảng S0–S5, M_d, M_f proxy).
+  - Lệnh: `run`, `check` (C1), `check-gc10` (C0), `check-resume` (C2), `check-crn` (C3), `check-hash` (C4); `load`, `rerun` cho notebook. Tag chuỗi mặc định: `cub_chain_ft_r<r>_s<N>` (CIFAR-100: `c100_chain_...`).
+  - Phép kiểm, phải qua trước khi dùng số:
+    - C0: chạy với t1 trên 15 ảnh chụp `gc10_v2_ft_r<r>_s<N>` cho lại mọi khoá của mọi ảnh chụp (kết quả rời rạc trùng hẳn; số thực lệch không quá 1e-6 × max|giá trị|).
+    - C1: 15 chuỗi CUB khớp 15 run mốc ở mọi phiên: `metrics.json` trùng (bảng S0–S5, tỉ lệ cỡ cụm, số ảnh giữ, bước dừng F/S, M_d, M_f); `pi_test`, bảng chéo và ma trận nhầm lẫn của từng phiên trùng hẳn; inertia lệch tương đối dưới 1e-6; tham số của mỗi phiên lệch không quá 1e-6 × max|giá trị|.
+    - C2: trên `cub_chain_ft_r0_s0`, chạy lại từng bước (35 bước, mỗi bước một tiến trình mới) ra đúng ảnh chụp; thêm một lần chạy tiếp từ S3.09 tới hết.
+    - C3: biến thể giả ở 05 rút thêm RNG; phân hoạch của cả 5 phiên không đổi. Đối chứng: RNG bị dịch phải đổi phân hoạch, không đổi thì báo INCOMPLETE.
+    - C4: sửa giả bước k của phiên i (trong bộ nhớ) chỉ đổi mã băm từ S_i.k trở đi; sửa chú thích không đổi mã băm nào.
+    - C5: trong chuỗi mặc định, khe của các lớp có trước phiên i giữ nguyên từng bit qua phiên i, và khe chưa gặp ở S0 giữ nguyên khởi tạo. [suy luận] Nhãn của lượt F và S chỉ trỏ vào khe của phiên i, nên gradient ở khe khác bằng 0, và Adam với gradient 0 cho bước cập nhật bằng 0.
+  - Mốc của C1: 15 run mới bằng `main.py` ở chế độ tất định (`XLA_FLAGS=--xla_gpu_deterministic_ops=true`), cấu hình như lưới `cub_km_evhung_ft` cộng `--print_cluster_xtab --print_confusion`; tag `cub_km_evhung_det_ft_r<r>_s<N>`.
+    - Lý do: 15 run `cub_km_evhung_ft` chạy chế độ thường và không in bảng chéo, inertia, ma trận nhầm lẫn; qua nhiều phiên, nhiễu A6 còn lan qua bước dừng sang mô hình khởi đầu của phiên sau.
+    - Mốc và bàn mổ cùng chạy chế độ tất định, nên mọi lệch ở C1 phải chẩn đoán và ghi nguyên nhân trước khi dùng số. Lệch ở 04, 05, 09, 10 của phiên nào là lỗi bàn mổ (như quy tắc của QD21, sửa ngày 2026-10-20).
+    - So `metrics.json` của 15 mốc mới với 15 run `cub_km_evhung_ft` cho biết A6 lật bao nhiêu kết quả trên CUB t5; ghi lại, không dùng để quyết định.
+  - Đại lượng quyết định trên CUB, chốt trước E09.08 (như QD25 cho GC10):
+    - Chính: M_d, trung bình độ chính xác lớp mới của 5 phiên, cụm đặt tên bằng Hungarian lúc chấm.
+    - Ràng buộc: S5_S0test (độ chính xác trên test S0 cuối phiên 5; M_f proxy = S0_S0test − S5_S0test) không giảm quá B.
+    - Báo cáo phụ: S5_All (chỉ số của paper), S5_Old, S<i>_New của từng phiên, M_f.
+    - T, B = SD gộp giữa các seed trong mỗi FT seed của 15 chuỗi CUB, tính bằng code sau khi C1 đạt (như `14-eval` §3.3). Đơn vị: FT seed (n = 3).
+  - CIFAR-100: chỉ khai báo preset (50 + 5 × 10, `num_labeled` 20000, 400 ảnh mới mỗi lớp mỗi phiên, 25 ảnh đã biết mỗi lớp); C1 chạy trên server khi có đặc trưng và mốc.
+- Thay cho: runner dựng phiên đầu bên trong `tier2_e0604` (phương án P1, 2026-11-11), cho mọi việc CUB về sau. Không thay QD21: GC10 vẫn dùng `lab/replay.py`.
+- Lý do:
+  - E09.08 trên CUB cần chuỗi nhiều phiên; so cặp với RNG chung bỏ nhiễu k-means khỏi hiệu số (Law & Kelton). Trên 15 run `cub_km_evhung_ft`, SD gộp giữa các seed là 1.20 điểm với M_d và 2.5 điểm với S1_New (lệnh chỉ đọc ngày 2026-11-13; số chính thức tính lại sau C1).
+  - Cùng hàm bước và cùng `lab/variants.py` cho GC10 và CUB, nên biến thể viết một lần; C0 chứng minh một phiên của bộ chạy mới tương đương bộ chạy cũ.
+  - Bộ chạy riêng không làm cũ 15 ảnh chụp gốc GC10.
+  - Đại lượng trên CUB chốt trước khi có kết quả E09.08, để không chọn đại lượng sau khi thấy số.
+- Hệ quả:
+  - `lab/README.vi.md` §5 thêm `lab/sessions.py`; `notes/code-changes.vi.md` ghi file mới và kết quả C0–C5.
+  - Bảng chính giữ benchmark t5 của paper. Kết luận trên CUB ghi "đo dưới giao thức upstream": bàn mổ giữ D9 (ảnh cũ trong pool đã được fine-tune thấy kèm nhãn), D16 (ảnh cũ lặp lại qua các phiên: mỗi lớp còn 4–5 ảnh sau 25 ảnh có nhãn (tính tay), trong khi giao thức đòi 5 ảnh mỗi phiên), và cấu hình `km_evhung`, khác cấu hình của paper (GMM, Hungarian lúc train, D13). Số đặt cạnh bảng của paper do server chạy bằng `main.py`.
+  - Bản CUB không rò làm trước khi kết luận E09.08 trên CUB: fine-tune đúng 2500 ảnh S0 theo cách `FT_LABELED_IDX` của CIFAR-100, kèm assert tập ảnh fine-tune trùng tập S0 của bộ nạp; báo cáo cả hai bộ đặc trưng.
+  - D16: E09.08 giữ thành phần cũ cố định làm mặc định; không cập nhật lớp cũ từ ảnh trong pool, trừ khi xử lý được việc cùng một ảnh lặp lại qua các phiên. Giao thức không lặp ảnh là một benchmark khác, chỉ làm nếu cần, ở phụ lục.
+  - D22 trên CUB (việc "đếm trước khi đọc t5" của QD27): đếm ngày 2026-11-13 trên `cub_ft_up_r0` bằng lệnh chỉ đọc: 5994 ảnh train, mỗi lớp 29–30 ảnh, không lớp nào dưới 25 ảnh, nên nhãn dựng theo số đếm cố định không lệch; 6 lớp có 29 ảnh, nếu là lớp cơ sở thì mỗi phiên chỉ có 4 ảnh đã biết (tính tay).
+  - GC10 không dính D9: phase 1 (`feature_extractor/dino-neudet.py` đọc `splits/gc10_split.json`) chỉ fine-tune trên `n_use` ảnh đầu của mỗi lớp cơ sở, đúng tập S0 có nhãn.
+  - Ảnh CUB trùng ImageNet, tập pretrain của DINO (không nhãn): trang của bộ dữ liệu (Caltech) có cảnh báo; một đối chiếu bằng MD5 tìm 23 cặp trùng với tập test, danh sách của nhóm Spatial Transformer Networks có 22 (Guo Pei, 2016). Khi có danh sách, báo cáo kết quả CUB cả có và không có các ảnh này.
+  - Sổ mất điểm (`score.ledger_state`) và notebook đang giả định t1 (assert tập test cũ của phiên 1 trùng test S0); bản theo phiên làm sau QD28.
+- Hiện trạng (2026-11-13): thiết kế đã duyệt; chưa có code.
