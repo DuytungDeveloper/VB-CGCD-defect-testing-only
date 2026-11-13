@@ -28,7 +28,10 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.05: phân cụm thừa trên cấu hình paper (`ft`) (2026-10-07; xong, SỐNG) — mục E09.05 dưới đây
 - E09.06: phân cụm thừa K' = 20 rồi gộp về 5 cụm bằng Bayes factor NIW, biến thể `09a` + `09b`, GC10 (2026-11-12 → 13; xong: CHẤP NHẬN, Δ = 0.064, Δ_Old = −0.53 điểm; rolled_pit vẫn mất cụm) — mục E09.06 dưới đây
 - E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04 → 11; xong: không đủ lớn, Δ = 0.0148 < T = 0.0273; giữ `n_init` 10) — mục E09.07 dưới đây
+- E09.08: VB-GMM cho phiên không nhãn, biến thể `09e-vbgmm` (trải 09–13): trách nhiệm mềm thay lượt F, bộ lọc (D12), lượt S và luật dừng (D14); khởi tạo từ `09a` + `09b`, A3 của E06.04 là mô hình lớp cũ (đề xuất 2026-11-05; chưa tiền đăng ký) — QD27, QD28; Kết quả của E06.04, E09.06
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
+- E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
+- E14.01: đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
 
@@ -165,8 +168,9 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - Cách chạy: biến thể `06b-vb-s0` (trải 06–08) trong `lab/variants.py`; runner trong `lab/score.py`; mỗi chuỗi một run qua `exp.py`, ghi mọi số vào `metrics.json`; code commit trước khi chạy.
 - Tag: `gc10_e06_04_r<r>_s<N>` và `cub_e06_04_r<r>_s<N>`, r = 0–2, N = 0–4.
 
-### Kết quả (2026-11-12; run `gc10_e06_04_r0_s0`–`cub_e06_04_r2_s4`, code `60bbef6`, commit run `7b97b22`; số in từ `python lab/score.py e0604-summary`)
+### Kết quả (2026-11-12; run `gc10_e06_04_r0_s0`–`cub_e06_04_r2_s4`, code `a5b4ff4`, commit run `7b97b22`; số in từ `python lab/score.py e0604-summary`)
 
+- Sửa ngày 2026-11-13: tiêu đề mục này từng ghi code `60bbef6`; repo không có commit đó, còn `config.json` của cả 30 run ghi `a5b4ff4`, cây sạch, mã thoát 0 (lệnh chỉ đọc 2026-11-13).
 - Toàn vẹn: `checks_ok` = 1 ở 30/30 run; C2 đạt ở r0 s0 của cả hai dataset (GC10: 1.5e-15 và 8.4e-16; CUB: 4.9e-14 và 4.2e-16); C1 trùng mốc (GC10 206/241, CUB 2513/2929 ở r0 s0); C3 không có nhãn khác.
 - SD gộp của độ chính xác A0 giữa các seed: 0.448 điểm (GC10), 0.179 điểm (CUB); đúng câu "nhỏ hơn 0.5 điểm" của tiền đăng ký.
 - Quyết định:
