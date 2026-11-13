@@ -52,6 +52,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 - Q07.03 [mở] Tắt dừng sớm thì khám phá lớp mới có khá hơn không? Dừng sớm không kích hoạt trên NEU, kích hoạt giữa chừng trên GC10 fine-tune (D14). Biến thể dự kiến: `07a-no-early-stop`.
   - 2026-11-05 (`13-gauss-s` §3.2, `a4b9f7e`; nhìn trước một phần, một ảnh chụp): ở r0 s4, lượt F (không lọc, đủ 1000 bước) so với chính nó ở bước 525: balanced novel +2.0 điểm, S1_New +2.3, S1_Old −3.7 (9 ảnh test cũ). Tiền đăng ký `07a-no-early-stop` phải ghi đã thấy các số này.
+- Q07.04 [mở] Lớp cũ mất thêm ở nhánh `09a` + `09b` là do lượt S dừng muộn hơn, hay do chính phân hoạch? Ở r0, r1 hai nhánh giữ số ảnh test cũ như nhau khi cùng bước dừng; ở r2 bước dừng chỉ giải thích khoảng một nửa và hai nhánh không có vùng bước dừng chung. Cách kiểm: phản thực tế, chạy lượt S của phân hoạch `09a` + `09b` nhưng dừng ở bước của nhánh mặc định, trên một mẫu con các lần rút; đo cả phần lớp mới mất khi dời bước dừng. Nguồn: E09.06, Ghi chú 2026-11-14; `09b-overcluster-merge` (`cc4212c`) §4.
 
 ### 08 Bộ phân lớp
 
@@ -69,11 +70,17 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 - Q09.01 [mở] Khoảng cách S1_New so với paper trên CIFAR-100. Manh mối: S1_New gắn với độ cân bằng cụm ở S1 (note LOG `c100_km_evhung_base400_s4`, D9).
 - Q09.02 [mở] Ước lượng k trên GC10 (silhouette thất bại): giao thức không biết trước k.
+  - 2026-11-14 (`09b-overcluster-merge` (`cc4212c`) §5.3): trong phép gộp của `09b`, dấu của log Bayes factor tách khá rõ bước gộp cùng lớp chủ khỏi bước gộp khác lớp chủ. [SUY LUẬN] Đây là một ứng viên ước lượng số cụm không cần biết k; xem Q09.14.
 - Q09.03 [mở] New có thấp hơn khi `cluster_max_min` cao không?
 - Q09.04 [mở] Gán nhãn bằng optimal transport với biên nới lỏng có thắng k-means không?
 - Q09.05 [mở] Nhãn thật tối thiểu có được dùng cho lớp mới (như setting Active GCD), hay chỉ cho lớp cơ sở? (QD16)
 - Q09.06 [mở] Ở bước 09, phương pháp nào cho nhãn giả tốt hơn k-means theo bộ đo tầng 1 (ứng viên: GMM trên PCA-64 hoặc covariance chéo, phân cụm phổ trên đồ thị kNN, HDBSCAN), và thứ hạng có giữ ở tầng 2 không? Siêu tham số không chỉnh trên pool có nhãn thật của lớp mới. Nguồn: QD18.
   - 2026-11-01: E03.02: probe k-NN (k = 20, cosine) gần như không đọc được lớp hiếm (crease 0/11 ở cả 4 bộ, rolled_pit 1–2/6) dù probe tuyến tính đọc được. [SUY LUẬN] Phương pháp dựa trên láng giềng gần (phân cụm phổ trên kNN, HDBSCAN) cần được kiểm riêng cho lớp hiếm trước khi xếp hạng.
+- Q09.14 [mở] Dừng phép gộp của `09b` khi log Bayes factor đổi dấu, thay vì ép về k = 5, có giữ được cụm của lớp hiếm (rolled_pit, crease) mà không trả giá quá nhiều ở silk không? Chấm bằng Hungarian một–một như QD15, cụm thừa tính là sai. Điểm 0 phụ thuộc tiên nghiệm (off) và ngưỡng được nghĩ ra sau khi đã xem nhãn pool của GC10, nên phải tiền đăng ký trước khi tính; inclusion gộp vào silk với log Bayes factor dương nên không được cứu bằng cách này. Giao thức: k = 5 vẫn là dòng chính, nhánh k tự do báo cáo riêng. Nguồn: E09.06, Ghi chú 2026-11-14; `09b-overcluster-merge` (`cc4212c`) §5.
+
+### 11 Lượt F
+
+- Q11.01 [mở] Vì sao các bước 11–14 lấy của nhánh `09a` + `09b` nhiều điểm hơn của nhánh mặc định, ở cả ba FT seed? Giả thuyết [SUY LUẬN]: cụm sau gộp là hợp của nhiều cụm con, một Gaussian mỗi cụm ở lượt F và lượt S khớp kém. Cần cột 11 của sổ mất điểm cho nhánh `09a` + `09b` (chưa có trong `metrics.json` của E09.06, phải chạy lại SVI) để tách lượt F khỏi bộ lọc và lượt S. Ảnh hưởng: E09.08 có nên giữ nhiều thành phần cho mỗi lớp không. Nguồn: E09.06, Ghi chú 2026-11-14; `09b-overcluster-merge` (`cc4212c`) §3.1.
 
 ### 12 Bộ lọc cũ/mới
 
@@ -200,3 +207,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-05: `14-eval` (`58a698e`): đóng Q14.04; ghi chú Q08.02.
 - 2026-11-11: E09.07 (`0e630ad`) đóng Q09.12.
 - 2026-11-13: đóng Q05.01 (cấu hình upstream tái lập số CUB của paper, `50d72f3`; D21 measured); thêm Q06.06 (cơ chế sụp của NEU d384).
+- 2026-11-14: `09b-overcluster-merge` (`cc4212c`), B13: thêm Q07.04 (bước dừng và lớp cũ), Q09.14 (dừng gộp theo dấu của log Bayes factor), Q11.01 (bước 11–14 trên cụm đã gộp); ghi chú Q09.02.
