@@ -458,6 +458,21 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Lưu ý về các luật báo cáo: `bf` tính trên PCA-64 (`z_pool`), `ward` tính trên đặc trưng thô 768 chiều (`merge_costs`). So sánh Ward với Bayes factor ở mục Đánh đổi vì vậy trộn luật gộp với không gian.
 - Bước tiếp (duyệt 2026-11-14): (1) tiền đăng ký thí nghiệm dừng gộp ở log Bayes factor = 0, chấm Hungarian một–một như QD15; (2) phản thực tế bước dừng trên mẫu con các lần rút; (3) viết lại thiết kế E09.08 theo hai kết quả đó.
 
+### Tiền đăng ký lặp lại trên FT seed mới (2026-11-14; viết trước khi có bất kỳ đặc trưng hay run nào của r3, r4)
+
+- Câu hỏi: lợi của `09a` + `09b` có lặp lại trên FT seed chưa từng dùng không? Lý do: với n = 3 FT seed, khoảng tin cậy 95% của Δ chứa 0 (Ghi chú 2026-11-14, §1.3), và Δ_r lệch mạnh theo FT seed.
+- Dữ liệu: hai FT seed mới r3, r4 (`FT_SEED` 3, 4), phase 1 bằng đúng lệnh của r0–r2 (`run_phase1_neu.sh --split splits/gc10_split.json --resize full`, 10 epoch); mỗi FT seed 5 chuỗi mặc định (seed 0–4).
+- Cách chạy: không đổi code. Mỗi chuỗi: `replay.py run`, `score.py 09` (mốc của cổng C2), `score.py e0604` (mốc `off_lc` của cổng C5), rồi `score.py e0906` với lần rút 0–10 và 11–20. Luật RNG của lần rút, các cổng C1–C5, thước đo và nhánh so sánh giữ nguyên như phần Tiền đăng ký ở trên. T = 0.0273 và B = 0.615 cố định (QD25, sửa 2026-11-13).
+- Đại lượng: Δ_r của r3 và r4 (trung bình 5 ảnh chụp × 21 lần rút của hiệu balanced novel ở cột 14); Δ_Old_r tương ứng.
+- Quy tắc, chốt trước:
+  - LẶP LẠI ĐƯỢC: Δ_r > 0 ở cả r3 và r4, và trung bình hai Δ_r ≥ T;
+  - KHÔNG LẶP LẠI: trung bình hai Δ_r ≤ 0;
+  - KHÔNG RÕ: các trường hợp còn lại.
+- Báo cáo kèm, không dùng để quyết định: Δ gộp trên 5 FT seed với khoảng tin cậy 95% (Student-t, 4 bậc tự do); Δ_Old gộp so với −B; số cặp mà rolled_pit, crease có cụm riêng sau gộp; hiệu ở tầng 1 và cột 10.
+- Hệ quả: nếu KHÔNG LẶP LẠI, xét lại việc lấy `09a` + `09b` làm mốc quyết định của dòng PL trước khi tiền đăng ký E09.08. Các trường hợp khác: giữ mốc, ghi khoảng tin cậy mới.
+- Dự đoán [SUY LUẬN, xác suất chủ quan khoảng 60%]: LẶP LẠI ĐƯỢC; rolled_pit có cụm riêng sau gộp ở không quá 2/105 cặp mỗi FT seed.
+- Giới hạn: `e0906_summary` hiện chỉ đọc r0–r2; bảng của r3, r4 tính từ `metrics.json` sau khi mọi run xong (không sửa code khi loop đang chạy). r3, r4 sau thí nghiệm này không còn là FT seed chưa dùng: T2 phải lấy FT seed mới.
+
 ## E09.07 — Nhiều lần khởi tạo k-means, giữ inertia thấp nhất (Q09.12, QD24, QD26)
 
 ### Tiền đăng ký, phần 1 (2026-11-04; commit: 1ce3233)
