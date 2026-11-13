@@ -37,8 +37,6 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 ### 05 PCA
 
-- Q05.01 [mở] D21: công thức CUB của upstream có n = 25 < d = 384; số CUB của paper đến từ cấu hình nào?
-  - 2026-11-13: dự đoán sụp của D21 sai. Lưới `cub_base_ft` (15 run, `50d72f3`, agg `c251cd7`) chạy đủ, không run nào sụp, dù dùng cùng cờ optimizer và luật dừng với 5 run NEU d384 đã sụp (tag `archive-2026-10-02`); chi tiết ở dòng measured 2026-11-13 của D21. Câu hỏi còn mở ở dạng mới: vì sao NEU sụp còn CUB thì không, dù n/d của CUB thấp hơn. Chưa có cơ chế đã kiểm.
 - Q05.02 [mở] Phép chiếu học từ nhãn lớp cũ (LDA, hoặc làm trắng trong lớp) có tách được các lớp chồng lấn không? Đây là hướng sửa biểu diễn nếu giả thuyết chồng lấn của E09.03 đúng. Nguồn: CT2.
   - 2026-11-04: không gian con PCA của S0 giữ 0.84–0.94 khoảng cách giữa các tâm lớp mới, thấp nhất ở ba cặp của crease, rolled_pit, waist_folding (0.842–0.857), và giữ 0.53–0.69 phương sai trong lớp (`05-pca` §4.1, đo Euclid). [SUY LUẬN] Một phép chiếu học từ lớp cũ có thể còn ít thấy hướng phân biệt ba lớp này hơn PCA; phép kiểm phải đo riêng ba cặp này.
 
@@ -48,6 +46,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q06.02 [mở] S0_All tăng theo số bước SVI thế nào? Một phần đã thấy ở E06.02.
 - Q06.03 [mở] Khi n ≈ d (CIFAR: 400 so với 384), điều chuẩn mạnh hơn (Σ gộp, tức LDA) có cứu được ước lượng dạng đóng không? Chọn trên CIFAR, xác nhận trên GC10 một lần. Nguồn: E06.03.
 - Q06.04 [tạm dừng] Hiệp phương sai low-rank/sparse: chỉ chạm giới hạn ước lượng Σ khi ít mẫu, không chạm lỗi phân cụm.
+- Q06.06 [mở] D21: vì sao NEU d384 (n = 192 < d = 384, tính tay) sụp ở S0 còn CUB (n = 25 < d = 384) thì không, khi cùng cờ optimizer và luật dừng? [SUY LUẬN] Giả thuyết: n < d làm MLE của Σ suy biến (điều kiện cần); số ảnh cùng lớp mỗi batch quyết định gradient của Σ có cùng hướng qua các bước hay không, tức Adam có kịp đẩy Σ tới suy biến trong 1000 bước không (mỗi batch 128: NEU khoảng 42.7 ảnh mỗi lớp, CUB khoảng 1.28, tính tay). Phép thử, chưa duyệt, NEU ngoài phạm vi QD27: S0 của NEU với `--batch-size 8`, và với `--num_dim 128`; giả thuyết đúng thì cả hai hết sụp. Nguồn: Q05.01, D21.
 
 ### 07 Dừng sớm
 
@@ -104,6 +103,9 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 ### 05 PCA
 
+- Q05.01 [xong] D21: công thức CUB của upstream có n = 25 < d = 384; số CUB của paper đến từ cấu hình nào?
+  - 2026-11-13: dự đoán sụp của D21 sai. Lưới `cub_base_ft` (15 run, `50d72f3`, agg `c251cd7`) chạy đủ, không run nào sụp, dù dùng cùng cờ optimizer và luật dừng với 5 run NEU d384 đã sụp (tag `archive-2026-10-02`); chi tiết ở dòng measured 2026-11-13 của D21. Câu hỏi còn mở ở dạng mới: vì sao NEU sụp còn CUB thì không, dù n/d của CUB thấp hơn. Chưa có cơ chế đã kiểm.
+  - Kết luận (2026-11-13): số CUB của paper đến từ cấu hình của code upstream: lưới `cub_base_ft` tái lập S0 và S5 của paper mà không sụp dù n < d (`50d72f3`, agg `c251cd7`; D21, dòng measured 2026-11-13). Câu tiếp: Q06.06.
 - Q05.03 [xong] Các thành phần PCA đầu của S0 mã hoá camera (và cuộn thép) hay lớp lỗi? Đo η² (tỉ số tương quan, correlation ratio) của từng thành phần theo camera và theo lớp. Nếu camera chiếm các thành phần đầu, Gaussian ở 06–14 có thể gom ảnh theo camera; phân cụm ở 09 chạy trên đặc trưng thô nên cần đo riêng. E03.01 đã loại chuẩn hoá camera bằng trừ trung bình, nên câu này hỏi tín hiệu camera nằm ở đâu, không thử lại cách sửa đó. Làm ở `05a-camera` (QD24). Nguồn: `00-data-gc10` §2.2–2.4 (Cramér's V giữa lớp và camera 0.31).
   - Kết luận (2026-11-04): ở S0, các thành phần đầu mang lớp; với lớp mới, camera mang nhiều phương sai hơn lớp ở cả PCA-64 và đặc trưng thô, ở cả 3 FT seed; trong silk_spot, cuộn thép và camera cùng giải thích phần lớn phương sai (`05a-camera`, `75e1bf9`). Câu tiếp: Q09.13.
 
@@ -197,3 +199,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-05: `13-gauss-s` (`a4b9f7e`): đóng Q07.01; ghi chú Q07.03, Q14.04.
 - 2026-11-05: `14-eval` (`58a698e`): đóng Q14.04; ghi chú Q08.02.
 - 2026-11-11: E09.07 (`0e630ad`) đóng Q09.12.
+- 2026-11-13: đóng Q05.01 (cấu hình upstream tái lập số CUB của paper, `50d72f3`; D21 measured); thêm Q06.06 (cơ chế sụp của NEU d384).
