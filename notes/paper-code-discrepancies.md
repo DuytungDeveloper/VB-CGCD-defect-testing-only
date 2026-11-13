@@ -390,6 +390,13 @@ impact: on small datasets num_dim must stay below the per-class sample count, wi
         dataloaders/neudet.py asserts num_dim < 192. [INFERENCE] upstream run.sh runs CUB-200 with
         25 labeled images per class and the default num_dim 384 (n << d); the same collapse is
         expected, so the paper's CUB numbers probably come from another configuration. Not verified.
+measured 2026-11-13: the [INFERENCE] under impact is wrong. Upstream CUB-200 t5 (25 labeled images
+        per base class, num_dim 384) does not collapse: all 15 runs of cub_base_ft (FT seeds r0-r2 x
+        seeds 0-4, commit 50d72f3, agg c251cd7) exit 0; FT-seed means S0_All 85.41-86.01, S5_All
+        65.74-66.39 (paper Table 2: S0 85.72, S5 66.44). The NEU runs above (at tag archive-2026-10-02)
+        used the same optimizer and early-stop flags (--n_epochs 1000 --lr 4e-6 --batch-size 128
+        --with_early_stop --use_correct_scaling_factor --scaling-factor 1.2 --early_stop_ratio 0),
+        so n <= d alone does not cause the collapse. Mechanism not established (Q05.01).
 
 ## D22. Loader builds labels from a fixed count, not from the rows taken
 code:   utils/dataloader.py StrictPerClassIncrementalLoader._train_data_mix: x = rows[:labeled_per_class]
