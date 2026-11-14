@@ -31,6 +31,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.08: VB-GMM cho phiên không nhãn, biến thể `09e-vbgmm` (trải 09–13): trách nhiệm mềm thay lượt F, bộ lọc (D12), lượt S và luật dừng (D14); khởi tạo từ `09a` + `09b`, A3 của E06.04 là mô hình lớp cũ (đề xuất 2026-11-05; chưa tiền đăng ký) — QD27, QD28; Kết quả của E06.04, E09.06
 - E09.09: dừng phép gộp của `09b` khi log Bayes factor lớn nhất không còn dương (k tự do, không dưới 5), biến thể `09f-merge-stop`, tầng 1, GC10 (2026-11-14; xong: KHÔNG RÕ, Δ ≈ 0; rolled_pit giữ được cụm con ở 98% số lần; rất nhạy với off) — Q09.14; mục E09.09 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
+- E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (tiền đăng ký 2026-11-14; chưa chạy) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
 - E14.01: đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
 
@@ -651,3 +652,58 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Cơ chế của B13 được xác nhận trên dữ liệu sạch: khi rolled_pit có cụm con riêng ở K' = 20, phép gộp không bị ép giữ được nó ở 108/110 lần. Nút thắt của rolled_pit nay là bước K' = 20 (chỉ 47/105 và 63/105 lần rút có cụm con riêng) và ràng buộc k = 5, không phải luật gộp.
 - Lợi ở lớp hiếm bị trả bằng việc tách lớp đông, nhất là inclusion. Với Hungarian một–một, mỗi lớp chỉ được tính một cụm, nên lớp bị tách mất điểm. [SUY LUẬN] Nhánh k tự do chỉ có ích nếu có cách gộp nhãn các cụm thừa về 5 lớp mà không dùng nhãn; luật gộp theo Bayes factor không làm được việc đó, vì nó coi các mode của inclusion (và silk) khác nhau hơn crease so với rolled_pit (Ghi chú 2026-11-14 của E09.06, §5.3).
 - Điểm 0 của log Bayes factor không phải điểm dừng tự nhiên: nó dịch theo off. off × 2 cho Δ dương ở cả 5 FT seed, nhưng đó là phát hiện sau khi xem dữ liệu, trên các FT seed đã dùng; muốn kiểm phải tiền đăng ký mới và lấy FT seed chưa dùng (r5 trở đi). [SUY LUẬN] Hướng hợp lý hơn một ngưỡng chỉnh tay là để mô hình học số thành phần (tiên nghiệm Dirichlet trong E09.08).
+
+## E11.01 — Cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b` (Q11.01, Q07.04)
+
+### Tiền đăng ký (2026-11-14; viết trước khi có code và trước mọi run)
+
+- Câu hỏi:
+  - Q11.01: phần điểm mất từ cột 10 tới cột 14 nằm ở lượt F, hay ở bộ lọc và lượt S, trong từng nhánh?
+  - Q07.04: lớp cũ mất thêm ở nhánh `09a` + `09b` là do lượt S dừng muộn hơn, hay do chính phân hoạch?
+  - Nguồn: E09.06, Ghi chú 2026-11-14 (`09b-overcluster-merge` §3.1, §4).
+- Vì sao: câu 3 của thiết kế lại E09.08 (trách nhiệm mềm thay khâu nào của bước 11–13), chiến lược 2026-11-14 §6 (ngoài repo).
+- Loại: phép đo mô tả. r0–r4 đều đã dùng để chọn hoặc lặp lại `09a` + `09b`, nên đây không phải kiểm định xác nhận và không đổi mặc định nào của dòng PL.
+- Dữ liệu: 25 chuỗi `gc10_v2_ft_r<r>_s<N>` (r0–r4, s0–s4), lần rút 0–3 của mỗi chuỗi, cùng luật RNG như E09.06 (lần rút 0 dùng `rng_in`, lần rút k ≥ 1 dùng `RandomState(906000 + 1000 r + 100 N + k)`). Lấy theo chỉ số lần rút, không theo kết quả.
+- Nhánh, trên cùng lần rút:
+  - `def`: phân hoạch của `s09_cluster`, bước 10–14 mặc định;
+  - `var`: phân hoạch `09a` + `09b` (K' = 20, luật `bf`), bước 10–14 mặc định;
+  - `var@def`: phân hoạch và bước 10–12 của `var`; lượt S bị ép dừng ở bước dừng lượt S của `def` trong cùng lần rút; rồi bước 14.
+- Cách ép bước dừng (đọc từ `classifier/mngmm.py`, `run_inference`):
+  - ở vòng lặp s, khi cờ dừng bật và s > n_epochs / 3, mngmm trả về trạng thái trước lần cập nhật gần nhất, tức sau s − 1 lần cập nhật;
+  - thành phần dừng mới thay `calculate_metrics_on_covariances`: trả `dets` như bản gốc (vì `dets` đi vào `svi.update`), cờ bật đúng ở vòng lặp s và tắt ở mọi vòng khác; s = n_epochs nghĩa là không bật cờ;
+  - lượt S dùng `PRNGKey(0)` và lịch học không phụ thuộc `n_epochs`, nên quỹ đạo trùng quỹ đạo tự nhiên cho tới bước s;
+  - nếu bước dừng của `def` không lớn hơn n_epochs / 3 thì lần rút đó không có nhánh `var@def`; ghi số lần như vậy.
+- Đại lượng, mỗi nhánh và mỗi lần rút (balanced novel như QD25, tên cụm như QD15; các cột là cột của sổ mất điểm, `score.ledger_state`):
+  - c10, c11, c14: balanced novel ở cột 10, 11, 14; L_F = c10 − c11; L_S = c11 − c14;
+  - old11, old14: số ảnh test cũ đúng ở cột 11, 14;
+  - bộ lọc (cột 12 của pool): số ảnh lớp mới được giữ và mang đúng tên; số ảnh cũ không bị loại;
+  - stop_F, stop_S.
+  - Theo FT seed: trung bình trên 5 chuỗi × 4 lần rút.
+- Quy tắc, chốt trước:
+  - Q11.01, trên nhánh `var`: LƯỢT F nếu L_F ≥ L_S ở ít nhất 4/5 FT seed; BỘ LỌC VÀ LƯỢT S nếu L_F < L_S ở ít nhất 4/5 FT seed; CẢ HAI trong các trường hợp còn lại. Báo kèm cùng phép đếm cho `def`, và hiệu `var` − `def` của L_F, L_S.
+  - Q07.04: D_old = trung bình trên 5 FT seed của (old14 của `var@def` − old14 của `def`), đơn vị ảnh. BƯỚC DỪNG GIẢI THÍCH nếu |D_old| < 1.48 ảnh; PHÂN HOẠCH CÓ PHẦN nếu |D_old| ≥ 1.48 ảnh. 1.48 ảnh = B (0.615 điểm) trên 241 ảnh test cũ (tính tay). Báo kèm: old14 của `var` − `def` khi dừng tự nhiên; giá của việc dời bước dừng với lớp mới, c14 của `var` − c14 của `var@def`.
+- Hệ quả:
+  - LƯỢT F → trong E09.08, trách nhiệm mềm thay trước hết việc khớp một Gaussian cho mỗi cụm trên cả pool.
+  - BỘ LỌC VÀ LƯỢT S → chạy mở rộng (2) rồi mới chốt câu 3 của E09.08.
+  - CẢ HAI → chạy mở rộng (1).
+  - BƯỚC DỪNG GIẢI THÍCH → E09.08 coi luật dừng và khối xác suất cũ/mới là núm đánh đổi cũ/mới; các nhánh được so ở cùng mức ảnh cũ.
+  - PHÂN HOẠCH CÓ PHẦN → ghi vào thiết kế E09.08 rằng phân hoạch đổi ranh giới cũ/mới ngoài đường bước dừng.
+- Mở rộng, chốt trước, mỗi cái chạy đúng một lần:
+  - (1) nếu Q11.01 ra CẢ HAI: thêm lần rút 4–7, áp lại quy tắc trên 8 lần rút; kết luận đó là cuối.
+  - (2) nếu Q11.01 ra BỘ LỌC VÀ LƯỢT S: thêm nhánh bộ lọc dùng nhãn thật (giữ đúng các ảnh lớp mới của pool; chỉ để phân tích, không thuộc phương pháp), lượt S và bước 14 như thường, cho cả `def` và `var` trên cùng lần rút; tách L_S thành phần do bộ lọc và phần của lượt S.
+- Cổng kiểm:
+  - G1: `def` và `var` trùng các khoá `d<k>_def_*`, `d<k>_var_*` của run E09.06 cùng chuỗi, cùng lần rút, ở bal10, bal14, stop_F, stop_S, S1_Old, old14.
+  - G2: ép nhánh `var` dừng ở chính bước dừng tự nhiên của nó cho lại `params1` trùng từng bit (lần rút 0 của mỗi run).
+  - G3: stop_S của `var@def` bằng stop_S của `def`.
+  - G4: C3 và C4 của E09.06.
+- Code (viết sau tiền đăng ký, mặc định tắt): một thành phần dừng mới trong `lab/variants.py`, chỉ dùng cho lượt S của nhánh `var@def`; không sửa `classifier/mngmm.py` và `lab/replay.py`. Runner `score.py e1101 --from <chuỗi>` qua `exp.py`, 25 run. Bảng quyết định do `score.py e1101-summary` in ra.
+- Chi phí: khoảng 6 giờ máy (tính tay: run `gc10_e09_06_r1_s0` chạy 21 phân hoạch trong 30.1 phút; ở đây 100 lần rút, mỗi lần hai chuỗi 10–14 và một lượt S).
+- Dự đoán của Claude [SUY LUẬN]:
+  - Q11.01: LƯỢT F khoảng 45%, CẢ HAI khoảng 40%, BỘ LỌC VÀ LƯỢT S khoảng 15%. Căn cứ: ở nhánh mặc định, lượt F mất 0.037 / 0.075 / 0.019 và bộ lọc cộng lượt S mất 0.027 / 0.019 / 0.024 trên r0 / r1 / r2 (tính tay từ bảng `14-eval` §4.1 dẫn trong chiến lược 2026-11-05 §1).
+  - Q07.04: BƯỚC DỪNG GIẢI THÍCH khoảng 60%. Căn cứ: ở r0, r1 hai nhánh giữ số ảnh cũ như nhau khi cùng bước dừng; ở r2 còn khoảng −1.1 ảnh không giải thích được (E09.06, Ghi chú 2026-11-14, §4).
+- Giới hạn:
+  - Cột 11 là phản thực tế (bộ phân lớp với Gaussian của lượt F), không phải đầu ra của pipeline.
+  - L_S gộp bộ lọc với lượt S, trừ khi chạy mở rộng (2). Lượt S khởi động lại từ Gaussian của S0, không tiếp từ lượt F (`s13_gauss_s`), nên L_S có thể âm.
+  - Mỗi chuỗi chỉ 4 lần rút. Ngưỡng 4/5 FT seed và 1.48 ảnh là ngưỡng tự đặt.
+  - Chỉ ép một chiều (`var` theo bước dừng của `def`).
+  - Hiệu `var` − `def` của phần mất ở bước 11–14 chỉ là 0.044 / 0.014 / 0.047 trên r0 / r1 / r2 (tính tay từ E09.06, Ghi chú 2026-11-14), cùng cỡ với T = 0.0273; vì vậy quy tắc dùng mức của từng nhánh, không dùng hiệu.
