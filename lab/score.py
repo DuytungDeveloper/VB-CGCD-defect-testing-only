@@ -11,6 +11,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e0604-summary                                  E06.04: decision table from the 30 runs
   python lab/score.py e0906 --from <v2 run> [--k-first 0 --k-last 10]   E09.06, one snapshot (exp.py)
   python lab/score.py e0906-summary                                  E09.06: decision table from the 15 runs
+  python lab/score.py e1101 --from <v2 run> --k-first 0 --k-last 3     E11.01, one snapshot (exp.py)
+  python lab/score.py e1101-summary                                  E11.01: decision table from the 25 runs
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -23,7 +25,7 @@ for p in (str(ROOT), str(ROOT / "lab")):
     if p not in sys.path:
         sys.path.insert(0, p)
 from replay import load, snapshots, _fresh, _component, _jnp, chain, _check_09, _run_dir, s09_cluster   # noqa: E402
-from variants import v09a_overcluster, v09b_merge, merge_prior, multi_init, cluster_of, merged_ids   # noqa: E402
+from variants import v09a_overcluster, v09b_merge, merge_prior, multi_init, cluster_of, merged_ids, stop_at_step   # noqa: E402
 from niw import log_evidence                         # noqa: E402
 from landscape import canon                         # noqa: E402
 
@@ -1116,9 +1118,188 @@ def e0909_summary(T=0.0273):
               f"/{den}; bf5 reference 0.015) -> {dec}")
 
 
+# ---- E11.01: column 11 and the stop-step counterfactual on 09a + 09b (pre-registered 03e7f86) ----
+
+def _measures_1101(st, names, logs):
+    """_measures_0907 plus the keys of E11.01, from the loss ledger: bal11 (balanced novel at column 11, the classifier
+    with the pass-F Gaussians), old11 (old test images right at column 11), L_F = bal10 - bal11, L_S = bal11 - bal14,
+    filt_novel_right (pool: novel images kept by the filter whose cluster carries their class, column 12),
+    filt_old_kept (pool: old images not dropped by the filter)."""
+    m = _measures_0907(st, names, logs)
+    led = ledger_state(st)
+    t, o, p = led["test1"], led["test_old"], led["pool"]
+    nov = p["novel"].to_numpy()
+    m.update(bal11=float(t.groupby("y")["11"].mean().mean()), old11=int(o["11"].sum()),
+             filt_novel_right=int(p.loc[nov, "12"].sum()), filt_old_kept=int((~nov).sum() - p.loc[~nov, "12"].sum()))
+    m["L_F"], m["L_S"] = m["bal10"] - m["bal11"], m["bal11"] - m["bal14"]
+    return m
+
+
+def _steps_1101(st, a, b):
+    """Run steps a..b of the default chain on st in place (no snapshots, no global RNG); return the log text."""
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(io.StringIO()):
+        chain(st, start=a, upto=b)
+    return buf.getvalue()
+
+
+def _pass_s_1101(s12, step):
+    """Pass S and step 14 on a copy of a state after step 12, with pass S stopped at loop step `step` by stop_at_step
+    (lab/variants.py). The copy gets its own args (stop_at set) and stop component; s12 is not changed.
+    Returns the state after step 14 (args and stop put back) and the log of step 13."""
+    import copy
+    s2 = dict(s12)
+    s2["args"] = copy.copy(s12["args"])
+    s2["args"].stop_at = int(step)
+    s2["stop"] = stop_at_step.__name__
+    log = _steps_1101(s2, "13", "13")
+    s2["args"], s2["stop"] = s12["args"], s12["stop"]
+    _steps_1101(s2, "14", "14")
+    return s2, log
+
+
+def tier2_e1101(run, k_first=0, k_last=3):
+    """E11.01 on one snapshot run gc10_v2_ft_r<r>_s<N>: draws k_first..k_last (0-3; 4-7 only as extension (1)), with
+    the RNG rule of E09.06 (draw 0: rng_in of step 09; draw k >= 1: RandomState(906000 + 1000 r + 100 N + k)).
+    Branches per draw: def (s09_cluster), var (v09a_overcluster K' = 20, then v09b_merge rule "bf"), both through the
+    default steps 10-14; vd = the partition and steps 10-12 of var, pass S stopped at the pass-S stop step of def
+    (stop_at_step), then step 14; no vd when that step is <= n_epochs / 3 (counted in n_vd_missing).
+    Keys: d<k>_<branch>_* (_measures_1101) for branch def, var, vd; n_vd_missing; G1_ok ... G4_ok, checks_ok.
+    Gates: G1 def and var equal the keys d<k>_def_*, d<k>_var_* of gc10_e09_06_r<r>_s<N> (bal10, bal14, stop_F,
+    stop_S, S1_Old, old14; floats within 1e-6); G2 (draw 0 only) var with pass S stopped at its own natural stop step
+    gives params1 equal to the bit; G3 stop_S of vd equals stop_S of def; G4 _check_09 on every partition (C3) and the
+    old-image flows of E09.06 (C4)."""
+    assert (k_first, k_last) in ((0, 3), (4, 7)), "E11.01: draws 0-3, or 4-7 for extension (1)"
+    st = load(run, "08", check=False)      # new_state first: imports torch, jax, main in the order of the v2 runs
+    blobs = snapshots(run)
+    _fresh(blobs, "14")
+    import jax
+    device = jax.default_backend()
+    assert device == "gpu" or os.environ.get("REPLAY_ALLOW_CPU") == "1", f"JAX runs on {device}, not on the GPU (A1)"
+    assert {b["meta"].get("device", "gpu") for b in blobs.values()} == {device}, "snapshots ran on another device"
+    a = st["args"]
+    assert a.dataset == "gc10", "E11.01 is pre-registered on GC10"
+    tag = re.search(r"_r(\d+)_s(\d+)$", _run_dir(run).name)
+    r, N = int(tag.group(1)), int(tag.group(2))
+    assert N == a.seed, f"run name says seed {N}, the snapshot has seed {a.seed}"
+    names = [c.split("_")[0] for c in json.load(open(ROOT / importlib.import_module(f"dataloaders.{a.dataset}").SPLIT))["classes"]]
+    view = {key: v for key, v in st.items() if not key.startswith("true_")}   # what 09, 09a, 09b get
+    prior = merge_prior(view)
+    e906 = _ref_metrics(f"gc10_e09_06_r{r}_s{N}")
+    n_ep = int(a.n_epochs)
+    close = lambda u, v: u == v if isinstance(v, int) else abs(u - v) <= 1e-6 * max(1.0, abs(v))
+    g1_keys = ("bal10", "bal14", "stop_F", "stop_S", "S1_Old", "old14")
+    out = {"seed": N, "ft_seed": r, "k_first": k_first, "k_last": k_last, "off": prior["off"]}
+    g1, g3, g4, g2, n_missing, t0 = [], [], [], None, 0, time.time()
+    for k in range(k_first, k_last + 1):
+        state = blobs["09"]["rng_in"] if k == 0 else np.random.RandomState(906000 + 1000 * r + 100 * N + k).get_state()
+        np.random.set_state(state)
+        d9 = s09_cluster(view)
+        np.random.set_state(state)
+        sub = v09a_overcluster(view, k=20)
+        mer = v09b_merge({**view, **sub}, "bf", prior)
+        res, s12_var = {}, None
+        for name, ids, cl, inertia in (("def", d9["ids"], d9["cluster"], d9["inertia"]),
+                                       ("var", mer["ids"], mer["cluster"], float("nan"))):
+            s2 = dict(st)
+            s2.update(ids=np.asarray(ids), cluster=cl, inertia=inertia)
+            _check_09(s2)                                            # G4, C3
+            logs = {"11": _steps_1101(s2, "10", "11")}
+            _steps_1101(s2, "12", "12")
+            if name == "var":
+                s12_var = dict(s2)
+            logs["13"] = _steps_1101(s2, "13", "13")
+            _steps_1101(s2, "14", "14")
+            res[name] = _measures_1101(s2, names, logs)
+            res[name]["_p1"] = s2["params1"]
+            g1.append(all(close(res[name][key], e906[f"d{k}_{name}_{key}"]) for key in g1_keys))
+        stop_def = res["def"]["stop_S"]
+        if stop_def == n_ep or stop_def > n_ep / 3:
+            s_vd, log13 = _pass_s_1101(s12_var, stop_def)
+            res["vd"] = _measures_1101(s_vd, names, {"11": logs["11"], "13": log13})
+            g3.append(res["vd"]["stop_S"] == stop_def)
+        else:
+            n_missing += 1
+        if k == 0:                                                   # G2
+            s_own, _ = _pass_s_1101(s12_var, res["var"]["stop_S"])
+            g2 = all(np.array_equal(np.asarray(s_own["params1"][key]), np.asarray(res["var"]["_p1"][key]))
+                     for key in res["var"]["_p1"])
+        for name, m in res.items():
+            g4.append(m["gain08_14"] == 0 and m["old14"] == m["old08"] - m["lost08_14"])   # G4, C4
+            out.update({f"d{k}_{name}_{key}": v for key, v in m.items() if not key.startswith("_")})
+        print(f"e1101: draw {k} done at {time.time() - t0:.0f} s; stop_S def {stop_def}, var {res['var']['stop_S']}",
+              flush=True)
+    out["n_vd_missing"] = n_missing
+    checks = {"G1_ok": int(all(g1)), "G3_ok": int(all(g3)), "G4_ok": int(all(g4))}
+    if g2 is not None:
+        checks["G2_ok"] = int(g2)
+    print("e1101: gates", {key: v for key, v in checks.items()}, f"G1 {sum(g1)}/{len(g1)}, G3 {sum(g3)}/{len(g3)}",
+          flush=True)
+    out.update(checks)
+    out["checks_ok"] = int(all(v == 1 for v in checks.values()))
+    return out
+
+
+def e1101_summary(B=0.615):
+    """Decision table of E11.01 from the 25 runs gc10_e11_01_r<r>_s<N> (and gc10_e11_01x_r<r>_s<N>, draws 4-7, when
+    they exist): per FT seed the means over 5 snapshots x draws of L_F, L_S (def, var), old14 and bal14 of the three
+    branches; the rules of the pre-registration (Q11.01 on var: L_F >= L_S in >= 4/5 FT seeds; Q07.04: |D_old| < B
+    in images). Refuses to read results unless every run has checks_ok = 1 and the first run holds draw 0 (G2)."""
+    import pandas as pd
+    n_old = 241                                                      # old test images of GC10 t1 (00-data-gc10)
+    b_img = B / 100 * n_old
+    rows = []
+    for r in range(5):
+        for N in range(5):
+            ms = []
+            for tag in (f"gc10_e11_01_r{r}_s{N}", f"gc10_e11_01x_r{r}_s{N}"):
+                f = sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json"))
+                assert len(f) == 1 or (len(f) == 0 and tag.startswith("gc10_e11_01x")), f"{tag}: {len(f)} runs with metrics"
+                ms += [json.loads(q.read_text()) for q in f]
+            assert all(m_["checks_ok"] == 1 for m_ in ms), f"r{r} s{N}: checks failed, results are not read"
+            assert "G2_ok" in ms[0] and ms[0]["k_first"] == 0, f"r{r} s{N}: the first run must hold draw 0 (G2)"
+            for m_ in ms:
+                for k in range(m_["k_first"], m_["k_last"] + 1):
+                    row = {"ft": f"r{r}", "snap": f"r{r}_s{N}", "k": k, "vd": f"d{k}_vd_old14" in m_}
+                    for br in ("def", "var", "vd"):
+                        for key in ("L_F", "L_S", "bal10", "bal11", "bal14", "old11", "old14", "stop_S",
+                                    "filt_novel_right", "filt_old_kept"):
+                            row[f"{br}_{key}"] = m_.get(f"d{k}_{br}_{key}", float("nan"))
+                    rows.append(row)
+    df = pd.DataFrame(rows)
+    per = df.groupby("snap")["k"].nunique()
+    assert per.nunique() == 1, "every snapshot needs the same draws"
+    n_draws = int(per.iloc[0])
+    df["D_old"] = df["vd_old14"] - df["def_old14"]
+    df["D_old_nat"] = df["var_old14"] - df["def_old14"]
+    df["cost_new"] = df["var_bal14"] - df["vd_bal14"]
+    cols = [f"{br}_{key}" for br in ("def", "var") for key in ("L_F", "L_S")] + \
+           ["def_old14", "var_old14", "vd_old14", "D_old", "D_old_nat", "cost_new", "def_stop_S", "var_stop_S",
+            "var_filt_novel_right", "var_filt_old_kept", "def_filt_novel_right", "def_filt_old_kept"]
+    by = df.groupby("ft")[cols].mean()
+    pd.set_option("display.width", 250)
+    print(f"{n_draws} draws per snapshot; draws without vd: {int((~df['vd']).sum())} of {len(df)}")
+    print(by.round(4).to_string())
+    n_f = {br: int((by[f"{br}_L_F"] >= by[f"{br}_L_S"]).sum()) for br in ("def", "var")}
+    q11 = "PASS F" if n_f["var"] >= 4 else "FILTER AND PASS S" if n_f["var"] <= 1 else "BOTH"
+    d_old = float(by["D_old"].mean())
+    q704 = "STOP STEP EXPLAINS" if abs(d_old) < b_img else "PARTITION HAS A PART"
+    print(f"\nQ11.01 (var): L_F >= L_S in {n_f['var']}/5 FT seeds -> {q11}; def: {n_f['def']}/5")
+    print(f"var - def: L_F {float((by['var_L_F'] - by['def_L_F']).mean()):+.4f}, "
+          f"L_S {float((by['var_L_S'] - by['def_L_S']).mean()):+.4f}")
+    print(f"Q07.04: D_old = {d_old:+.3f} images (B = {b_img:.2f} images) -> {q704}")
+    print(f"reported: old14 var - def at natural stops {float(by['D_old_nat'].mean()):+.3f} images; "
+          f"cost of moving the stop step for the novel classes (bal14 var - vd) {float(by['cost_new'].mean()):+.4f}")
+    if q11 == "BOTH" and n_draws == 4:
+        print("-> extension (1): draws 4-7, once (tag gc10_e11_01x_r<r>_s<N>, --k-first 4 --k-last 7)")
+    if q11 == "FILTER AND PASS S":
+        print("-> extension (2): oracle-filter branch (needs its own code)")
+    return df
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -1131,7 +1312,7 @@ def main(argv):
     p.add_argument("--checks-only", action="store_true", help="e0604: print the checks C1-C3 only, no result")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -1145,15 +1326,19 @@ def main(argv):
     if o.step == "e0909-summary":
         e0909_summary()
         return
+    if o.step == "e1101-summary":
+        e1101_summary()
+        return
     if o.step == "e0604":
         out = tier2_e0604(o.dataset, o.run, o.features, o.ft, o.seed, o.checks_only)
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
     out = tier1_03() if o.step == "03" else tier1_09(o.run, o.ks) if o.step == "09" else \
-        tier2_e0906(o.run, o.k_first, o.k_last) if o.step == "e0906" else tier1_e0909(o.run) if o.step == "e0909" else tier2_e0907(o.run, o.k_first, o.k_last, o.m)
+        tier2_e0906(o.run, o.k_first, o.k_last) if o.step == "e0906" else tier1_e0909(o.run) if o.step == "e0909" else \
+        tier2_e1101(o.run, o.k_first, o.k_last) if o.step == "e1101" else tier2_e0907(o.run, o.k_first, o.k_last, o.m)
     for key, v in out.items():
-        if o.step not in ("e0907", "e0906", "e0909") or not re.match(r"[dp]\d+_", key):   # per-draw keys: metrics.json only
+        if o.step not in ("e0907", "e0906", "e0909", "e1101") or not re.match(r"[dp]\d+_", key):   # per-draw keys: metrics.json only
             print(f"{key:30s} {v}")
     if os.environ.get("EXP_RUN_DIR"):
         (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
