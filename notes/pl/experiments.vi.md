@@ -628,3 +628,11 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Code (viết sau tiền đăng ký, mặc định tắt): tham số dừng cho `agglomerate` / `v09b_merge` trong `lab/variants.py`, biến thể `09f-merge-stop`; runner `score.py e0909 --from <chuỗi mặc định>` qua `exp.py`, không chạy SVI, 25 run (r0–r4 × s0–s4). Cổng kiểm: nhánh `bf5` trùng `d<k>_t1_bf_bal`, `J20`, `purity` của E09.06 ở mọi lần rút; tắt tham số dừng thì phân hoạch trùng `bf5` từng ảnh.
 - Dự đoán của Claude [SUY LUẬN, khoảng 55%]: SỐNG, với Δ_r nhỏ (0.02–0.06); silk mất `best` rõ rệt vì bị tách. Rito ghi dự đoán riêng trong sổ giấy.
 - Giới hạn: tầng 1 báo trước tầng 2 yếu (E09.06, Ghi chú 2026-11-14, §3.3), nên SỐNG chỉ là giấy phép xây tầng 2. Ngưỡng 0.5 của tỷ lệ giữ là ngưỡng tự đặt. Điểm 0 của log Bayes factor phụ thuộc tiên nghiệm (off).
+
+### Sửa đổi (2026-11-14; trước khi viết code và trước mọi run; phần tiền đăng ký ở trên, `cff7c46`, giữ nguyên)
+
+- Cách cài: phép gộp tham lam và tất định, nên đường gộp của `bf0` là đoạn đầu của đường gộp `bf5`. Runner cắt `merge_steps` của `v09b_merge` (luật `bf`) ở bước đầu tiên có log Bayes factor ≤ 0 (không dưới 5 nhóm) và dựng phân hoạch bằng `merged_ids`. Không sửa `lab/variants.py`; biến thể `v09f_merge_stop` chỉ viết khi E09.09 SỐNG và cần tầng 2, khi đó phải trùng phân hoạch tầng 1 của runner. Kết quả toán học như phần tiền đăng ký.
+- Cổng kiểm, thay dòng cổng kiểm ở trên: G1 `bf5` trùng `d<k>_t1_bf_bal`, `J20`, `purity` của E09.06 ở cả 21 lần rút; G2 `off` trùng `off_lc` của E06.04; G3 cắt đủ 15 bước thì phân hoạch trùng `bf5` từng ảnh, và điểm cắt của `bf0` là bước đầu tiên có log Bayes factor ≤ 0 (hoặc 5 nhóm).
+- Nhánh độ nhạy (off × 0.5, × 2): `v09b_merge` với tiên nghiệm đã đổi off (cùng m0, k0; ν0 và Ψ0 tính lại theo off mới), cắt cùng cách; mỗi lần rút chỉ ghi balanced, K̂, `best` của rolled_pit và crease.
+- Bảng quyết định do lệnh `score.py e0909-summary` in ra (không dùng lệnh rời), như `e0906-summary`.
+- Dự đoán của Claude, sửa (bản ở trên giữ nguyên): trên r0–r2, 20 cụm chưa gộp cho tầng 1 một–một 0.41 / 0.41 / 0.38 so với 0.56 / 0.53 / 0.51 của `bf5` (E09.06, bảng quyết định). `bf0` dừng ở khoảng 12 cụm, nằm giữa. [SUY LUẬN] rolled_pit được thêm nhưng silk và inclusion mất khi bị tách; Δ nhiều khả năng quanh 0. Xác suất SỐNG khoảng 35%; kết quả dễ xảy ra nhất là KHÔNG RÕ.
