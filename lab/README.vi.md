@@ -114,7 +114,14 @@ Biến thể và phần thêm:
 - `06a-closed-form` [có trong code, chưa có notebook]: E06.03, `--estimator closed`; đã đóng ngày 2/10.
 - `06b-vb-s0` [chưa có hàm biến thể, chưa có notebook]: E06.04 (QD27), ĐẠT trên GC10 và CUB (`eeed8ae`). Bốn nhánh A0–A3 chạy trong `score.tier2_e0604` với `niw.py`, không qua `variants.py` như dòng Cách chạy của tiền đăng ký. A3 là mô hình lớp cũ cho E09.08.
 - `09a-overcluster` [có hàm `v09a_overcluster`, chưa có notebook]: phân cụm thừa K' = 20; E09.04, E09.05. Nguồn cũ: `12b_cluster`. Cùng `09b`: **mốc quyết định của dòng PL** từ E09.06.
-- `09b-overcluster-merge` [có hàm `v09b_merge` (`68285e7`), chưa có notebook]: gộp cụm con của `09a` về `increment` cụm bằng Bayes factor NIW; E09.06 (tiền đăng ký `61b9eb9`), CHẤP NHẬN (`b06586c`). Cùng `09a`: **mốc quyết định của dòng PL** từ E09.06, tức mốc so sánh cho E09.08 và các bước sau; `replay.DEFAULT` và chuỗi băm không đổi. Nguồn cũ: phần Bhattacharyya của `12b_cluster` (nay chỉ còn là luật báo cáo `bhatt`).
+- `09b-overcluster-merge` [có hàm `v09b_merge` (`68285e7`); notebook `cc4212c` (B13)]: gộp cụm con của `09a` về `increment` cụm bằng Bayes factor NIW; E09.06 (tiền đăng ký `61b9eb9`), CHẤP NHẬN (`b06586c`). Cùng `09a`: **mốc quyết định của dòng PL** từ E09.06, tức mốc so sánh cho E09.08 và các bước sau; `replay.DEFAULT` và chuỗi băm không đổi. Nguồn cũ: phần Bhattacharyya của `12b_cluster` (nay chỉ còn là luật báo cáo `bhatt`).
+  Notebook (B13; chỉ đọc 30 run của E09.06 và chạy lại phần phân cụm, không chạy SVI). Năm mục
+  1. kiểm: tính lại bảng quyết định của E09.06 từ `metrics.json` trùng `e0906_summary`; khoảng tin cậy ở mức FT seed và độ mịn của thước;
+  2. code và toán của phép gộp; ví dụ đồ chơi: log Bayes factor không đơn điệu theo cỡ cụm;
+  3. sổ theo cột của hai nhánh: lợi qua được bước đặt tên, mất ở bước 11–14; phần lớn Δ_r của r1, r2 đến từ rolled_pit và crease;
+  4. lớp cũ: ở cùng bước dừng hai nhánh giữ số ảnh cũ như nhau (r0, r1); bước dừng là một trục đánh đổi cũ/mới;
+  5. vết gộp (315/315 lần rút trùng E09.06): rolled_pit bị gộp vào nhóm crease ở bước 10–12 trên 15, sau khi log Bayes factor đã âm.
+  Kết quả ghi ở E09.06, Ghi chú 2026-11-14; câu mở: Q07.04, Q09.14, Q11.01. Lặp lại trên r3, r4: LẶP LẠI ĐƯỢC (`d161995`).
 - `09c-multi-init` [có hàm `v09c_multi_init` (`709eeca`), chưa có notebook]: E09.07 (tiền đăng ký `1ce3233`), best-of-1000 so với best-of-10 qua 11 lần rút lồng nhau mỗi ảnh chụp; KHÔNG ĐỦ LỚN (`0e630ad`), giữ `n_init` 10.
 - `09d-ownership` [có, commit `abbc3af`; kế hoạch chốt trước khi đọc nhãn ở `d282b37`]: phân tích có nhãn cho bước 09 (QD26). Bảy mục
   1. kiểm: `score09` trùng 26 khoá `k5_*` của E09.05 v2 ở 15/15;
