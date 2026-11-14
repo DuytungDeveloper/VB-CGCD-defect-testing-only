@@ -29,6 +29,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.06: phân cụm thừa K' = 20 rồi gộp về 5 cụm bằng Bayes factor NIW, biến thể `09a` + `09b`, GC10 (2026-11-12 → 13; xong: CHẤP NHẬN, Δ = 0.064, Δ_Old = −0.53 điểm; rolled_pit vẫn mất cụm) — mục E09.06 dưới đây
 - E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04 → 11; xong: không đủ lớn, Δ = 0.0148 < T = 0.0273; giữ `n_init` 10) — mục E09.07 dưới đây
 - E09.08: VB-GMM cho phiên không nhãn, biến thể `09e-vbgmm` (trải 09–13): trách nhiệm mềm thay lượt F, bộ lọc (D12), lượt S và luật dừng (D14); khởi tạo từ `09a` + `09b`, A3 của E06.04 là mô hình lớp cũ (đề xuất 2026-11-05; chưa tiền đăng ký) — QD27, QD28; Kết quả của E06.04, E09.06
+- E09.09: dừng phép gộp của `09b` khi log Bayes factor lớn nhất không còn dương (k tự do, không dưới 5), biến thể `09f-merge-stop`, tầng 1, GC10 (tiền đăng ký 2026-11-14) — Q09.14; mục E09.09 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
 - E14.01: đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
@@ -605,3 +606,25 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Không đủ lớn theo quy tắc: giữ `n_init` 10; E09.06 chạy trên k-means mặc định; bỏ hướng "thêm khởi tạo" ở bước 09 (điều kiện bỏ ý tưởng).
 - Câu hỏi kèm theo của Q09.12: trong cùng ảnh chụp, phân hoạch có inertia thấp hơn thường cho balanced novel cao hơn (Spearman âm ở 14/15 ảnh chụp), nhưng tối ưu sâu hơn không vượt được dao động của một lần chạy.
 - Hạ tầng nhiều lần rút (`multi_init`, `tier2_e0907`) dùng lại được cho E09.06.
+
+## E09.09 — Dừng gộp theo dấu của log Bayes factor (Q09.14, Q09.02)
+
+### Tiền đăng ký (2026-11-14; viết trước khi chạy và trước khi đọc các khoá `t1_k20_*` của r3, r4)
+
+- Câu hỏi: dừng phép gộp của `09b` khi log Bayes factor lớn nhất không còn dương, thay vì ép về đúng 5 cụm, có cho phân hoạch pool tốt hơn, và giữ được cụm riêng của rolled_pit không? Nguồn: E09.06, Ghi chú 2026-11-14 (vết gộp: log Bayes factor đổi dấu ở khoảng bước 8–9; rolled_pit bị gộp sau đó).
+- Nhánh, trên cùng lần rút (cùng luật RNG như E09.06: lần rút 0 dùng `rng_in`, lần rút k ≥ 1 dùng `RandomState(906000 + 1000 r + 100 N + k)`), 21 lần rút mỗi ảnh chụp:
+  - `bf5`: `09a` + `09b` như E09.06 (gộp về đúng 5 cụm);
+  - `bf0`: cùng cụm con K' = 20 và cùng tiên nghiệm (`merge_prior`), cùng luật gộp, nhưng dừng khi cặp tốt nhất có log Bayes factor ≤ 0, và không gộp xuống dưới 5 cụm. Số cụm K̂ ≥ 5 do dữ liệu quyết định.
+- Thước chính (tầng 1): `bal_acc_hungarian` của `score09` trên ảnh lớp mới của pool, ghép một–một 5 lớp với K̂ cụm (Kuhn 1955); ảnh trong cụm không được ghép tính là sai. Nhãn pool chỉ dùng để chấm.
+- Đại lượng: Δ_r = trung bình trên 5 ảnh chụp × 21 lần rút của (`bf0` − `bf5`), theo FT seed. Cụm riêng: `best` ≥ 0.5 (như mục Kết quả của E09.06). Tỷ lệ giữ của rolled_pit: trong các lần rút mà rolled_pit có cụm riêng ở K' = 20, tỷ lệ lần mà nó còn cụm riêng ở `bf0`.
+- Dữ liệu quyết định: r3, r4 (vết gộp của hai FT seed này chưa ai xem). r0–r2 chỉ báo cáo, ghi rõ là không sạch (luật được nghĩ ra từ vết gộp của chúng).
+- Quy tắc, chốt trước:
+  - SỐNG: Δ_r3 > 0 và Δ_r4 > 0, và tỷ lệ giữ của rolled_pit gộp trên r3, r4 ≥ 0.5 (mốc: `bf5` giữ 0.015 trên r0–r2);
+  - LOẠI: trung bình Δ_r3, Δ_r4 ≤ 0;
+  - KHÔNG RÕ: còn lại.
+  Nếu không có lần rút nào của r3, r4 mà rolled_pit có cụm riêng ở K' = 20, điều kiện thứ hai không xác định và kết luận là KHÔNG RÕ.
+- Hệ quả: SỐNG → thiết kế tầng 2 cho nhánh k tự do (bộ phân lớp K̂ khe mới, đặt tên nhiều–một), tiền đăng ký riêng. LOẠI → giữ k = 5; câu (c) về rolled_pit chuyển sang hướng khác. KHÔNG RÕ → không xây tầng 2, ghi lại và để sau E09.08.
+- Báo cáo kèm, không dùng để quyết định: phân phối K̂; tỷ lệ cụm riêng của rolled_pit và crease ở cả hai nhánh; `best` theo lớp (silk mất bao nhiêu khi bị tách); Δ với off nhân 0.5 và 2 (độ nhạy theo tiên nghiệm).
+- Code (viết sau tiền đăng ký, mặc định tắt): tham số dừng cho `agglomerate` / `v09b_merge` trong `lab/variants.py`, biến thể `09f-merge-stop`; runner `score.py e0909 --from <chuỗi mặc định>` qua `exp.py`, không chạy SVI, 25 run (r0–r4 × s0–s4). Cổng kiểm: nhánh `bf5` trùng `d<k>_t1_bf_bal`, `J20`, `purity` của E09.06 ở mọi lần rút; tắt tham số dừng thì phân hoạch trùng `bf5` từng ảnh.
+- Dự đoán của Claude [SUY LUẬN, khoảng 55%]: SỐNG, với Δ_r nhỏ (0.02–0.06); silk mất `best` rõ rệt vì bị tách. Rito ghi dự đoán riêng trong sổ giấy.
+- Giới hạn: tầng 1 báo trước tầng 2 yếu (E09.06, Ghi chú 2026-11-14, §3.3), nên SỐNG chỉ là giấy phép xây tầng 2. Ngưỡng 0.5 của tỷ lệ giữ là ngưỡng tự đặt. Điểm 0 của log Bayes factor phụ thuộc tiên nghiệm (off).
