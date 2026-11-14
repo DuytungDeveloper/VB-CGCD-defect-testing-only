@@ -29,7 +29,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.06: phân cụm thừa K' = 20 rồi gộp về 5 cụm bằng Bayes factor NIW, biến thể `09a` + `09b`, GC10 (2026-11-12 → 13; xong: CHẤP NHẬN, Δ = 0.064, Δ_Old = −0.53 điểm; rolled_pit vẫn mất cụm) — mục E09.06 dưới đây
 - E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04 → 11; xong: không đủ lớn, Δ = 0.0148 < T = 0.0273; giữ `n_init` 10) — mục E09.07 dưới đây
 - E09.08: VB-GMM cho phiên không nhãn, biến thể `09e-vbgmm` (trải 09–13): trách nhiệm mềm thay lượt F, bộ lọc (D12), lượt S và luật dừng (D14); khởi tạo từ `09a` + `09b`, A3 của E06.04 là mô hình lớp cũ (đề xuất 2026-11-05; chưa tiền đăng ký) — QD27, QD28; Kết quả của E06.04, E09.06
-- E09.09: dừng phép gộp của `09b` khi log Bayes factor lớn nhất không còn dương (k tự do, không dưới 5), biến thể `09f-merge-stop`, tầng 1, GC10 (tiền đăng ký 2026-11-14) — Q09.14; mục E09.09 dưới đây
+- E09.09: dừng phép gộp của `09b` khi log Bayes factor lớn nhất không còn dương (k tự do, không dưới 5), biến thể `09f-merge-stop`, tầng 1, GC10 (2026-11-14; xong: KHÔNG RÕ, Δ ≈ 0; rolled_pit giữ được cụm con ở 98% số lần; rất nhạy với off) — Q09.14; mục E09.09 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
 - E14.01: đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
@@ -636,3 +636,18 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Nhánh độ nhạy (off × 0.5, × 2): `v09b_merge` với tiên nghiệm đã đổi off (cùng m0, k0; ν0 và Ψ0 tính lại theo off mới), cắt cùng cách; mỗi lần rút chỉ ghi balanced, K̂, `best` của rolled_pit và crease.
 - Bảng quyết định do lệnh `score.py e0909-summary` in ra (không dùng lệnh rời), như `e0906-summary`.
 - Dự đoán của Claude, sửa (bản ở trên giữ nguyên): trên r0–r2, 20 cụm chưa gộp cho tầng 1 một–một 0.41 / 0.41 / 0.38 so với 0.56 / 0.53 / 0.51 của `bf5` (E09.06, bảng quyết định). `bf0` dừng ở khoảng 12 cụm, nằm giữa. [SUY LUẬN] rolled_pit được thêm nhưng silk và inclusion mất khi bị tách; Δ nhiều khả năng quanh 0. Xác suất SỐNG khoảng 35%; kết quả dễ xảy ra nhất là KHÔNG RÕ.
+
+### Kết quả (2026-11-14; run `gc10_e09_09_r0_s0`–`gc10_e09_09_r4_s4`, code `2917741`, commit run `c76ffcd`; số in bằng `python lab/score.py e0909-summary`; 25/25 run qua G1–G3)
+
+- Quyết định trên r3, r4: Δ_r3 = −0.0003, Δ_r4 = +0.0028, trung bình +0.0013; tỷ lệ giữ của rolled_pit 0.982 (108/110; mốc `bf5` 0.015) → KHÔNG RÕ (điều kiện Δ_r3 > 0 không đạt).
+- Theo FT seed (Δ_r | K̂ trung vị [min, max] | rolled_pit: có cụm con ở K' = 20, giữ được ở `bf0` | crease có cụm riêng `bf5` → `bf0`): r3 −0.0003 | 12 [10, 13] | 47, 46 | 70 → 95; r4 +0.0028 | 12 [10, 13] | 63, 62 | 47 → 87. Chỉ báo cáo, không sạch: r0 +0.0105 | 11 [9, 13] | 71, 66 | 88 → 92; r1 +0.0134 | 12 [10, 13] | 86, 86 | 65 → 31; r2 −0.0377 | 13 [11, 15] | 46, 42 | 44 → 80.
+- `best` trung bình `bf5` → `bf0`, r3 / r4: rolled_pit 0.042 → 0.308 / 0.000 → 0.452; crease 0.552 → 0.566 / 0.379 → 0.564; inclusion 0.416 → 0.319 / 0.502 → 0.298; silk 0.537 → 0.448 / 0.539 → 0.536; waist 0.801 → 0.764 / 0.666 → 0.646. Ở cả 5 FT seed, inclusion mất 0.10–0.24.
+- Độ nhạy theo tiên nghiệm (báo cáo kèm): off × 0.5 cho K̂ trung vị 14–17 và Δ −0.08 tới −0.11 ở cả 5 FT seed; off × 2 cho K̂ 8–9 và Δ +0.03 tới +0.06 ở cả 5 FT seed.
+- Dự đoán: bản đầu của Claude (SỐNG, khoảng 55%) sai; bản sửa trước khi code (KHÔNG RÕ là dễ nhất, SỐNG khoảng 35%) đúng.
+
+### Kết luận
+
+- KHÔNG RÕ theo quy tắc: không xây tầng 2 cho nhánh k tự do; k = 5 và `09a` + `09b` giữ nguyên làm mốc; để sau E09.08.
+- Cơ chế của B13 được xác nhận trên dữ liệu sạch: khi rolled_pit có cụm con riêng ở K' = 20, phép gộp không bị ép giữ được nó ở 108/110 lần. Nút thắt của rolled_pit nay là bước K' = 20 (chỉ 47/105 và 63/105 lần rút có cụm con riêng) và ràng buộc k = 5, không phải luật gộp.
+- Lợi ở lớp hiếm bị trả bằng việc tách lớp đông, nhất là inclusion. Với Hungarian một–một, mỗi lớp chỉ được tính một cụm, nên lớp bị tách mất điểm. [SUY LUẬN] Nhánh k tự do chỉ có ích nếu có cách gộp nhãn các cụm thừa về 5 lớp mà không dùng nhãn; luật gộp theo Bayes factor không làm được việc đó, vì nó coi các mode của inclusion (và silk) khác nhau hơn crease so với rolled_pit (Ghi chú 2026-11-14 của E09.06, §5.3).
+- Điểm 0 của log Bayes factor không phải điểm dừng tự nhiên: nó dịch theo off. off × 2 cho Δ dương ở cả 5 FT seed, nhưng đó là phát hiện sau khi xem dữ liệu, trên các FT seed đã dùng; muốn kiểm phải tiền đăng ký mới và lấy FT seed chưa dùng (r5 trở đi). [SUY LUẬN] Hướng hợp lý hơn một ngưỡng chỉnh tay là để mô hình học số thành phần (tiên nghiệm Dirichlet trong E09.08).
