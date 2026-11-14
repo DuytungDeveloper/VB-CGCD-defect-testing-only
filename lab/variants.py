@@ -234,3 +234,26 @@ def v09b_merge(st, rule="bf", prior=None):
     print(f"v09b_merge: rule={rule} off={prior['off']} sizes={np.bincount(mapping[sub]).tolist()}")
     return dict(ids=mapping[sub], cluster=MergedCluster(st["sub_cluster"], mapping), merge_steps=steps,
                 merge_off=prior["off"])
+
+
+def stop_at_step(clf, args):
+    """Early-stop component for one SVI pass (E11.01, pre-registered at 03e7f86): the pass stops at loop step
+    args.stop_at, whatever the det(Sigma) rule says. mngmm.run_inference calls calculate_metrics_on_covariances once
+    at the top of every loop step; the wrapper returns the dets of the class method (they feed svi.update) and a flag
+    that is True at call number args.stop_at only (0-based, so at loop step stop_at). At that step mngmm restores the
+    state before the last update (stop_at - 1 updates) and logs "Step <stop_at>", as a natural stop at that step
+    does; the call after the restore gets False. stop_at = n_epochs: no stop. A stop needs stop_at > n_epochs / 3
+    (mngmm's own guard), else the pass would run to the end: refused. stop_default removes the wrapper.
+    Used only for pass S of the branch var@def of E11.01; the default chain never calls it."""
+    s, n = int(args.stop_at), int(args.n_epochs)
+    assert s == n or n / 3 < s < n, f"stop_at {s}: must be n_epochs or in (n_epochs/3, n_epochs), n_epochs = {n}"
+    clf.with_early_stop = True
+    base, calls = type(clf).calculate_metrics_on_covariances, [0]
+
+    def forced(params, increment, use_correct_scaling_factor):
+        _, dets = base(clf, params, increment, use_correct_scaling_factor)
+        hit = calls[0] == s
+        calls[0] += 1
+        return hit, dets
+
+    clf.calculate_metrics_on_covariances = forced
