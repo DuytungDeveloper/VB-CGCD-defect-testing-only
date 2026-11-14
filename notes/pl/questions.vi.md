@@ -71,12 +71,13 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q09.01 [mở] Khoảng cách S1_New so với paper trên CIFAR-100. Manh mối: S1_New gắn với độ cân bằng cụm ở S1 (note LOG `c100_km_evhung_base400_s4`, D9).
 - Q09.02 [mở] Ước lượng k trên GC10 (silhouette thất bại): giao thức không biết trước k.
   - 2026-11-14 (`09b-overcluster-merge` (`cc4212c`) §5.3): trong phép gộp của `09b`, dấu của log Bayes factor tách khá rõ bước gộp cùng lớp chủ khỏi bước gộp khác lớp chủ. [SUY LUẬN] Đây là một ứng viên ước lượng số cụm không cần biết k; xem Q09.14.
+  - 2026-11-14 (E09.09, `150a2fd`): dừng gộp ở log Bayes factor ≤ 0 cho K̂ trung vị 11–13, nhưng K̂ dịch theo off (off × 0.5: 14–17; off × 2: 8–9). Dấu của log Bayes factor không ước lượng được k nếu không chỉnh tiên nghiệm.
 - Q09.03 [mở] New có thấp hơn khi `cluster_max_min` cao không?
 - Q09.04 [mở] Gán nhãn bằng optimal transport với biên nới lỏng có thắng k-means không?
 - Q09.05 [mở] Nhãn thật tối thiểu có được dùng cho lớp mới (như setting Active GCD), hay chỉ cho lớp cơ sở? (QD16)
 - Q09.06 [mở] Ở bước 09, phương pháp nào cho nhãn giả tốt hơn k-means theo bộ đo tầng 1 (ứng viên: GMM trên PCA-64 hoặc covariance chéo, phân cụm phổ trên đồ thị kNN, HDBSCAN), và thứ hạng có giữ ở tầng 2 không? Siêu tham số không chỉnh trên pool có nhãn thật của lớp mới. Nguồn: QD18.
   - 2026-11-01: E03.02: probe k-NN (k = 20, cosine) gần như không đọc được lớp hiếm (crease 0/11 ở cả 4 bộ, rolled_pit 1–2/6) dù probe tuyến tính đọc được. [SUY LUẬN] Phương pháp dựa trên láng giềng gần (phân cụm phổ trên kNN, HDBSCAN) cần được kiểm riêng cho lớp hiếm trước khi xếp hạng.
-- Q09.14 [mở] Dừng phép gộp của `09b` khi log Bayes factor đổi dấu, thay vì ép về k = 5, có giữ được cụm của lớp hiếm (rolled_pit, crease) mà không trả giá quá nhiều ở silk không? Chấm bằng Hungarian một–một như QD15, cụm thừa tính là sai. Điểm 0 phụ thuộc tiên nghiệm (off) và ngưỡng được nghĩ ra sau khi đã xem nhãn pool của GC10, nên phải tiền đăng ký trước khi tính; inclusion gộp vào silk với log Bayes factor dương nên không được cứu bằng cách này. Giao thức: k = 5 vẫn là dòng chính, nhánh k tự do báo cáo riêng. Nguồn: E09.06, Ghi chú 2026-11-14; `09b-overcluster-merge` (`cc4212c`) §5.
+- Q09.15 [mở] Gộp các cụm thừa về k lớp mà không dùng nhãn: có tiêu chí nào tách "hai mode của cùng một lớp" (silk, inclusion theo camera hoặc cuộn) khỏi "hai lớp khác nhau" (crease, rolled_pit) tốt hơn Bayes factor NIW không? Bayes factor coi các mode của inclusion khác nhau hơn crease so với rolled_pit. Ứng viên: tiên nghiệm Dirichlet trên trọng số thành phần (E09.08), đặc trưng đã khử camera/cuộn. Nguồn: E09.09, Kết luận; E09.06, Ghi chú 2026-11-14, §5.3.
 
 ### 11 Lượt F
 
@@ -153,6 +154,8 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q09.13 [xong] k-means ở bước 09 có chia silk_spot (và inclusion) theo camera hoặc cuộn thép không? Với 698 ảnh lớp mới, trong đặc trưng thô, phần chỉ do camera lớn hơn phần chỉ do lớp; camera giải thích 0.43 phương sai trong silk_spot, cuộn và camera cùng giải thích 0.61 (`05a-camera` §3.1, §4.1). Kiểm ở `09-cluster` bằng bảng cụm × camera và cụm × cuộn trên 15 ảnh chụp (camera, cuộn lấy từ tên file, không cần nhãn lớp). Nếu đúng, đây là một cơ chế của tranh cụm ở K = 5 (QD24) và là đầu vào cho thiết kế E09.06, E09.07. Nguồn: `05a-camera` (`75e1bf9`).
   - 2026-11-04 (`09-cluster` §4.3, `8982942`), phần không nhãn: trên toàn pool, id cụm liên hệ mạnh với camera (Cramér's V 0.50–0.65) và với cuộn (0.71–0.78), vượt xa mức nền; chưa tách được khỏi lớp. Phép đo trong từng lớp ở `09d-ownership`.
   - Kết luận (2026-11-04): có, cho silk_spot và inclusion. Trong silk, camera và cuộn cùng giải thích 0.87–0.92 thành viên cụm (inclusion 0.66–0.71), và mỗi yếu tố vẫn có ý nghĩa khi giữ yếu tố kia cố định ở 5/5 ảnh chụp của mọi FT seed; các cụm con của silk về thực chất là nhóm camera/cuộn. Đối chứng: rolled không; crease ở r1, r2 bám cuộn. Đây là một cơ chế của tranh cụm ở K = 5 (QD24) và là đầu vào cho E09.06 (`09d-ownership` §6, `abbc3af`).
+- Q09.14 [xong] Dừng phép gộp của `09b` khi log Bayes factor đổi dấu, thay vì ép về k = 5, có giữ được cụm của lớp hiếm (rolled_pit, crease) mà không trả giá quá nhiều ở silk không? Chấm bằng Hungarian một–một như QD15, cụm thừa tính là sai. Điểm 0 phụ thuộc tiên nghiệm (off) và ngưỡng được nghĩ ra sau khi đã xem nhãn pool của GC10, nên phải tiền đăng ký trước khi tính; inclusion gộp vào silk với log Bayes factor dương nên không được cứu bằng cách này. Giao thức: k = 5 vẫn là dòng chính, nhánh k tự do báo cáo riêng. Nguồn: E09.06, Ghi chú 2026-11-14; `09b-overcluster-merge` (`cc4212c`) §5.
+  - Kết luận (2026-11-14): KHÔNG RÕ (E09.09, `150a2fd`): Δ ≈ 0 trên r3, r4. Khi không bị ép về k = 5, phép gộp giữ được cụm con của rolled_pit ở 108/110 lần, nhưng lớp đông (inclusion) bị tách và mất điểm ở Hungarian một–một; điểm 0 dịch theo off, nên không phải điểm dừng tự nhiên. Câu tiếp: Q09.15.
 
 ### 10 Đặt tên cụm
 
@@ -208,3 +211,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-11: E09.07 (`0e630ad`) đóng Q09.12.
 - 2026-11-13: đóng Q05.01 (cấu hình upstream tái lập số CUB của paper, `50d72f3`; D21 measured); thêm Q06.06 (cơ chế sụp của NEU d384).
 - 2026-11-14: `09b-overcluster-merge` (`cc4212c`), B13: thêm Q07.04 (bước dừng và lớp cũ), Q09.14 (dừng gộp theo dấu của log Bayes factor), Q11.01 (bước 11–14 trên cụm đã gộp); ghi chú Q09.02.
+- 2026-11-14: E09.09 (`150a2fd`): đóng Q09.14 (KHÔNG RÕ); thêm Q09.15 (gộp cụm thừa không dùng nhãn); ghi chú Q09.02.
