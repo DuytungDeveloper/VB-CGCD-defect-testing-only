@@ -473,6 +473,19 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Dự đoán [SUY LUẬN, xác suất chủ quan khoảng 60%]: LẶP LẠI ĐƯỢC; rolled_pit có cụm riêng sau gộp ở không quá 2/105 cặp mỗi FT seed.
 - Giới hạn: `e0906_summary` hiện chỉ đọc r0–r2; bảng của r3, r4 tính từ `metrics.json` sau khi mọi run xong (không sửa code khi loop đang chạy). r3, r4 sau thí nghiệm này không còn là FT seed chưa dùng: T2 phải lấy FT seed mới.
 
+### Kết quả lặp lại (2026-11-14; run `gc10_ft_cls5first_img80pct_r3`, `_r4` và các chuỗi, mốc, run E09.06 của r3, r4, commit run `e4e1113`; số in bằng một lệnh chỉ đọc `metrics.json` của các run đã commit; mọi run checks_ok = 1)
+
+- Theo FT seed (Δ_r | Δ_Old_r điểm | hiệu tầng 1 | hiệu cột 10 | cặp còn cụm riêng sau gộp, rolled_pit / crease, trên 105): r3 0.0328 | −0.782 | 0.1897 | 0.0610 | 6 / 70; r4 0.0535 | +0.937 | 0.1411 | 0.0966 | 0 / 47. Để so: r0 0.0080, r1 0.1122, r2 0.0724 (không đổi so với phần Kết quả).
+- Quy tắc đã chốt: Δ_r3 > 0, Δ_r4 > 0, trung bình 0.0432 ≥ T = 0.0273 → LẶP LẠI ĐƯỢC.
+- Báo cáo kèm, trên 5 FT seed: Δ = 0.0558, khoảng tin cậy 95% [0.0066, 0.1050], t = 3.15 với 4 bậc tự do; Δ_r > 0 ở 5/5; Δ_Old = −0.287 điểm (B = 0.615).
+- Dự đoán: "LẶP LẠI ĐƯỢC" đúng; "rolled_pit có cụm riêng sau gộp ở không quá 2/105 cặp mỗi FT seed" sai ở r3 (6/105).
+
+### Kết luận lặp lại
+
+- GIỮ `09a` + `09b` làm mốc quyết định của dòng PL (số laptop). Không nói "+2T": r3, r4 nay đã dùng, T2 phải lấy FT seed mới (r5 trở đi).
+- Giới hạn: khoảng tin cậy gộp có cận dưới 0.007, và r0–r2 là các FT seed đã dùng để chọn phương pháp (ước lượng gộp có thiên lệch chọn lọc); bằng chứng sạch là r3, r4, trong đó r3 chỉ hơn T 0.006. Lớp cũ đổi dấu theo FT seed (r4 +0.94, r3 −0.78). [SUY LUẬN] Khớp cơ chế bước dừng của Ghi chú 2026-11-14 (Q07.04). Ở r3, hiệu tầng 1 (0.19) còn 0.061 ở cột 10 và 0.033 ở cột 14: khâu pool → test lại là chỗ mất lớn (Ghi chú 2026-11-14, §3.3).
+- rolled_pit vẫn không được cứu (6/105 và 0/105); Q09.14 giữ nguyên ưu tiên.
+
 ## E09.07 — Nhiều lần khởi tạo k-means, giữ inertia thấp nhất (Q09.12, QD24, QD26)
 
 ### Tiền đăng ký, phần 1 (2026-11-04; commit: 1ce3233)
