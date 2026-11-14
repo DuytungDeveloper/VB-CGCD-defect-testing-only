@@ -23,7 +23,7 @@ for p in (str(ROOT), str(ROOT / "lab")):
     if p not in sys.path:
         sys.path.insert(0, p)
 from replay import load, snapshots, _fresh, _component, _jnp, chain, _check_09, _run_dir, s09_cluster   # noqa: E402
-from variants import v09a_overcluster, v09b_merge, merge_prior, multi_init, cluster_of   # noqa: E402
+from variants import v09a_overcluster, v09b_merge, merge_prior, multi_init, cluster_of, merged_ids   # noqa: E402
 from niw import log_evidence                         # noqa: E402
 from landscape import canon                         # noqa: E402
 
@@ -968,9 +968,157 @@ def e0906_summary(T=0.0273, B=0.615):
     return df
 
 
+# ---- E09.09: stop the 09b merge at log BF <= 0 (pre-registered cff7c46, amended 594e34b) ----
+
+def _cut_0909(sid, steps, k, stop=True):
+    """Groups after the bf merge path `steps` of v09b_merge, cut at the first step whose log Bayes factor is <= 0
+    (cost >= 0), never below k groups; stop=False keeps all steps (= bf5). Returns (pool ids, number of steps kept).
+    The greedy path is deterministic, so the stopped merge is a prefix of the full one (E09.09, amendment)."""
+    sid = np.asarray(sid).astype(int)
+    groups, t = [(i,) for i in range(sid.max() + 1)], 0
+    for ga, gb, c in steps:
+        if (stop and c >= 0) or len(groups) <= k:
+            break
+        groups = [g for g in groups if g not in (ga, gb)] + [tuple(sorted(ga + gb))]
+        t += 1
+    return merged_ids(sid, groups)[sid], t
+
+
+def _draw_0909(view, yp, names, n_old, k, prior, factors=(0.5, 2.0)):
+    """One draw of E09.09 from the global RNG state already set: v09a (K' = 20) once, the bf merge path of v09b, and
+    the arms k20, bf5, bf0 (+ bf0 under off x factors). Pool labels yp: scoring only. Returns (keys, check dict)."""
+    nov = names[n_old:]
+    sub = v09a_overcluster(view, k=20)
+    s2 = {**view, **sub}
+    sid = np.asarray(sub["sub_ids"]).astype(int)
+    mer = v09b_merge(s2, "bf", prior)
+    steps = mer["merge_steps"]
+    ids5, t5 = _cut_0909(sid, steps, k, stop=False)
+    ids0, t0 = _cut_0909(sid, steps, k)
+    # G3: the full cut is bf5; the stop is the first step with log BF <= 0, recomputed from niw.log_evidence
+    z = np.asarray(view["z_pool"], np.float64)
+    ev = lambda g: log_evidence(z[np.isin(sid, g)], prior["m0"], prior["k0"], prior["nu0"], prior["psi0"])
+    groups = [(i,) for i in range(20)]
+    for ga, gb, _ in steps[:t0]:
+        groups = [g for g in groups if g not in (ga, gb)] + [tuple(sorted(ga + gb))]
+    best = max(ev(p + q) - ev(p) - ev(q) for i, p in enumerate(groups) for q in groups[i + 1:]) if len(groups) > k else None
+    g3 = {"full_is_bf5": bool(t5 == len(steps) and np.array_equal(ids5, np.asarray(mer["ids"]))),
+          "prefix_positive": bool(all(-c > 0 for _, _, c in steps[:t0])),
+          "stop_nonpositive": bool(len(groups) == k or (best is not None and best <= 1e-6))}
+    out = {"purity": _purity_0906(yp, sid, steps), "J20": sub["sub_inertia"], "K_bf0": int(len(np.unique(ids0))),
+           "steps_bf0": t0}
+    for arm, ids in (("k20", sid), ("bf5", ids5), ("bf0", ids0)):
+        t1 = score09(yp, ids, names, n_old=n_old)
+        out[f"t1_{arm}_bal"] = t1["bal_acc_hungarian"]
+        out.update({f"t1_{arm}_{q}_{c}": t1[f"{q}_{c}"] for c in nov for q in ("owned", "best")})
+    for f, name in zip(factors, ("lo", "hi")):
+        off = prior["off"] * f
+        pr = dict(prior, off=off, nu0=prior["d"] + 1 + off, psi0=prior["psi0"] * f)
+        ids_f, _ = _cut_0909(sid, v09b_merge(s2, "bf", pr)["merge_steps"], k)
+        t1 = score09(yp, ids_f, names, n_old=n_old)
+        out.update({f"t1_bf0_{name}_bal": t1["bal_acc_hungarian"], f"K_bf0_{name}": int(len(np.unique(ids_f))),
+                    f"t1_bf0_{name}_best_rolled": t1["best_rolled"], f"t1_bf0_{name}_best_crease": t1["best_crease"]})
+    return out, g3
+
+
+def tier1_e0909(run):
+    """E09.09 on one snapshot run gc10_v2_ft_r<r>_s<N>: 21 draws with the RNG rule of E09.06 (draw 0: rng_in of step
+    09; draw k >= 1: RandomState(906000 + 1000 r + 100 N + k)); tier 1 only, no SVI. Keys d<k>_* (see _draw_0909).
+    Gates: G1 bf5 equals d<k>_t1_bf_bal, J20 (1e-6 relative) and purity of E09.06 at every draw; G2 off equals off_lc of
+    gc10_e06_04_r<r>_s<N>; G3 the full cut equals bf5 and the stop of bf0 is the first step with log BF <= 0."""
+    st = load(run, "08", check=False)
+    blobs = snapshots(run)
+    _fresh(blobs, "09")
+    a = st["args"]
+    assert a.dataset == "gc10", "E09.09 is pre-registered on GC10"
+    tag = re.search(r"_r(\d+)_s(\d+)$", _run_dir(run).name)
+    r, N = int(tag.group(1)), int(tag.group(2))
+    assert N == a.seed, f"run name says seed {N}, the snapshot has seed {a.seed}"
+    names = [c.split("_")[0] for c in json.load(open(ROOT / importlib.import_module(f"dataloaders.{a.dataset}").SPLIT))["classes"]]
+    yp = np.asarray(st["true_pool_y"]).astype(int)                   # scoring only (tier 1)
+    view = {key: v for key, v in st.items() if not key.startswith("true_")}
+    prior = merge_prior(view)
+    ref = {}
+    for t in (f"gc10_e09_06_r{r}_s{N}", f"gc10_e09_06x_r{r}_s{N}"):
+        m = _ref_metrics(t)
+        ref.update({k: m for k in range(m["k_first"], m["k_last"] + 1)})
+    assert sorted(ref) == list(range(21)), f"r{r} s{N}: E09.06 draws {sorted(ref)}"
+    out, g1, g3, t_start = {"seed": N, "ft_seed": r, "off": prior["off"]}, [], [], time.time()
+    for k in range(21):
+        state = blobs["09"]["rng_in"] if k == 0 else np.random.RandomState(906000 + 1000 * r + 100 * N + k).get_state()
+        np.random.set_state(state)
+        with contextlib.redirect_stdout(io.StringIO()):
+            d, c3 = _draw_0909(view, yp, names, a.base, int(a.increment), prior)
+        m = ref[k]
+        g1.append(abs(d["t1_bf5_bal"] - m[f"d{k}_t1_bf_bal"]) < 1e-12 and abs(d["purity"] - m[f"d{k}_purity"]) < 1e-12
+                  and abs(d["J20"] - m[f"d{k}_J20"]) <= 1e-6 * m[f"d{k}_J20"])
+        g3.append(all(c3.values()))
+        out.update({f"d{k}_{key}": v for key, v in d.items()})
+    e604 = _ref_metrics(f"gc10_e06_04_r{r}_s{N}")
+    out.update(G1_ok=int(all(g1)), G2_ok=int(prior["off"] == e604["off_lc"]), G3_ok=int(all(g3)))
+    out["checks_ok"] = int(out["G1_ok"] == out["G2_ok"] == out["G3_ok"] == 1)
+    print(f"e0909: 21 draws in {time.time() - t_start:.0f} s | G1 {sum(g1)}/21 | G2 off {prior['off']} vs off_lc "
+          f"{e604['off_lc']} | G3 {sum(g3)}/21", flush=True)
+    return out
+
+
+def e0909_summary(T=0.0273):
+    """Decision table of E09.09 from the 25 runs gc10_e09_09_r<r>_s<N>: Delta_r (bf0 - bf5, tier 1, mean over 5
+    snapshots x 21 draws), the retention of rolled_pit (own cluster, best >= 0.5, at bf0 among the draws where it has
+    one at K' = 20), the pre-registered rule on r3, r4; r0-r2 report only (not clean). Refuses to read failed runs."""
+    rows = {}
+    for r in range(5):
+        ms = []
+        for N in range(5):
+            f = sorted((ROOT / "runs").glob(f"*__gc10_e09_09_r{r}_s{N}/metrics.json"))
+            if len(f) != 1:
+                break
+            m = json.loads(f[0].read_text())
+            assert m["checks_ok"] == 1, f"r{r} s{N}: gates failed, results are not read"
+            ms.append(m)
+        if len(ms) < 5:
+            print(f"r{r}: {len(ms)}/5 runs, skipped")
+            continue
+        g = lambda key: np.array([[m[f"d{k}_{key}"] for k in range(21)] for m in ms], dtype=float)   # 5 x 21
+        own20, own0 = g("t1_k20_best_rolled") >= 0.5, g("t1_bf0_best_rolled") >= 0.5
+        row = {"D": (g("t1_bf0_bal") - g("t1_bf5_bal")).mean(1).mean(),
+               "D_lo": (g("t1_bf0_lo_bal") - g("t1_bf5_bal")).mean(), "D_hi": (g("t1_bf0_hi_bal") - g("t1_bf5_bal")).mean(),
+               "bf5": g("t1_bf5_bal").mean(), "bf0": g("t1_bf0_bal").mean(), "k20": g("t1_k20_bal").mean(),
+               "K_med": float(np.median(g("K_bf0"))), "K_min": int(g("K_bf0").min()), "K_max": int(g("K_bf0").max()),
+               "K_lo_med": float(np.median(g("K_bf0_lo"))), "K_hi_med": float(np.median(g("K_bf0_hi"))),
+               "rolled_k20": int(own20.sum()), "rolled_kept": int((own20 & own0).sum()),
+               "rolled_bf5": int((g("t1_bf5_best_rolled") >= 0.5).sum()), "rolled_bf0": int(own0.sum()),
+               "crease_bf5": int((g("t1_bf5_best_crease") >= 0.5).sum()), "crease_bf0": int((g("t1_bf0_best_crease") >= 0.5).sum())}
+        for c in ("silk", "inclusion", "rolled", "crease", "waist"):
+            row[f"best_{c}"] = (g(f"t1_bf5_best_{c}").mean(), g(f"t1_bf0_best_{c}").mean())
+        rows[r] = row
+        clean = "decision" if r in (3, 4) else "report only, not clean"
+        print(f"r{r} ({clean}): Delta_r {row['D']:+.4f} (bf5 {row['bf5']:.4f}, bf0 {row['bf0']:.4f}, k20 {row['k20']:.4f}) | "
+              f"K_bf0 median {row['K_med']} [{row['K_min']}, {row['K_max']}] | rolled: own at K'=20 {row['rolled_k20']}/105, "
+              f"kept at bf0 {row['rolled_kept']}, own bf5 {row['rolled_bf5']} bf0 {row['rolled_bf0']} | crease own bf5 "
+              f"{row['crease_bf5']} bf0 {row['crease_bf0']}")
+        print("      best bf5 -> bf0: " + ", ".join(f"{c} {v[0]:.3f} -> {v[1]:.3f}" for c, v in
+                                                  ((c, row[f"best_{c}"]) for c in ("silk", "inclusion", "rolled", "crease", "waist"))))
+        print(f"      off x0.5: Delta {row['D_lo']:+.4f}, K median {row['K_lo_med']} | off x2: Delta {row['D_hi']:+.4f}, "
+              f"K median {row['K_hi_med']}")
+    if 3 in rows and 4 in rows:
+        d3, d4 = rows[3]["D"], rows[4]["D"]
+        den = rows[3]["rolled_k20"] + rows[4]["rolled_k20"]
+        keep = (rows[3]["rolled_kept"] + rows[4]["rolled_kept"]) / den if den else float("nan")
+        if (d3 + d4) / 2 <= 0:
+            dec = "DROP (LOẠI)"
+        elif den and d3 > 0 and d4 > 0 and keep >= 0.5:
+            dec = "ALIVE (SỐNG)"
+        else:
+            dec = "UNCLEAR (KHÔNG RÕ)"
+        print(f"\npre-registered rule (cff7c46, amended 594e34b): Delta_r3 {d3:+.4f}, Delta_r4 {d4:+.4f}, mean "
+              f"{(d3 + d4) / 2:+.4f}; rolled_pit retention on r3, r4 {keep:.3f} ({rows[3]['rolled_kept'] + rows[4]['rolled_kept']}"
+              f"/{den}; bf5 reference 0.015) -> {dec}")
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -983,7 +1131,7 @@ def main(argv):
     p.add_argument("--checks-only", action="store_true", help="e0604: print the checks C1-C3 only, no result")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -994,15 +1142,18 @@ def main(argv):
     if o.step == "e0906-summary":
         e0906_summary()
         return
+    if o.step == "e0909-summary":
+        e0909_summary()
+        return
     if o.step == "e0604":
         out = tier2_e0604(o.dataset, o.run, o.features, o.ft, o.seed, o.checks_only)
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
     out = tier1_03() if o.step == "03" else tier1_09(o.run, o.ks) if o.step == "09" else \
-        tier2_e0906(o.run, o.k_first, o.k_last) if o.step == "e0906" else tier2_e0907(o.run, o.k_first, o.k_last, o.m)
+        tier2_e0906(o.run, o.k_first, o.k_last) if o.step == "e0906" else tier1_e0909(o.run) if o.step == "e0909" else tier2_e0907(o.run, o.k_first, o.k_last, o.m)
     for key, v in out.items():
-        if o.step not in ("e0907", "e0906") or not re.match(r"[dp]\d+_", key):   # per-draw keys: metrics.json only
+        if o.step not in ("e0907", "e0906", "e0909") or not re.match(r"[dp]\d+_", key):   # per-draw keys: metrics.json only
             print(f"{key:30s} {v}")
     if os.environ.get("EXP_RUN_DIR"):
         (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
