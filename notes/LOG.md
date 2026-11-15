@@ -3549,3 +3549,83 @@ note:
 why: QD28: chuỗi CUB t5 đầu tiên của lab/sessions.py (commit 2 of 3), thử trước C1; metrics.json trùng 46/46 khoá của cub_km_evhung_det_ft_r0_s0
 result: S0_All 85.80 | S1_New 58.80 | final_All 67.76 | M_d 58.64 | M_f 6.79
 note:
+
+## 20261115_143739__sessions_c0_gc10
+why: QD28: C0 của lab/sessions.py trên 15 chuỗi GC10 gc10_v2_ft_r<r>_s<N>, 15/15 chuỗi đạt (c0_ok = 1)
+result: c0_r0_s0 1 | c0_r0_s1 1 | c0_r0_s2 1 | c0_r0_s3 1 | c0_r0_s4 1 | c0_r1_s0 1 | c0_r1_s1 1 | c0_r1_s2 1 | c0_r1_s3 1 | c0_r1_s4 1 | c0_r2_s0 1 | c0_r2_s1 1 | c0_r2_s2 1 | c0_r2_s3 1 | c0_r2_s4 1 | c0_ok 1
+note:
+
+## 20261115_152631__cub_chain_ft_r0_s1
+why: QD28: chuỗi CUB t5 cub_chain_ft_r0_s1 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r0_s1
+result: S0_All 85.66 | S1_New 60.21 | final_All 66.29 | M_d 56.15 | M_f 6.69
+note:
+
+## 20261115_154427__cub_chain_ft_r0_s2
+why: QD28: chuỗi CUB t5 cub_chain_ft_r0_s2 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r0_s2
+result: S0_All 86.14 | S1_New 58.98 | final_All 66.29 | M_d 56.19 | M_f 6.69
+note:
+
+## 20261115_160234__cub_chain_ft_r0_s3
+why: QD28: chuỗi CUB t5 cub_chain_ft_r0_s3 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r0_s3
+result: S0_All 86.04 | S1_New 64.08 | final_All 67.24 | M_d 57.75 | M_f 6.76
+note:
+
+## 20261115_162035__cub_chain_ft_r0_s4
+why: QD28: chuỗi CUB t5 cub_chain_ft_r0_s4 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r0_s4
+result: S0_All 85.63 | S1_New 59.51 | final_All 65.91 | M_d 55.67 | M_f 6.52
+note:
+
+## 20261115_163854__cub_chain_ft_r1_s0
+why: QD28: chuỗi CUB t5 cub_chain_ft_r1_s0 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r1_s0
+result: S0_All 85.90 | S1_New 58.98 | final_All 67.19 | M_d 59.29 | M_f 7.82
+note:
+
+## 20261115_165657__cub_chain_ft_r1_s1
+why: QD28: chuỗi CUB t5 cub_chain_ft_r1_s1 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r1_s1
+result: S0_All 85.87 | S1_New 58.80 | final_All 66.36 | M_d 56.54 | M_f 7.20
+note:
+
+## 20261115_171504__cub_chain_ft_r1_s2
+why: QD28: chuỗi CUB t5 cub_chain_ft_r1_s2 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r1_s2
+result: S0_All 86.04 | S1_New 60.21 | final_All 67.60 | M_d 58.51 | M_f 7.27
+note:
+
+## 20261115_173316__cub_chain_ft_r1_s3
+why: QD28: chuỗi CUB t5 cub_chain_ft_r1_s3 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r1_s3
+result: S0_All 86.31 | S1_New 62.68 | final_All 66.83 | M_d 57.10 | M_f 6.96
+note:
+
+## 20261115_175153__cub_chain_ft_r1_s4
+why: QD28: chuỗi CUB t5 cub_chain_ft_r1_s4 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r1_s4
+result: S0_All 85.93 | S1_New 63.73 | final_All 66.98 | M_d 57.85 | M_f 7.17
+note:
+
+## 20261115_181057__cub_chain_ft_r2_s0
+why: QD28: chuỗi CUB t5 cub_chain_ft_r2_s0 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r2_s0
+result: S0_All 85.49 | S1_New 57.57 | final_All 65.46 | M_d 54.80 | M_f 6.66
+note:
+
+## 20261115_182905__cub_chain_ft_r2_s1
+why: QD28: chuỗi CUB t5 cub_chain_ft_r2_s1 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r2_s1
+result: S0_All 85.42 | S1_New 57.22 | final_All 66.64 | M_d 56.60 | M_f 6.56
+note:
+
+## 20261115_184717__cub_chain_ft_r2_s2
+why: QD28: chuỗi CUB t5 cub_chain_ft_r2_s2 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r2_s2
+result: S0_All 85.42 | S1_New 51.23 | final_All 66.43 | M_d 56.56 | M_f 6.83
+note:
+
+## 20261115_190540__cub_chain_ft_r2_s3
+why: QD28: chuỗi cub_chain_ft_r2_s3 hỏng giữa chừng (CUDA_ERROR_UNKNOWN trong lượt F phiên 2, exit -6); thư mục đã xoá, chạy lại ở run sau cùng tag
+result: FAILED exit=-6
+note:
+
+## 20261115_192310__cub_chain_ft_r2_s3
+why: QD28: chuỗi CUB t5 cub_chain_ft_r2_s3 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r2_s3
+result: S0_All 85.49 | S1_New 56.51 | final_All 67.69 | M_d 58.20 | M_f 6.11
+note:
+
+## 20261115_194311__cub_chain_ft_r2_s4
+why: QD28: chuỗi CUB t5 cub_chain_ft_r2_s4 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r2_s4
+result: S0_All 85.22 | S1_New 59.15 | final_All 67.02 | M_d 57.26 | M_f 6.21
+note:
