@@ -145,8 +145,24 @@ if __name__ == '__main__':
 
     else:
 
-        # transfrom the dataset to have only 50 classes
-        finetune_dataset = train_dataset.filter(lambda x: x["labels"] < 100)
+        # FT_LABELED_IDX (D9): fine-tune only on the 2500 images that phase 2 treats as labeled (25 per base class,
+        # splits/cub_labeled_hf_idx.npy, scripts/make_labeled_idx_cub.py). Unset = upstream: all 2996 train images
+        # of the 100 base classes, also the old images of the online pool (leak of the D9 kind).
+        if os.environ.get("FT_FOLD", ""):
+            raise SystemExit("dino-cub200: FT_FOLD is not supported on CUB-200")
+        ft_idx = os.environ.get("FT_LABELED_IDX", "")
+        if ft_idx:
+            import hashlib
+            sel = np.load(ft_idx)
+            assert sel.shape == (2500,) and len(np.unique(sel)) == 2500, f"{ft_idx}: expected 2500 unique indices"
+            lab = np.array([idx[t] for t in nlabels[sel]])
+            assert np.array_equal(lab, np.repeat(np.arange(100), 25)), f"{ft_idx}: not 25 images of each class 0..99"
+            finetune_dataset = train_dataset.select(sel)
+            print(f"dino-cub200: fine-tune on {len(finetune_dataset)} imgs from {ft_idx} "
+                  f"(sha256 {hashlib.sha256(open(ft_idx, 'rb').read()).hexdigest()[:8]}, D9 fixed)")
+        else:
+            finetune_dataset = train_dataset.filter(lambda x: x["labels"] < 100)
+            print(f"dino-cub200: fine-tune on {len(finetune_dataset)} imgs (upstream filter, D9)")
 
         dino = finetune_dino(finetune_dataset, 200, model_name = args.model)
 
