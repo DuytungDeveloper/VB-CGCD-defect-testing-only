@@ -396,8 +396,8 @@ def cmd_check(argv):
     rd, fd = _run_dir(o.chain), _run_dir(o.ref)
     blobs = snapshots_sessions(o.chain)
     fresh_sessions(blobs)
+    st, views = load(o.chain, check=False)          # new_state before jax is imported (XLA_FLAGS)
     _device(blobs)
-    st, views = load(o.chain, check=False)
     a = st["args"]
     m, mr = json.loads((rd / "metrics.json").read_text()), json.loads((fd / "metrics.json").read_text())
     log = (fd / "console.log").read_text(errors="replace") if (fd / "console.log").exists() else ""
@@ -453,7 +453,8 @@ def cmd_check_hash(argv):
     args = types.SimpleNamespace(**blobs["04"]["meta"]["args"])
     n = N_SESSIONS[args.load_mode]
     h0 = session_hashes(args, n)
-    names, res = list(h0), [("hashes now = hashes of the snapshots", all(blobs[x]["hash"] == h0[x] for x in names if x in blobs))]
+    names = list(h0)
+    res = [("hashes now = hashes of the snapshots", all(blobs[x]["hash"] == h0[x] for x in names if x in blobs))]
     for k in ("06", "09", "12", "14"):
         key = f"replay.py:{DEFAULT[k]}"
         h1 = session_hashes(args, n, override={key: "fake"})
@@ -478,7 +479,6 @@ def rerun(run, name, rtol=1e-6):
     The lut of a step 10 is made cumulative as in run_session. Writes nothing. Returns ({key: new value}, ok)."""
     blobs = snapshots_sessions(run)
     fresh_sessions(blobs)
-    _device(blobs)
     args = types.SimpleNamespace(**blobs["04"]["meta"]["args"])
     names = list(S0_STEPS) + [f"S{i}_{k}" for i in range(1, N_SESSIONS[args.load_mode] + 1) for k in S_STEPS]
     assert name in names, f"rerun: {name!r} is not one of {names}"
@@ -491,8 +491,10 @@ def rerun(run, name, rtol=1e-6):
         jax.random.PRNGKey(args.seed)
         out, sess = s04_sessions(st)
         new = {**out, "sessions": sess}
+        _device(blobs)
     else:
         st, views = load(run, names[names.index(name) - 1], check=False)
+        _device(blobs)                                           # after new_state (XLA_FLAGS)
         np.random.set_state(blobs[name]["rng_in"])
         if name in S0_STEPS:
             _step(st, name)
