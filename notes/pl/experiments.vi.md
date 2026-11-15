@@ -31,7 +31,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.08: VB-GMM cho phiên không nhãn, biến thể `09e-vbgmm` (trải 09–13): trách nhiệm mềm thay lượt F, bộ lọc (D12), lượt S và luật dừng (D14); khởi tạo từ `09a` + `09b`, A3 của E06.04 là mô hình lớp cũ (đề xuất 2026-11-05; chưa tiền đăng ký) — QD27, QD28; Kết quả của E06.04, E09.06
 - E09.09: dừng phép gộp của `09b` khi log Bayes factor lớn nhất không còn dương (k tự do, không dưới 5), biến thể `09f-merge-stop`, tầng 1, GC10 (2026-11-14; xong: KHÔNG RÕ, Δ ≈ 0; rolled_pit giữ được cụm con ở 98% số lần; rất nhạy với off) — Q09.14; mục E09.09 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
-- E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (tiền đăng ký 2026-11-14; chưa chạy) — mục E11.01 dưới đây
+- E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
 - E14.01: đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
 
@@ -707,3 +707,29 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - Mỗi chuỗi chỉ 4 lần rút. Ngưỡng 4/5 FT seed và 1.48 ảnh là ngưỡng tự đặt.
   - Chỉ ép một chiều (`var` theo bước dừng của `def`).
   - Hiệu `var` − `def` của phần mất ở bước 11–14 chỉ là 0.044 / 0.014 / 0.047 trên r0 / r1 / r2 (tính tay từ E09.06, Ghi chú 2026-11-14), cùng cỡ với T = 0.0273; vì vậy quy tắc dùng mức của từng nhánh, không dùng hiệu.
+
+### Kết quả (2026-11-15; run `gc10_e11_01_r0_s0`–`gc10_e11_01_r4_s4`, code `a4f9578` + `d21273a`, commit run `e787ebe`; số in bằng `python lab/score.py e1101-summary`; 25/25 run qua G1–G4, không lần rút nào thiếu nhánh `var@def`)
+
+- Q11.01: trên nhánh `var`, L_F ≥ L_S ở 4/5 FT seed → LƯỢT F. Nhánh `def` cũng 4/5.
+- Theo FT seed (r0 / r1 / r2 / r3 / r4):
+  - `var`: L_F 0.0597 / 0.0677 / 0.0490 / 0.0636 / 0.0621; L_S 0.0485 / 0.0528 / 0.0550 / 0.0436 / 0.0595.
+  - `def`: L_F 0.0339 / 0.0762 / 0.0228 / 0.0558 / 0.0444; L_S 0.0325 / 0.0191 / 0.0221 / 0.0203 / 0.0452.
+  - L_F − L_S của `var` (tính tay): +0.011 / +0.015 / −0.006 / +0.020 / +0.003.
+- Hiệu `var` − `def`, trung bình 5 FT seed: L_F +0.0138, L_S +0.0240.
+- Bộ lọc, trung bình mỗi lần rút, `var` / `def`: ảnh lớp mới được giữ và mang đúng tên 316.25 / 299.10 (r0), 325.05 / 283.90 (r1), 324.00 / 285.45 (r2), 295.60 / 207.70 (r3), 279.70 / 235.00 (r4); ảnh cũ không bị loại 7.85 / 6.30, 7.95 / 7.90, 10.50 / 6.85, 9.10 / 6.00, 9.45 / 7.30.
+- Q07.04: D_old = +0.670 ảnh (B = 1.48 ảnh) → BƯỚC DỪNG GIẢI THÍCH. Theo FT seed: +0.25 / +0.50 / +0.05 / −0.70 / +3.25.
+- Báo kèm: old14 `var` − `def` khi dừng tự nhiên −0.740 ảnh; giá của việc dời bước dừng với lớp mới (bal14 `var` − `var@def`) +0.0127.
+- Bước dừng lượt S trung bình, `def` / `var`: 582.00 / 603.2, 520.95 / 565.8, 496.15 / 558.5, 532.25 / 616.8, 537.10 / 570.9.
+- Dự đoán của Claude (LƯỢT F khoảng 45%, BƯỚC DỪNG GIẢI THÍCH khoảng 60%): cả hai trúng.
+
+### Kết luận
+
+- LƯỢT F theo quy tắc, nhưng sát nút: r4 chỉ hơn 0.003, r2 ngược dấu; đổi r4 là ra CẢ HAI. Đọc đúng: hai khâu mất ngang cỡ nhau, lượt F nhỉnh hơn.
+- Câu gốc của Q11.01 (vì sao bước 11–14 làm cụm đã gộp mất nhiều hơn) nghiêng về bộ lọc và lượt S: phần mất thêm so với `def` là +0.024 ở L_S, so với +0.014 ở L_F. Quy tắc dùng mức của từng nhánh nên kết luận chính không phản ánh điều này.
+- Bộ lọc của `var` giữ nhiều hơn ở cả hai chiều: thêm khoảng 17–88 ảnh mới mang đúng tên, và thêm khoảng 0–4 ảnh cũ lọt qua mỗi lần rút (tính tay từ các dòng trên). [SUY LUẬN] Cụm đã gộp rộng hơn nên ranh giới chấp nhận của bộ lọc rộng hơn; là một ứng viên giải thích L_S lớn hơn, chưa kiểm.
+- Lớp cũ mất ở `09a` + `09b` đi qua bước dừng: dừng muộn hơn khoảng 49 bước (tính tay), giữ ít hơn 0.74 ảnh cũ; ép dừng ở bước của `def` lấy lại 1.41 ảnh cũ (tính tay) và mất 0.013 balanced novel. r4 lệch xu hướng (+3.25 ảnh) và đẩy trung bình lên.
+- Hệ quả cho E09.08:
+  - câu 3: trách nhiệm mềm thay trước hết việc khớp một Gaussian cho mỗi cụm trên cả pool (lượt F), theo hệ quả đã chốt; vì hai điểm trên, thiết kế cũng phải xử lý bộ lọc, không coi là phụ;
+  - câu 4: luật dừng là núm đánh đổi cũ/mới thật; E09.08 so các nhánh ở cùng mức ảnh cũ.
+- Không chạy mở rộng (1) và (2): điều kiện của chúng (CẢ HAI; BỘ LỌC VÀ LƯỢT S) không xảy ra.
+- Giới hạn: phép đo mô tả trên r0–r4 (đã dùng để chọn phương pháp), 4 lần rút mỗi chuỗi; cột 11 là phản thực tế, không phải đầu ra của pipeline.
