@@ -402,7 +402,12 @@ def cmd_check(argv):
     m, mr = json.loads((rd / "metrics.json").read_text()), json.loads((fd / "metrics.json").read_text())
     log = (fd / "console.log").read_text(errors="replace") if (fd / "console.log").exists() else ""
     find = lambda pat: (lambda r: r.groups() if r else None)(re.search(pat, log))
-    sm = fd / "artifacts" / "saved_models"
+    sm = fd / "artifacts" / "saved_models"                     # where replay.py check looks (GC10)
+    if not sm.is_dir():                                      # main.py: logs/<trail_name>_<time>/saved_models
+        found = sorted((ROOT / "logs").glob(f"{fd.name}_*/saved_models"))
+        assert len(found) <= 1, f"{len(found)} folders logs/{fd.name}_*/saved_models"
+        sm = found[0] if found else sm
+    print(f"  saved models of the baseline: {sm if sm.is_dir() else 'not found'}")
 
     def close(arr, f):
         ref = np.load(f) if f.exists() else None
