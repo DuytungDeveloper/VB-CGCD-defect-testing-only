@@ -52,7 +52,6 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 
 - Q07.03 [mở] Tắt dừng sớm thì khám phá lớp mới có khá hơn không? Dừng sớm không kích hoạt trên NEU, kích hoạt giữa chừng trên GC10 fine-tune (D14). Biến thể dự kiến: `07a-no-early-stop`.
   - 2026-11-05 (`13-gauss-s` §3.2, `a4b9f7e`; nhìn trước một phần, một ảnh chụp): ở r0 s4, lượt F (không lọc, đủ 1000 bước) so với chính nó ở bước 525: balanced novel +2.0 điểm, S1_New +2.3, S1_Old −3.7 (9 ảnh test cũ). Tiền đăng ký `07a-no-early-stop` phải ghi đã thấy các số này.
-- Q07.04 [mở] Lớp cũ mất thêm ở nhánh `09a` + `09b` là do lượt S dừng muộn hơn, hay do chính phân hoạch? Ở r0, r1 hai nhánh giữ số ảnh test cũ như nhau khi cùng bước dừng; ở r2 bước dừng chỉ giải thích khoảng một nửa và hai nhánh không có vùng bước dừng chung. Cách kiểm: phản thực tế, chạy lượt S của phân hoạch `09a` + `09b` nhưng dừng ở bước của nhánh mặc định, trên một mẫu con các lần rút; đo cả phần lớp mới mất khi dời bước dừng. Nguồn: E09.06, Ghi chú 2026-11-14; `09b-overcluster-merge` (`cc4212c`) §4.
 
 ### 08 Bộ phân lớp
 
@@ -79,10 +78,6 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
   - 2026-11-01: E03.02: probe k-NN (k = 20, cosine) gần như không đọc được lớp hiếm (crease 0/11 ở cả 4 bộ, rolled_pit 1–2/6) dù probe tuyến tính đọc được. [SUY LUẬN] Phương pháp dựa trên láng giềng gần (phân cụm phổ trên kNN, HDBSCAN) cần được kiểm riêng cho lớp hiếm trước khi xếp hạng.
 - Q09.15 [mở] Gộp các cụm thừa về k lớp mà không dùng nhãn: có tiêu chí nào tách "hai mode của cùng một lớp" (silk, inclusion theo camera hoặc cuộn) khỏi "hai lớp khác nhau" (crease, rolled_pit) tốt hơn Bayes factor NIW không? Bayes factor coi các mode của inclusion khác nhau hơn crease so với rolled_pit. Ứng viên: tiên nghiệm Dirichlet trên trọng số thành phần (E09.08), đặc trưng đã khử camera/cuộn. Nguồn: E09.09, Kết luận; E09.06, Ghi chú 2026-11-14, §5.3.
 
-### 11 Lượt F
-
-- Q11.01 [mở] Vì sao các bước 11–14 lấy của nhánh `09a` + `09b` nhiều điểm hơn của nhánh mặc định, ở cả ba FT seed? Giả thuyết [SUY LUẬN]: cụm sau gộp là hợp của nhiều cụm con, một Gaussian mỗi cụm ở lượt F và lượt S khớp kém. Cần cột 11 của sổ mất điểm cho nhánh `09a` + `09b` (chưa có trong `metrics.json` của E09.06, phải chạy lại SVI) để tách lượt F khỏi bộ lọc và lượt S. Ảnh hưởng: E09.08 có nên giữ nhiều thành phần cho mỗi lớp không. Nguồn: E09.06, Ghi chú 2026-11-14; `09b-overcluster-merge` (`cc4212c`) §3.1.
-
 ### 12 Bộ lọc cũ/mới
 
 - Q12.01 [mở] Trên CIFAR, trong khoảng 4000 mẫu mỗi phiên bị lọc là "mới", bao nhiêu là dương tính giả, bao nhiêu âm tính giả?
@@ -90,6 +85,7 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
   - 2026-11-05 (`12-filter` §3.2, `c331526`): bộ lọc SVI quyết định bằng số hạng bậc hai q ở 98.4–100% ảnh pool; bộ lọc chỉ dùng ℓ (hướng của μ) lọt ×1.38 ảnh cũ và loại ×2.6 ảnh mới, nên giả thuyết "khuôn không mang vị trí nên lọc được" không được ủng hộ. Bộ lọc hiện tại đã loại 39–48/50 ảnh cũ; một bộ lọc mới chỉ còn chỗ ở 2–11 ảnh cũ lọt và 5–16 ảnh mới bị loại mỗi ảnh chụp.
 - Q12.03 [mở] Re-labeling đúng như paper (D12) có tốt hơn cách code hiện đang chỉ lọc không?
   - 2026-11-05 (`12-filter` §2.1, `c331526`; không dùng nhãn thật): bộ phân lớp của lượt F trùng id cụm ở 89.6–92.6% pool; trong ảnh được giữ, chỉ 7–21 ảnh nằm ở khe mới khác. Re-labeling của paper (Algorithm 1 dòng 34–39) đổi ít nhãn lớp mới; khác biệt chính là 46–61 ảnh bị loại mà paper gán cho lớp cũ (D12, ý b). Chưa chấm bằng nhãn thật (`lab/README.vi.md` §9): muốn chấm thì tiền đăng ký `12a-relabel` trước.
+- Q12.04 [mở] Vì sao bộ lọc trên cụm đã gộp (`09a` + `09b`) giữ thêm 17–88 ảnh mới mang đúng tên và 0–4 ảnh cũ mỗi lần rút, và phần mất ở bộ lọc cộng lượt S lớn hơn nhánh mặc định 0.024? Giả thuyết [SUY LUẬN]: cụm gộp rộng hơn nên ranh giới chấp nhận của bộ lọc rộng hơn. Cách kiểm: mở rộng (2) của E11.01 (bộ lọc dùng nhãn thật, tách phần do bộ lọc khỏi phần của lượt S); cần tiền đăng ký mới vì điều kiện của mở rộng (2) không xảy ra. Nguồn: E11.01 (`2596f28`).
 
 ### 14 Đánh giá
 
@@ -128,6 +124,8 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
   - Kết luận (2026-11-05): trên GC10 `ft`, giảm đơn điệu từ 1 ở cả lượt F và lượt S, nhanh nhất ở các cụm silk chặt, ngược chiều Hình 2b của paper; lượt F cắt ngưỡng S ở bước 541 và det cũ ở bước 740 (`13-gauss-s` §3.1, `a4b9f7e`).
 - Q07.02 [xong] `--scaling-factor 1.2` tác động vào đâu trong luật dừng (D14)?
   - Kết luận (2026-11-04): không tác động vào phép tính nào; `self.scaling_factor` chỉ được gán, `main.py` chỉ in và truyền cờ đi; hệ số của luật dừng tính từ số lớp (`07-early-stop` §2.1, `0d6d7ad`).
+- Q07.04 [xong] Lớp cũ mất thêm ở nhánh `09a` + `09b` là do lượt S dừng muộn hơn, hay do chính phân hoạch? Ở r0, r1 hai nhánh giữ số ảnh test cũ như nhau khi cùng bước dừng; ở r2 bước dừng chỉ giải thích khoảng một nửa và hai nhánh không có vùng bước dừng chung. Cách kiểm: phản thực tế, chạy lượt S của phân hoạch `09a` + `09b` nhưng dừng ở bước của nhánh mặc định, trên một mẫu con các lần rút; đo cả phần lớp mới mất khi dời bước dừng. Nguồn: E09.06, Ghi chú 2026-11-14; `09b-overcluster-merge` (`cc4212c`) §4.
+  - Kết luận (2026-11-15): bước dừng giải thích (E11.01, `2596f28`): ép lượt S của `09a` + `09b` dừng ở bước của nhánh mặc định cho D_old = +0.67 ảnh (< B = 1.48 ảnh). Dừng muộn khoảng 49 bước đổi 1.41 ảnh cũ lấy 0.013 balanced novel (tính tay); r4 lệch xu hướng (+3.25 ảnh). Luật dừng là núm đánh đổi cũ/mới; E09.08 so các nhánh ở cùng mức ảnh cũ.
 
 ### 08 Bộ phân lớp
 
@@ -165,6 +163,11 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - Q10.03 [xong] Cụm bám theo cuộn thép có co lại trên tập test không? GC10 chia train/test theo cuộn (không chung cuộn nào), và silk_spot có 420 ảnh pool từ 16 cuộn. Nếu k-means chia silk_spot theo cuộn (Q09.13), phần ảnh test lớp mới rơi vào cụm đó (`cluster.predict_raw(test1_x)`) sẽ nhỏ hơn phần ảnh pool lớp mới của cụm. Đo ở `10-naming`: tỷ lệ mỗi cụm trên 698 ảnh pool lớp mới so với trên 214 ảnh test lớp mới, kèm mức tập trung theo cuộn của cụm. Nếu đúng, đây là một nguồn chênh giữa tầng 1 và tầng 2 (Q14.04). Nguồn: QD26.
   - 2026-11-04 (`09d-ownership` §6, `abbc3af`): cụm con của silk là nhóm camera/cuộn (camera và cuộn giải thích 0.87–0.92 thành viên cụm trong silk); cách chia crease ở r1, r2 bám cuộn, không bám camera. Đo ở `10-naming` như trên.
   - Kết luận (2026-11-05): đúng với silk: phân bố ảnh silk qua 5 cụm khác giữa pool và test ở 15/15 ảnh chụp, và ô silk dồn vào ít cuộn co lại trên test (Spearman giữa số cuộn hiệu dụng và độ co +0.45 đến +0.77 theo FT seed); ở r0 s4 hai cụm silk mang tên rolled, crease đều từ một cuộn. inclusion chỉ dịch ở r1 và không theo cuộn (`10-naming` §5, `b2723cb`).
+
+### 11 Lượt F
+
+- Q11.01 [xong] Vì sao các bước 11–14 lấy của nhánh `09a` + `09b` nhiều điểm hơn của nhánh mặc định, ở cả ba FT seed? Giả thuyết [SUY LUẬN]: cụm sau gộp là hợp của nhiều cụm con, một Gaussian mỗi cụm ở lượt F và lượt S khớp kém. Cần cột 11 của sổ mất điểm cho nhánh `09a` + `09b` (chưa có trong `metrics.json` của E09.06, phải chạy lại SVI) để tách lượt F khỏi bộ lọc và lượt S. Ảnh hưởng: E09.08 có nên giữ nhiều thành phần cho mỗi lớp không. Nguồn: E09.06, Ghi chú 2026-11-14; `09b-overcluster-merge` (`cc4212c`) §3.1.
+  - Kết luận (2026-11-15): theo quy tắc là lượt F, nhưng sát nút: L_F ≥ L_S ở 4/5 FT seed, r4 chỉ hơn 0.003, r2 ngược dấu (E11.01, `2596f28`). Phần mất thêm so với nhánh mặc định lại nằm nhiều hơn ở bộ lọc và lượt S (+0.024, so với +0.014 ở lượt F), và bộ lọc của `09a` + `09b` giữ thêm cả ảnh mới đúng tên lẫn ảnh cũ. Giả thuyết "một Gaussian mỗi cụm khớp kém" chỉ được ủng hộ một phần. Câu tiếp: Q12.04.
 
 ### 14 Đánh giá
 
@@ -212,3 +215,4 @@ Mã theo bước; câu mới lấy số kế tiếp trong bước. Mã cũ: `not
 - 2026-11-13: đóng Q05.01 (cấu hình upstream tái lập số CUB của paper, `50d72f3`; D21 measured); thêm Q06.06 (cơ chế sụp của NEU d384).
 - 2026-11-14: `09b-overcluster-merge` (`cc4212c`), B13: thêm Q07.04 (bước dừng và lớp cũ), Q09.14 (dừng gộp theo dấu của log Bayes factor), Q11.01 (bước 11–14 trên cụm đã gộp); ghi chú Q09.02.
 - 2026-11-14: E09.09 (`150a2fd`): đóng Q09.14 (KHÔNG RÕ); thêm Q09.15 (gộp cụm thừa không dùng nhãn); ghi chú Q09.02.
+- 2026-11-15: E11.01 (`2596f28`): đóng Q07.04 (bước dừng giải thích), Q11.01 (lượt F, sát nút); thêm Q12.04 (bộ lọc trên cụm đã gộp).
