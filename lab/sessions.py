@@ -7,12 +7,18 @@ of the novel test set of session i. Only step 10 gets a wrapper: lut of session 
 session i, as to_cluster of main.py. chain, new_state and the step functions of lab/replay.py are not changed, so the
 snapshots of the GC10 chains do not go stale.
 
-Commands (commit 2 of 3):
+Commands (commit 3a; QD28 amended 2026-11-15):
   exp.py run TAG --inputs F -- python lab/sessions.py run --features F --seed S [--dataset gc10|cub200]
                                                default chain (gc10: t1, cub200: t5), snapshots in runs/<run>/snap
-  python lab/sessions.py c0 <gc10 v2 run>      C0: t1 through this runner equals every snapshot of a GC10 chain
-  load(run, upto) for notebooks.
-Variants (--from, --start, --at), rerun and the checks C1-C4 come in commit 3.
+  python lab/sessions.py c0 <gc10 v2 run>      C0 on one chain: t1 through this runner equals every snapshot
+  exp.py run TAG -- python lab/sessions.py check-gc10     C0 on the 15 chains gc10_v2_ft_r<r>_s<N>, metrics.json
+  python lab/sessions.py check <chain> <main.py run>       C1 (and C5) for one chain of this file
+  python lab/sessions.py check-hash <chain>                C4: code change of one step for every session
+  load(run, upto), rerun(run, name) for notebooks.
+Variants (--from, --start, --at), C2, C3 come in commit 3b, after the E09.08 design.
+The functions in the hash chain (new_state_sessions, s04_sessions, _step, run_s0, session_view, run_session, _pack,
+_unpack and the constants they read) are not changed after the first CUB chain (2026-11-15): changing them makes every
+snapshot of this file stale.
 
 Snapshots: 04.pkl ... 08.pkl, then S<i>_<NN>.pkl (i = 1..n, NN = 09-14). 04 also holds the sets of every session.
 params_f (S<i>_11) and params1 (S<i>_13) keep only the class slots that differ from params0 of the session (_pack);
@@ -190,20 +196,21 @@ def _sha(parts):
     return hashlib.sha256(json.dumps(parts, sort_keys=True, default=str).encode()).hexdigest()[:16]
 
 
-def session_hashes(args, n):
+def session_hashes(args, n, override=None):
     """{name: hash} for 04..08 and S<i>_09..S<i>_14, i = 1..n (QD28). h(04) covers the inputs of replay._base, s04_sessions
-    and the runner (chain, new_state and the functions of this file that run the steps)."""
+    and the runner (chain, new_state and the functions of this file that run the steps). override: replay._closure
+    override for the step functions (check-hash only)."""
     runner = [_closure(f) for f in (chain, new_state, new_state_sessions, run_s0, session_view, run_session, _pack)]
     out, prev = {}, ""
     for k in S0_STEPS:
-        items = [("s04_sessions", _closure(s04_sessions))] if k == "04" else [(DEFAULT[k], _closure(_fn(DEFAULT[k])))]
+        items = [("s04_sessions", _closure(s04_sessions))] if k == "04" else [(DEFAULT[k], _closure(_fn(DEFAULT[k]), override))]
         parts = {"prev": prev, "items": items, "files": {f: _file_hash(f) for f in FILES.get(k, ())}}
         if k == "04":
             parts.update(base=_base(args), runner=runner)
         prev = out[k] = _sha(parts)
     for i in range(1, n + 1):
         for k in S_STEPS:
-            parts = {"prev": prev, "session": f"S{i}", "items": [(DEFAULT[k], _closure(_fn(DEFAULT[k])))],
+            parts = {"prev": prev, "session": f"S{i}", "items": [(DEFAULT[k], _closure(_fn(DEFAULT[k]), override))],
                      "files": {f: _file_hash(f) for f in FILES.get(k, ())}}
             prev = out[f"S{i}_{k}"] = _sha(parts)
     return out
@@ -233,7 +240,8 @@ def fresh_sessions(blobs):
 
 def load(run, upto=None, check=True):
     """(st after 08, [view of session i]) of a run, up to snapshot `upto` (e.g. "08", "S3_12"; None = all), with a
-    fresh workbench. params_f and params1 are unpacked against params0 of their session."""
+    fresh workbench. params_f and params1 are unpacked against params0 of their session. st["sessions"] holds the
+    sets of every session (snapshot 04)."""
     blobs = snapshots_sessions(run)
     if check:
         fresh_sessions(blobs)
@@ -255,6 +263,7 @@ def load(run, upto=None, check=True):
         if k in PACKED:
             out[PACKED[k]] = _unpack(out[PACKED[k]], views[-1]["params0"])
         views[-1].update(out)
+    st["sessions"] = sess
     return st, views
 
 
@@ -310,15 +319,20 @@ def cmd_run(argv):
 
 
 def cmd_c0(argv):
-    """C0 (QD28): python lab/sessions.py c0 <gc10 v2 run>. Runs the args of the chain (t1) through this runner in
-    memory and compares every output key of every snapshot 04-14 with it, by the rule of replay.rerun (discrete equal,
-    floats within 1e-6 x max|value|, PCA and cluster models by _same). Also: z_pool, z_test1 of the session view equal
-    to the bit those of snapshot 05; the log of 09-14 (report only). Writes nothing."""
+    """C0 (QD28) on one chain: python lab/sessions.py c0 <gc10 v2 run>. Writes nothing."""
     p = argparse.ArgumentParser(prog="sessions.py c0")
     p.add_argument("run", help="run id or tag of a GC10 chain made by lab/replay.py run")
     o = p.parse_args(argv)
+    return c0(o.run)
+
+
+def c0(run):
+    """C0: runs the args of the chain (t1) through this runner in memory and compares every output key of every
+    snapshot 04-14 with it, by the rule of replay.rerun (discrete equal, floats within 1e-6 x max|value|, PCA and
+    cluster models by _same). Also: z_pool, z_test1 of the session view equal to the bit those of snapshot 05; the log
+    of 09-14 (report only). Returns True if every key passes."""
     assert Path("main.py").exists(), "run from the repo root (relative paths: splits/, features/)"
-    blobs = snapshots(o.run)
+    blobs = snapshots(run)
     _fresh(blobs)
     args = types.SimpleNamespace(**blobs["04"]["meta"]["args"])
     assert args.load_mode == "t1" and args.dataset == "gc10", "C0 runs on the t1 chains of GC10"
@@ -335,7 +349,7 @@ def cmd_c0(argv):
     for key in ("z_pool", "z_test1"):
         kind, d, ok = _compare(view[key], blobs["05"]["out"][key], 0.0)
         rows.append(("view", key, kind, d, ok))
-    print(f"\nC0 {o.run} | device {device} | {time.time() - t0:.0f} s")
+    print(f"\nC0 {run} | device {device} | {time.time() - t0:.0f} s")
     for k, key, kind, d, ok in rows:
         print(f"  {'OK  ' if ok else 'DIFF'} {k:4s} {key:16s} {kind:22s} max|diff| {d:.3g}")
     same_log = logs[0] == "".join(blobs[k]["log"] for k in S_STEPS)
@@ -345,7 +359,171 @@ def cmd_c0(argv):
     return ok
 
 
-COMMANDS = {"run": cmd_run, "c0": cmd_c0}
+def cmd_check_gc10(argv):
+    """C0 on the 15 chains gc10_v2_ft_r<r>_s<N> (r0-r2, s0-s4), through scripts/exp.py:
+    python lab/sessions.py check-gc10. metrics.json: c0_r<r>_s<N> (1 = every key passes), c0_ok (all 15)."""
+    if not os.environ.get("EXP_RUN_DIR"):
+        sys.exit("sessions check-gc10: run it through scripts/exp.py (metrics.json goes to the run folder)")
+    if _git()["dirty"]:
+        sys.exit("sessions check-gc10: commit the code first (same dirty rule as scripts/exp.py)")
+    out = {}
+    for r in range(3):
+        for N in range(5):
+            out[f"c0_r{r}_s{N}"] = int(c0(f"gc10_v2_ft_r{r}_s{N}"))
+    out["c0_ok"] = int(all(v == 1 for v in out.values()))
+    print("\n" + "\n".join(f"{k:12s} {v}" for k, v in out.items()))
+    (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
+    return out["c0_ok"] == 1
+
+
+def cmd_check(argv):
+    """C1 and C5 (QD28) for one chain of this file against its main.py baseline (deterministic mode):
+    python lab/sessions.py check <chain> <main.py run>. Writes nothing.
+    C1, for every session i: metrics.json of the two runs equal (tables S0-S5, cluster sizes, kept, stop steps, M_d,
+    M_f); pi_test, the pool and test contingency tables and the confusion matrix equal the "hungarian / xtab /
+    confusion stage i" lines of the baseline log; inertia within 1e-6 (relative); params1 of session i, and params0,
+    within 1e-6 x max|value| of the stage<i> arrays the baseline saved. C5: the class slots kept in S<i>_11 and S<i>_13
+    (_pack: the slots that differ from params0 of the session) all lie in [offset, offset + increment), so the slots of
+    earlier classes keep their values to the bit and the slots not seen yet keep their S0 values."""
+    import re, ast
+    from sklearn.metrics.cluster import contingency_matrix
+    from replay import _confusion
+    p = argparse.ArgumentParser(prog="sessions.py check")
+    p.add_argument("chain", help="run id or tag of a chain of lab/sessions.py run")
+    p.add_argument("ref", help="run id or tag of the main.py baseline")
+    o = p.parse_args(argv)
+    assert Path("main.py").exists(), "run from the repo root (relative paths: splits/, features/)"
+    rd, fd = _run_dir(o.chain), _run_dir(o.ref)
+    blobs = snapshots_sessions(o.chain)
+    fresh_sessions(blobs)
+    _device(blobs)
+    st, views = load(o.chain, check=False)
+    a = st["args"]
+    m, mr = json.loads((rd / "metrics.json").read_text()), json.loads((fd / "metrics.json").read_text())
+    log = (fd / "console.log").read_text(errors="replace") if (fd / "console.log").exists() else ""
+    find = lambda pat: (lambda r: r.groups() if r else None)(re.search(pat, log))
+    sm = fd / "artifacts" / "saved_models"
+
+    def close(arr, f):
+        ref = np.load(f) if f.exists() else None
+        return bool(np.abs(np.asarray(arr).astype(np.float64) - ref).max() <= 1e-6 * np.abs(ref).max()) if ref is not None else None
+
+    res = [("metrics.json (all sessions)", m == mr)]
+    for f, k in (("class_means", "class_means"), ("class_covariances", "class_covs")):
+        res.append((f"S0 params0 {k}", close(st["params0"][k], sm / f"stage0{f}.npy")))
+    for i, v in enumerate(views, 1):
+        off, inc = v["offset"], a.increment
+        y, yt = np.asarray(v["true_pool_y"]).astype(int), np.asarray(v["true_test1_y"]).astype(int)
+        pi = find(rf"hungarian stage {i}: mode=eval pi_test=(\{{[^}}]*\}})")
+        res.append((f"S{i} pi_test", ast.literal_eval(pi[0]) == v["pi_test"] if pi else None))
+        for name, yy, cc in (("train", y, np.asarray(v["ids"])), ("test", yt, np.asarray(v["cluster"].predict_raw(v["test1_x"])))):
+            x = find(rf"xtab stage {i} {name}: rows=(\[[^\]]*\]) cols=(\[[^\]]*\]) (\[\[.*\]\])")
+            res.append((f"S{i} contingency {name}", [np.unique(yy).tolist(), np.unique(cc).tolist(),
+                        contingency_matrix(yy, cc).tolist()] == [ast.literal_eval(t) for t in x] if x else None))
+        it = find(rf"xtab stage {i} objective: inertia=(\S+)")
+        res.append((f"S{i} inertia (relative < 1e-6)", abs(v["inertia"] - float(it[0])) / float(it[0]) < 1e-6 if it else None))
+        c = find(rf"confusion stage {i}: rows=true cols=pred (\[\[.*\]\])")
+        res.append((f"S{i} confusion", _confusion(v).tolist() == ast.literal_eval(c[0]) if c else None))
+        res.append((f"S{i} kept", int(np.asarray(v["keep"]).sum()) == mr.get(f"S{i}_novel_kept")))
+        for f, k in (("class_means", "class_means"), ("class_covariances", "class_covs")):
+            res.append((f"S{i} params1 {k}", close(v["params1"][k], sm / f"stage{i}{f}.npy")))
+        slots = [s for nm in (f"S{i}_11", f"S{i}_13") for val in blobs[nm]["out"][PACKED[nm[-2:]]].values()
+                 if isinstance(val, dict) for s in np.asarray(val["__slots__"]).tolist()]
+        res.append((f"S{i} C5 changed slots in [{off}, {off + inc})", bool(slots) and all(off <= s < off + inc for s in slots)))
+    for name, ok in res:
+        print(f"  {'OK  ' if ok else 'n/a ' if ok is None else 'DIFF'} {name}")
+    if m != mr:
+        print("  metrics differ:", {k: (m.get(k), mr.get(k)) for k in set(m) | set(mr) if m.get(k) != mr.get(k)})
+    verdict = "DIFF" if any(ok is False for _, ok in res) else "INCOMPLETE" if any(ok is None for _, ok in res) else "OK"
+    print(f"C1 {verdict}: {rd.name} = {fd.name} ({sum(ok is True for _, ok in res)}/{len(res)})")
+    return verdict == "OK"
+
+
+def cmd_check_hash(argv):
+    """C4 (QD28), the part for a code change of one step applied to every session (variants for one session: 3b):
+    python lab/sessions.py check-hash <chain>. For steps 06, 09, 12, 14: a fake change of the code of the step (in
+    memory, through the override of replay._closure) must leave every hash before it unchanged and change every hash
+    from it on (from S1_k for a session step). A change of a docstring must change no hash. Writes nothing."""
+    import inspect
+    from replay import _src_hash
+    p = argparse.ArgumentParser(prog="sessions.py check-hash")
+    p.add_argument("chain", help="run id or tag of a chain of lab/sessions.py run")
+    o = p.parse_args(argv)
+    blobs = snapshots_sessions(o.chain)
+    args = types.SimpleNamespace(**blobs["04"]["meta"]["args"])
+    n = N_SESSIONS[args.load_mode]
+    h0 = session_hashes(args, n)
+    names, res = list(h0), [("hashes now = hashes of the snapshots", all(blobs[x]["hash"] == h0[x] for x in names if x in blobs))]
+    for k in ("06", "09", "12", "14"):
+        key = f"replay.py:{DEFAULT[k]}"
+        h1 = session_hashes(args, n, override={key: "fake"})
+        first = names.index(k if k in S0_STEPS else f"S1_{k}")
+        ok = all(h1[x] == h0[x] for x in names[:first]) and all(h1[x] != h0[x] for x in names[first:])
+        res.append((f"fake change of {DEFAULT[k]}: unchanged before {names[first]}, changed from it on", ok))
+    from replay import s12_filter
+    src = inspect.getsource(s12_filter)
+    doc = s12_filter.__doc__
+    res.append(("docstring change of s12_filter: same source hash", _src_hash(src) == _src_hash(src.replace(doc, doc + " (changed)", 1))))
+    for name, ok in res:
+        print(f"  {'OK  ' if ok else 'DIFF'} {name}")
+    ok = all(r[1] for r in res)
+    print(f"C4 {'OK' if ok else 'DIFF'} (part for one step in every session; one-session variants in 3b)")
+    return ok
+
+
+def rerun(run, name, rtol=1e-6):
+    """Notebooks: run snapshot `name` (e.g. "06", "S3_11") again from the snapshot before it, with the global RNG set
+    to its rng_in, and compare each output key with it by the rule of replay.rerun (discrete equal, floats within
+    rtol x max|value|, PCA and cluster models by _same). Step 04 runs from a fresh state with the seeds of main.py.
+    The lut of a step 10 is made cumulative as in run_session. Writes nothing. Returns ({key: new value}, ok)."""
+    blobs = snapshots_sessions(run)
+    fresh_sessions(blobs)
+    _device(blobs)
+    args = types.SimpleNamespace(**blobs["04"]["meta"]["args"])
+    names = list(S0_STEPS) + [f"S{i}_{k}" for i in range(1, N_SESSIONS[args.load_mode] + 1) for k in S_STEPS]
+    assert name in names, f"rerun: {name!r} is not one of {names}"
+    ref = dict(blobs[name]["out"])
+    if name == "04":
+        st = new_state_sessions(args)
+        import torch, jax
+        torch.manual_seed(args.seed)
+        np.random.seed(args.seed)
+        jax.random.PRNGKey(args.seed)
+        out, sess = s04_sessions(st)
+        new = {**out, "sessions": sess}
+    else:
+        st, views = load(run, names[names.index(name) - 1], check=False)
+        np.random.set_state(blobs[name]["rng_in"])
+        if name in S0_STEPS:
+            _step(st, name)
+            new = {x: st[x] for x in OWNS[name]}
+        else:
+            i, k = int(name[1:name.index("_")]), name[-2:]
+            if k == "09":
+                views.append(session_view(st, st["sessions"], i, views[-1] if views else None))
+            v = views[-1]
+            _step(v, k, live=k != "10")
+            if k == "10":                                            # as run_session (not shared: hash chain)
+                lut = views[-2]["lut"].copy() if len(views) > 1 else np.arange(args.num_classes)
+                for c, t in v["pi_test"].items():
+                    lut[v["offset"] + t] = v["offset"] + c
+                v["lut"] = lut
+            new = {x: v[x] for x in OWNS[k]}
+            if k in PACKED:
+                ref[PACKED[k]] = _unpack(ref[PACKED[k]], v["params0"])
+    rows = []
+    for key, r in ref.items():
+        kind, d, ok = _compare(new[key], r, rtol) if key != "sessions" else \
+            ("sessions", float("nan"), all(_compare(x[q], y[q], 0.0)[2] for x, y in zip(new[key], r) for q in y))
+        rows.append((key, kind, d, ok))
+    for key, kind, d, ok in rows:
+        print(f"  {'OK  ' if ok else 'DIFF'} {key:12s} {kind:22s} max|diff| {d:.3g}")
+    ok = all(r[3] for r in rows)
+    print(f"rerun {name}: {'OK' if ok else 'DIFF'} ({sum(r[3] for r in rows)}/{len(rows)} keys)")
+    return new, ok
+
+
+COMMANDS = {"run": cmd_run, "c0": cmd_c0, "check-gc10": cmd_check_gc10, "check": cmd_check, "check-hash": cmd_check_hash}
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
