@@ -3629,3 +3629,18 @@ note:
 why: QD28: chuỗi CUB t5 cub_chain_ft_r2_s4 của lab/sessions.py (commit 3a); C1 OK 48/48 so với cub_km_evhung_det_ft_r2_s4
 result: S0_All 85.22 | S1_New 59.15 | final_All 67.02 | M_d 57.26 | M_f 6.21
 note:
+
+## 20261116_005649__cub_ft_l25_r0
+why: QD28/D9: phase 1 CUB không rò, FT seed 0: fine-tune trên 2500 ảnh có nhãn (FT_LABELED_IDX=splits/cub_labeled_hf_idx.npy, sha256 6dbb1939; bản cũ cub_ft_up_r0 dùng 2996 ảnh); BOFT factor 1 (221,184), HF offline cache 3467deb4
+result: (no metrics.json)
+note:
+
+## 20261116_011514__cub_ft_l25_r1
+why: QD28/D9: phase 1 CUB không rò, FT seed 1: fine-tune trên 2500 ảnh có nhãn (FT_LABELED_IDX=splits/cub_labeled_hf_idx.npy, sha256 6dbb1939; bản cũ cub_ft_up_r1 dùng 2996 ảnh); BOFT factor 1 (221,184), HF offline cache 3467deb4
+result: (no metrics.json)
+note:
+
+## 20261116_013341__cub_ft_l25_r2
+why: QD28/D9: phase 1 CUB không rò, FT seed 2: fine-tune trên 2500 ảnh có nhãn (FT_LABELED_IDX=splits/cub_labeled_hf_idx.npy, sha256 6dbb1939; bản cũ cub_ft_up_r2 dùng 2996 ảnh); BOFT factor 1 (221,184), HF offline cache 3467deb4
+result: (no metrics.json)
+note:
