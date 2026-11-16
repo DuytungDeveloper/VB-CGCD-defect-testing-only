@@ -76,6 +76,21 @@ measured: c100_extract_base400 (FT_SEED 42, ONE phase-1 run) + c100_km_evhung_ba
         Not conclusive: difference of two single phase-1 runs, sigma ~ sqrt(2) x 0.11 = 0.16 (D19), z ~ 2;
         seed 1 alone has a balanced S1 clustering (max_min 2.75, S1_New 82.80); without it +0.24.
         Confounded with 20% fewer fine-tuning steps (156 vs 196 per epoch). Not replicated (2026-09-30).
+CUB-200 (2026-11-16):
+code:   dino-cub200.py, 'x["labels"] < 100': all 2996 train images of the 100 base classes. CL loader:
+        dataloaders/cub200.py num_labeled=2500 keeps 25/class; the other 496 go to the unlabeled pool.
+status: FIXED 2026-11-16 (4b36e47), opt-in: FT_LABELED_IDX=splits/cub_labeled_hf_idx.npy (sha256 6dbb1939;
+        fine-tune on the 2500 labeled images only; unset = upstream 2996). Verified: with FT_EPOCHS=0 the
+        four .npy files of the old code, of the new code with the variable unset and of the new code with
+        it set are bitwise equal (num_rows 2996 / 2996 / 2500); the phase-1 logs of cub_ft_l25_r0-r2
+        print "fine-tune on 2500 imgs".
+measured: 15 default chains of lab/sessions.py per feature set (3 FT seeds x 5 seeds; C1 OK on both),
+        cub_chain_ft_l25 minus cub_chain_ft (python lab/score.py cub-tb, 6d75629): M_d -0.197,
+        S5_S0test -0.542, S5_All -0.399, S5_Old -0.235, M_f +0.183. SD of the 3 FT-seed means, leaky and
+        leak-free: M_d 0.629 and 0.367, S5_S0test 0.219 and 0.249.
+        This is the difference of two feature sets, not the leak size: confounded with 17% fewer
+        fine-tuning images; FT seeds are not paired, n = 3 per side, no test. M_d is within the FT-seed
+        spread; S5_S0test is lower in all three FT seeds (78.621, 78.443, 78.129 vs 79.160, 78.723, 78.935).
 
 ## D10. PCA fit data: not stated in paper, code fits once on S0 labeled train features
 paper:  Appendix C.3: PCA reduces output features to 384 dims. Does not say which data PCA is fit on.
@@ -236,6 +251,10 @@ impact: changing --batch-size at extraction silently changes which images phase 
         labeled. Keep 128. splits/c100_labeled_hf_idx.npy stores the 20000 HF indices so that
         phase 1 can be restricted to exactly that set (the D9 fix), and the folds in
         feature_extractor/ft_data.py are defined on the same index order.
+CUB-200 (2026-11-16): 47 shards; hf[P] equals the merged labels of every checked feature folder. The
+        labeled set (2500 HF indices, splits/cub_labeled_hf_idx.npy) overlaps the naive "first 25 per
+        class in HF order" in only 2183 of 2500 cases. 2 duplicate feature rows; no duplicate group
+        straddles the labeled / unlabeled cut (scripts/make_labeled_idx_cub.py, checks 1-3).
 
 ## D18. Clustering runs once (n_init=1); restarts matter more than the algorithm
 paper:  Appendix C.3 says standard k-means. Sec 3.2.1 / Alg. 1 only say "clustering".
