@@ -16,6 +16,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py cub-tb                                         CUB t5: T, B of QD28 from the default chains
   python lab/score.py e1401 --prefix cub_chain_ft[_l25] [--checks-only]   E14.01, the 15 chains of one feature set (exp.py)
   python lab/score.py e1401-summary                                  E14.01: table from the two runs
+  python lab/score.py e1402 --prefix cub_chain_ft[_l25] [--checks-only]   E14.02, the 15 chains of one feature set (exp.py)
+  python lab/score.py e1402-summary                                  E14.02: tables from the two runs
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -1482,9 +1484,170 @@ def e1401_summary(T=0.935, B=0.376):
     print("\ndescriptive (E14.01): the main quantity of QD28 stays M_d under P0; 09e is named by P1 and compared under P1")
 
 
+# ---- E14.02: CUB t5, forgetting per class cohort, loss ledger per session, error flows (pre-registered at 8e90cc8) ----
+def _hung_correct_1402(cluster_ids, class_ids, k):
+    """Largest number of images whose cluster is matched to their class, over the one-to-one maps of k clusters to k
+    classes (both ids in 0..k-1)."""
+    cm = np.zeros((k, k), dtype=np.int64)
+    np.add.at(cm, (np.asarray(class_ids).astype(int), np.asarray(cluster_ids).astype(int)), 1)
+    rows, cols = linear_sum_assignment(-cm)
+    return int(cm[rows, cols].sum())
+
+
+def _tables_1402(sess, base, inc):
+    """The three tables of E14.02 for one chain. sess[i-1] of session i: pred, pred_f (slot predicted by params1 and
+    by params_f for the test images of the session), y (their true class), lut (cumulative, P0), km_test and y_test1
+    (k-means cluster and true class of the novel test images), pi (pi_test: cluster -> class - offset), pool_ids and
+    y_pool (k-means cluster and true class of the pool images).
+    Keys (accuracies in %, flows as fractions): coh<c>_S<i>; S<i>_c09, _c10, _c11, _c14; S<i>_new_ok, _new_sess,
+    _new_disc, _new_base, _new_unseen; S<i>_old_ok, _old_sess, _old_other, _old_unseen.
+    Returns (keys, {G2, G3: bool})."""
+    out, g2, g3 = {}, True, True
+    for i, d in enumerate(sess, 1):
+        pred, pred_f, y, lut = (np.asarray(d[x]).astype(int) for x in ("pred", "pred_f", "y", "lut"))
+        off, seen = base + (i - 1) * inc, base + i * inc
+        ok, new = pred == lut[y], y >= off
+        cohort = np.where(y < base, 0, (y - base) // inc + 1)
+        n_coh = 0
+        for c in range(i + 1):
+            sel = cohort == c
+            assert sel.any(), f"session {i}: no test image of cohort {c}"
+            out[f"coh{c}_S{i}"] = 100.0 * float(ok[sel].mean())
+            n_coh += int(sel.sum())
+        g3 &= n_coh == len(y)
+        # ledger of the novel classes of the session
+        yp, ids = np.asarray(d["y_pool"]).astype(int), np.asarray(d["pool_ids"]).astype(int)
+        pn = yp >= off
+        out[f"S{i}_c09"] = 100.0 * _hung_correct_1402(ids[pn], yp[pn] - off, inc) / int(pn.sum())
+        km, y1 = np.asarray(d["km_test"]).astype(int), np.asarray(d["y_test1"]).astype(int)
+        assert len(y1) == int(new.sum()) and (y1 >= off).all(), f"session {i}: novel test set"
+        named = off + np.array([d["pi"][int(c)] for c in km])
+        n10 = int((named == y1).sum())
+        g2 &= n10 == _hung_correct_1402(km, y1 - off, inc)
+        out[f"S{i}_c10"] = 100.0 * n10 / len(y1)
+        out[f"S{i}_c11"] = 100.0 * float((pred_f == lut[y])[new].mean())
+        out[f"S{i}_c14"] = 100.0 * float(ok[new].mean())
+        # error flows of the final classifier
+        flows = {"new_ok": new & ok, "new_sess": new & ~ok & (pred >= off) & (pred < seen),
+                 "new_disc": new & (pred >= base) & (pred < off), "new_base": new & (pred < base),
+                 "new_unseen": new & (pred >= seen),
+                 "old_ok": ~new & ok, "old_sess": ~new & (pred >= off) & (pred < seen),
+                 "old_other": ~new & ~ok & (pred < off), "old_unseen": ~new & (pred >= seen)}
+        for side, n in (("new", int(new.sum())), ("old", int((~new).sum()))):
+            tot = 0
+            for name, sel in flows.items():
+                if name.startswith(side):
+                    out[f"S{i}_{name}"] = float(sel.sum()) / n
+                    tot += int(sel.sum())
+            g3 &= tot == n
+    return out, {"G2": g2, "G3": g3}
+
+
+def tier2_e1402(prefix, checks_only=False):
+    """E14.02 on the 15 default chains <prefix>_r<r>_s<N>: per session the predictions of params1 and params_f on the
+    test set (as tier2_e1401), the k-means clusters of the novel test images and of the pool, then _tables_1402.
+    Reads the true pool labels, for scoring c09 only. No SVI, no RNG.
+    Keys: r<r>_s<N>_<key of _tables_1402>, r<r>_s<N>_coh0_S0 (S0_All of metrics.json); G1_ok, G2_ok, G3_ok, checks_ok.
+    G1: All, Old, New recomputed from the cohorts and c14 equal acc1 of snapshot S<i>_14 (1e-6) and metrics.json
+    (0.006); coh0_S<i> equals S<i>_S0test. checks_only: chain r0 s0 only, no keys."""
+    from replay import _clf, _git
+    from sessions import load as load_sessions, _device
+    assert prefix in ("cub_chain_ft", "cub_chain_ft_l25"), "E14.02 is pre-registered on the two sets of CUB chains"
+    t0 = time.time()
+    if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
+        raise SystemExit("e1402: commit the code first (same dirty rule as scripts/exp.py)")
+    out, gates = {}, {"G1": True, "G2": True, "G3": True}
+    for r, N in ((0, 0),) if checks_only else [(r, N) for r in range(3) for N in range(5)]:
+        tag = f"{prefix}_r{r}_s{N}"
+        st, views = load_sessions(tag)                  # the workbench first: torch, main, then jax, as the chains
+        import jax.numpy as jnp
+        _device()
+        a, ref = st["args"], _ref_metrics(tag)
+        assert a.dataset == "cub200" and a.load_mode == "t5" and len(views) == 5 and a.seed == N, f"{tag}: not a CUB t5 chain of seed {N}"
+        sess = []
+        for i, v in enumerate(views, 1):
+            clf, off = _clf(v), v["offset"]
+            _component(v["predict"])(clf)
+            clf.label_offset, clf.n_seen = off, off + a.increment
+            z = jnp.array(clf.pca.transform(v["test_all_x"]))
+            pr, _ = clf._predict(z, _jnp(v["params1"]))
+            pf, _ = clf._predict(z, _jnp(v["params_f"]))
+            sess.append(dict(pred=np.asarray(pr), pred_f=np.asarray(pf), y=np.asarray(v["true_test_all_y"]).astype(int),
+                             lut=np.asarray(v["lut"]), km_test=np.asarray(v["cluster"].predict_raw(v["test1_x"])),
+                             y_test1=np.asarray(v["true_test1_y"]).astype(int), pi=v["pi_test"],
+                             pool_ids=np.asarray(v["ids"]), y_pool=np.asarray(v["true_pool_y"]).astype(int)))
+        res, g = _tables_1402(sess, a.base, a.increment)
+        ok1 = True
+        for i, (v, d) in enumerate(zip(views, sess), 1):
+            y, off = d["y"], v["offset"]
+            hit = d["pred"] == d["lut"][y]
+            mine = {"All": 100.0 * hit.mean(), "Old": 100.0 * hit[y < off].mean(), "Novel": res[f"S{i}_c14"], "S0": res[f"coh0_S{i}"]}
+            for snap_key, key in (("All", "All"), ("Old", "Old"), ("Novel", "New"), ("S0", "S0test")):
+                ok1 &= abs(mine[snap_key] - float(v["acc1"][snap_key])) <= 1e-6 and abs(mine[snap_key] - float(ref[f"S{i}_{key}"])) <= 0.006
+        res["coh0_S0"] = float(ref["S0_All"])
+        gates = {"G1": gates["G1"] and ok1, "G2": gates["G2"] and g["G2"], "G3": gates["G3"] and g["G3"]}
+        out.update({f"r{r}_s{N}_{k}": round(val, 4) for k, val in res.items()})
+        forget = np.mean([res[f"coh{c}_S{c}"] - res[f"coh{c}_S5"] for c in range(1, 5)])
+        print(f"e1402 {tag}: G1 {'OK' if ok1 else 'DIFF'} | G2 {'OK' if g['G2'] else 'DIFF'} | G3 {'OK' if g['G3'] else 'DIFF'}"
+              f" | mean over sessions: c09 {np.mean([res[f'S{i}_c09'] for i in range(1, 6)]):.2f}"
+              f" c10 {np.mean([res[f'S{i}_c10'] for i in range(1, 6)]):.2f} c11 {np.mean([res[f'S{i}_c11'] for i in range(1, 6)]):.2f}"
+              f" c14 {np.mean([res[f'S{i}_c14'] for i in range(1, 6)]):.2f} | forgetting of cohorts 1-4 {forget:+.2f}"
+              f" ({time.time() - t0:.0f} s)", flush=True)
+    chk = {f"{k}_ok": int(v) for k, v in gates.items()}
+    chk["checks_ok"] = int(all(gates.values()))
+    print(f"e1402 {prefix}: checks {'OK' if chk['checks_ok'] else 'FAILED'} ({time.time() - t0:.0f} s)")
+    return chk if checks_only else {**chk, **out}
+
+
+def e1402_summary(T=0.935, B=0.376):
+    """Tables of E14.02 from the runs cub_e14_02_ft and cub_e14_02_ft_l25. Every number is first the mean of the 5
+    chains of an FT seed; "mean" and "sd" are over the 3 FT seeds (sd with ddof 1). Descriptive: no pass/fail rule.
+    Refuses to read a run without checks_ok = 1."""
+    for tag in ("cub_e14_02_ft_l25", "cub_e14_02_ft"):
+        if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+            print(f"\n{tag}: no run yet")
+            continue
+        m = _ref_metrics(tag)
+        assert m.get("checks_ok") == 1, f"{tag}: checks failed, results are not read"
+        ft = lambda key: np.array([[m[f"r{r}_s{N}_{key}"] for N in range(5)] for r in range(3)]).mean(1)
+        line = lambda name, x: f"  {name:<22}" + "".join(f"{val:9.3f}" for val in x) + f"{x.mean():9.3f}{x.std(ddof=1):9.3f}"
+        head = f"  {'':<22}" + "".join(f"{x:>9}" for x in ("r0", "r1", "r2", "mean", "sd"))
+        print(f"\n{tag}: G1, G2, G3 OK")
+        print("  table 1: accuracy of cohort c (rows) after session i (columns), mean over the FT seeds")
+        print(f"  {'':<10}" + "".join(f"{'S' + str(i):>9}" for i in range(6)))
+        for c in range(6):
+            print(f"  {'cohort ' + str(c):<10}" + "".join(f"{ft(f'coh{c}_S{i}').mean():9.3f}" if i >= c else f"{'':>9}" for i in range(6)))
+        print("  forgetting = cell (c, c) - cell (c, 5)\n" + head)
+        fg = [ft(f"coh{c}_S{c}") - ft(f"coh{c}_S5") for c in range(5)]
+        for c in range(5):
+            print(line(f"cohort {c}", fg[c]))
+        f14 = np.mean(fg[1:], axis=0)
+        print(line("cohorts 1-4 (mean)", f14))
+        print("  table 2: ledger of the novel classes, mean over the FT seeds")
+        print(f"  {'':<10}" + "".join(f"{x:>9}" for x in ("c09", "c10", "c11", "c14", "L_10", "L_F", "L_S")))
+        col = {k: [ft(f"S{i}_{k}") for i in range(1, 6)] for k in ("c09", "c10", "c11", "c14")}
+        for i in range(5):
+            c9, c10, c11, c14 = (col[k][i].mean() for k in ("c09", "c10", "c11", "c14"))
+            print(f"  {'S' + str(i + 1):<10}" + "".join(f"{x:9.3f}" for x in (c9, c10, c11, c14, c10 - c14, c10 - c11, c11 - c14)))
+        avg = {k: np.mean(col[k], axis=0) for k in col}
+        print("  mean over the 5 sessions\n" + head)
+        for name, x in (("c09", avg["c09"]), ("c10", avg["c10"]), ("c11", avg["c11"]), ("c14 (= M_d)", avg["c14"]),
+                        ("L_10 = c10 - c14", avg["c10"] - avg["c14"]), ("L_F = c10 - c11", avg["c10"] - avg["c11"]),
+                        ("L_S = c11 - c14", avg["c11"] - avg["c14"]), ("c09 - c10", avg["c09"] - avg["c10"])):
+            print(line(name, x))
+        print("  table 3: error flows of the final classifier, fraction of the set, mean over the 5 sessions\n" + head)
+        for k in ("new_ok", "new_sess", "new_disc", "new_base", "new_unseen", "old_ok", "old_sess", "old_other", "old_unseen"):
+            print(line(k, np.mean([ft(f"S{i}_{k}") for i in range(1, 6)], axis=0)))
+        l10 = avg["c10"] - avg["c14"]
+        print(f"  readings fixed in advance: forgetting of cohorts 1-4 = {f14.mean():+.3f} (B = {B}): "
+              f"{'above B' if f14.mean() > B else 'below B'}; L_10 = {l10.mean():+.3f} (T = {T}): "
+              f"{'above T' if l10.mean() > T else 'not above T'}; c10 = {avg['c10'].mean():.3f}")
+    print("\ndescriptive (E14.02): tables under P0 (QD15); c10 knows which test images are novel; c11 is a counterfactual")
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -1495,10 +1658,10 @@ def main(argv):
     p.add_argument("--ft", type=int, help="e0604 cub200: FT seed of the features")
     p.add_argument("--seed", type=int, help="e0604 cub200: seed of the chain")
     p.add_argument("--checks-only", action="store_true", help="e0604: print the checks C1-C3 only, no result; e1401: chain r0 s0 only")
-    p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25"], help="e1401: tag prefix of the 15 chains")
+    p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25"], help="e1401, e1402: tag prefix of the 15 chains")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -1521,9 +1684,12 @@ def main(argv):
     if o.step == "e1401-summary":
         e1401_summary()
         return
-    if o.step == "e1401":
-        assert o.prefix, "e1401 needs --prefix"
-        out = tier2_e1401(o.prefix, o.checks_only)
+    if o.step == "e1402-summary":
+        e1402_summary()
+        return
+    if o.step in ("e1401", "e1402"):
+        assert o.prefix, f"{o.step} needs --prefix"
+        out = (tier2_e1401 if o.step == "e1401" else tier2_e1402)(o.prefix, o.checks_only)
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
