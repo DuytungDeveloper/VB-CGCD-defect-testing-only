@@ -3644,3 +3644,93 @@ note:
 why: QD28/D9: phase 1 CUB không rò, FT seed 2: fine-tune trên 2500 ảnh có nhãn (FT_LABELED_IDX=splits/cub_labeled_hf_idx.npy, sha256 6dbb1939; bản cũ cub_ft_up_r2 dùng 2996 ảnh); BOFT factor 1 (221,184), HF offline cache 3467deb4
 result: (no metrics.json)
 note:
+
+## 20261116_021241__cub_chain_ft_l25_r0_s0
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r0, seed 0; C1 OK 48/48 so với cub_km_evhung_det_ft_l25_r0_s0
+result: S0_All 85.63 | S1_New 63.56 | final_All 66.36 | M_d 57.34 | M_f 7.41
+note:
+
+## 20261116_023115__cub_chain_ft_l25_r0_s1
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r0, seed 1
+result: S0_All 85.46 | S1_New 57.75 | final_All 66.31 | M_d 56.26 | M_f 7.03
+note:
+
+## 20261116_024909__cub_chain_ft_l25_r0_s2
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r0, seed 2
+result: S0_All 85.66 | S1_New 58.45 | final_All 66.98 | M_d 56.86 | M_f 6.49
+note:
+
+## 20261116_030755__cub_chain_ft_l25_r0_s3
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r0, seed 3
+result: S0_All 85.46 | S1_New 57.39 | final_All 66.64 | M_d 56.79 | M_f 6.28
+note:
+
+## 20261116_032541__cub_chain_ft_l25_r0_s4
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r0, seed 4
+result: S0_All 85.32 | S1_New 53.35 | final_All 65.76 | M_d 55.76 | M_f 7.20
+note:
+
+## 20261116_034327__cub_chain_ft_l25_r1_s0
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r1, seed 0; C1 OK 48/48 so với cub_km_evhung_det_ft_l25_r1_s0
+result: S0_All 85.66 | S1_New 58.98 | final_All 67.17 | M_d 57.90 | M_f 6.90
+note:
+
+## 20261116_040107__cub_chain_ft_l25_r1_s1
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r1, seed 1
+result: S0_All 85.39 | S1_New 55.63 | final_All 67.12 | M_d 58.61 | M_f 7.00
+note:
+
+## 20261116_042012__cub_chain_ft_l25_r1_s2
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r1, seed 2
+result: S0_All 85.52 | S1_New 59.86 | final_All 65.91 | M_d 56.42 | M_f 7.37
+note:
+
+## 20261116_043913__cub_chain_ft_l25_r1_s3
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r1, seed 3
+result: S0_All 85.80 | S1_New 59.33 | final_All 66.10 | M_d 56.75 | M_f 7.31
+note:
+
+## 20261116_045816__cub_chain_ft_l25_r1_s4
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r1, seed 4
+result: S0_All 85.15 | S1_New 62.85 | final_All 66.24 | M_d 56.98 | M_f 6.73
+note:
+
+## 20261116_051615__cub_chain_ft_l25_r2_s0
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r2, seed 0; C1 OK 48/48 so với cub_km_evhung_det_ft_l25_r2_s0
+result: S0_All 85.35 | S1_New 57.57 | final_All 66.31 | M_d 56.66 | M_f 7.14
+note:
+
+## 20261116_053435__cub_chain_ft_l25_r2_s1
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r2, seed 1
+result: S0_All 85.25 | S1_New 59.86 | final_All 65.96 | M_d 56.13 | M_f 6.69
+note:
+
+## 20261116_055227__cub_chain_ft_l25_r2_s2
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r2, seed 2
+result: S0_All 85.11 | S1_New 59.68 | final_All 67.24 | M_d 58.94 | M_f 7.20
+note:
+
+## 20261116_061038__cub_chain_ft_l25_r2_s3
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r2, seed 3
+result: S0_All 85.25 | S1_New 56.16 | final_All 65.52 | M_d 55.93 | M_f 7.55
+note:
+
+## 20261116_062838__cub_chain_ft_l25_r2_s4
+why: QD28/D9: chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r2, seed 4
+result: S0_All 84.94 | S1_New 57.04 | final_All 66.09 | M_d 56.82 | M_f 6.69
+note:
+
+## 20261116_064630__cub_km_evhung_det_ft_l25_r0_s0
+why: QD28: mốc C1 main.py tất định (XLA deterministic) trên đặc trưng không rò cub_ft_l25_r0, seed 0; C1 OK 48/48 với cub_chain_ft_l25_r0_s0 (3 mốc thay 15, QD28 Sửa)
+result: S0_All 85.63 | S1_New 63.56 | final_All 66.36 | M_d 57.34 | M_f 7.41
+note:
+
+## 20261116_070436__cub_km_evhung_det_ft_l25_r1_s0
+why: QD28: mốc C1 main.py tất định (XLA deterministic) trên đặc trưng không rò cub_ft_l25_r1, seed 0; C1 OK 48/48 với cub_chain_ft_l25_r1_s0 (3 mốc thay 15, QD28 Sửa)
+result: S0_All 85.66 | S1_New 58.98 | final_All 67.17 | M_d 57.90 | M_f 6.90
+note:
+
+## 20261116_072227__cub_km_evhung_det_ft_l25_r2_s0
+why: QD28: mốc C1 main.py tất định (XLA deterministic) trên đặc trưng không rò cub_ft_l25_r2, seed 0; C1 OK 48/48 với cub_chain_ft_l25_r2_s0 (3 mốc thay 15, QD28 Sửa)
+result: S0_All 85.35 | S1_New 57.57 | final_All 66.31 | M_d 56.66 | M_f 7.14
+note:
