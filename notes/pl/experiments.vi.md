@@ -733,3 +733,34 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - câu 4: luật dừng là núm đánh đổi cũ/mới thật; E09.08 so các nhánh ở cùng mức ảnh cũ.
 - Không chạy mở rộng (1) và (2): điều kiện của chúng (CẢ HAI; BỘ LỌC VÀ LƯỢT S) không xảy ra.
 - Giới hạn: phép đo mô tả trên r0–r4 (đã dùng để chọn phương pháp), 4 lần rút mỗi chuỗi; cột 11 là phản thực tế, không phải đầu ra của pipeline.
+
+## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
+
+### Tiền đăng ký (2026-11-16; viết trước khi có code và trước mọi số)
+
+- Câu hỏi: trên cùng dự đoán của bộ phân lớp, M_d và các bảng S1–S5 của CUB t5 đổi bao nhiêu khi đổi cách ghép khe với lớp lúc chấm?
+- Vì sao: nhánh `09e` của E09.08 không có k-means để đặt tên như QD15, nên luật đặt tên phải chốt trước tiền đăng ký E09.08; và số của các bài C-GCD khác chấm bằng Hungarian toàn cục (chiến lược 2026-11-16 §2.5, ngoài repo).
+- Loại: phép đo mô tả, không có luật đạt/trượt. Không đổi đại lượng chính của QD28 (M_d, tên cụm như QD15) cho các nhánh có k-means.
+- Dữ liệu: 30 chuỗi mặc định `cub_chain_ft_r<r>_s<N>` và `cub_chain_ft_l25_r<r>_s<N>` (r0–r2, s0–s4). Ở mỗi phiên i = 1…5: `params1` của ảnh chụp `S<i>_13`, dự đoán trên tập test của phiên bằng thành phần dự đoán mặc định. Không SVI, không rút RNG, không đọc nhãn pool.
+- Bốn cách chấm trên cùng dự đoán (off_i = 100 + 20 (i − 1); khối của phiên i là khe off_i … off_i + 19):
+  - P0 (QD15, hiện tại): khe 0–99 giữ nghĩa; khối của phiên i ghép với 20 lớp mới của phiên bằng Hungarian trên cụm k-means của ảnh test lớp mới (`pi_test` của ảnh chụp `S<i>_10`); bảng tên của các phiên trước đóng băng.
+  - P1: như P0, nhưng khối của phiên i ghép bằng Hungarian trên dự đoán của bộ phân lớp; bảng tên của khối j < i là bảng P1 của phiên j, đóng băng.
+  - P2: khe 0–99 giữ nghĩa; ở mỗi phiên ghép lại mọi khe ≥ 100 đã có với mọi lớp mới đã gặp, một phép Hungarian, trên dự đoán của bộ phân lớp. Đây là SPE (Wang et al. 2026, Eq. 5–7) áp cho từng phiên với Y_old = 100 lớp có nhãn.
+  - P3: Hungarian toàn cục trên mọi khe và mọi lớp đã gặp, tính trên toàn tập test của phiên (Eq. 1 của cùng bài).
+  - Ở P1, P2 ma trận ghép chỉ gồm ô (lớp mới thật, khe mới), như Alg. 1 của bài: ảnh cũ rơi vào khe mới và ảnh mới rơi vào khe cũ là lỗi với mọi bảng tên, nên tính trên toàn tập test hay chỉ ảnh test lớp mới cho cùng kết quả.
+  - P1 và việc lặp P2 theo phiên là phần mở rộng của ta: bài SPE chỉ xét GCD một giai đoạn và chấm trên tập không nhãn D_u, không trên tập test.
+- Đại lượng, mỗi cách chấm, mỗi chuỗi, mỗi phiên: All, Old, New (cùng ba tập test như `metrics.json`); Old tách thành Base (lớp 0–99) và Disc (lớp đã khám phá ở phiên trước). M_d = trung bình S<i>_New của 5 phiên. Theo FT seed: trung bình 5 chuỗi. Báo hiệu Pk − P0 của M_d, S5_All, S5_Old cạnh T = 0.935 và B = 0.376 (QD28), cho từng bộ đặc trưng.
+- Chốt trước:
+  - Luật đặt tên của `09e` là P1 (cách duy nhất trong bốn cách không cần k-means mà vẫn đóng băng tên của lớp đã khám phá). Mọi so sánh `09e` với nhánh có k-means chấm cả hai nhánh bằng P1; số P0 của nhánh có k-means báo kèm.
+  - P3 chỉ là cột phụ để đặt cạnh số của bài khác; P2 chỉ báo cáo.
+  - Kết quả của E14.01 không dùng để đổi đại lượng chính sau khi thấy số.
+- Cổng kiểm:
+  - G1: P0 tính lại trùng `acc1` của ảnh chụp `S<i>_14` và S<i>_All, S<i>_Old, S<i>_New của `metrics.json` ở cả 30 chuỗi.
+  - G2, thứ tự suy ra từ định nghĩa: S<i>_New(P1) ≥ S<i>_New(P0) ở mọi phiên; số ảnh đúng trên toàn tập test của phiên: P3 ≥ P2 ≥ max(P1, P0). Vi phạm là lỗi code. Không có thứ tự bảo đảm giữa All(P1) và All(P0) từ phiên 2 (bảng tên đóng băng của hai cách khác nhau).
+- Code (viết sau tiền đăng ký): runner trong `lab/score.py`, lệnh `e1401` qua `exp.py`, một run cho mỗi bộ đặc trưng (tag `cub_e14_01_ft`, `cub_e14_01_ft_l25`), ghi `metrics.json` và `checks_ok`; lệnh `e1401-summary` chỉ đọc. Không sửa `lab/sessions.py`, `lab/replay.py`.
+- Chi phí [suy luận]: dưới 15 phút máy mỗi run (150 lần dự đoán trên 3–6 nghìn ảnh test); chưa đo.
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp: M_d(P1) − M_d(P0) từ 0 tới 1.5 điểm; S5_New(P3) − S5_New(P0) từ 2 tới 8 điểm; S5_Old(P3) thấp hơn S5_Old(P0). Căn cứ: 20 lớp mới mỗi phiên với khoảng 57% đúng nên bảng tên từ k-means và từ bộ phân lớp ít khi khác nhau nhiều; bài SPE báo hiệu GH − SPE của New trên CUB dưới 1 điểm (Bảng 7, 8: SimGCD với số lớp ước lượng, và SelEx), nhưng ở đây lớp mới yếu hơn nhiều.
+- Giới hạn:
+  - Cả bốn cách dùng nhãn test để đặt tên (D13); phép đo là độ nhạy theo quy ước ghép, không phải điểm thật.
+  - P1 chọn tên sau khi thấy lỗi của bộ phân lớp, P0 chọn tên độc lập với bộ phân lớp; hiệu P1 − P0 dương không có nghĩa P0 sai.
+  - r0–r2 của hai bộ đặc trưng; bộ `cub_chain_ft` có rò D9.
