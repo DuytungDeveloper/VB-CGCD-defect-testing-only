@@ -764,3 +764,29 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - Cả bốn cách dùng nhãn test để đặt tên (D13); phép đo là độ nhạy theo quy ước ghép, không phải điểm thật.
   - P1 chọn tên sau khi thấy lỗi của bộ phân lớp, P0 chọn tên độc lập với bộ phân lớp; hiệu P1 − P0 dương không có nghĩa P0 sai.
   - r0–r2 của hai bộ đặc trưng; bộ `cub_chain_ft` có rò D9.
+
+### Kết quả (2026-11-16; run `cub_e14_01_ft`, `cub_e14_01_ft_l25`, code `c3cb144`, commit run `f1ee1e0`; số in bằng `python lab/score.py e1401-summary`; 30/30 chuỗi qua G1–G2)
+
+- Hiệu so với P0, trung bình ba FT seed, bộ có rò / bộ không rò (điểm):
+  - M_d: P1 +0.788 / +0.763; P2 +0.751 / +0.758; P3 bằng P2.
+  - S5_All: P1 +0.379 / +0.354; P2 +0.611 / +0.624; P3 bằng P2.
+  - S5_New: P1 +1.006 / +1.041; P2 +1.158 / +1.123; P3 bằng P2.
+  - S5_Old: P1 +0.310 / +0.279; P2 +0.551 / +0.569; P3 bằng P2.
+  - S5_Disc: P1 +0.706 / +0.636; P2 +1.255 / +1.296; P3 +1.296 / +1.296.
+  - S5_Base: P1, P2 0.000 / 0.000; P3 −0.032 / 0.000.
+- M_d(P1) − M_d(P0) theo FT seed r0 / r1 / r2: +0.764 / +0.782 / +0.820 (có rò); +0.538 / +0.797 / +0.953 (không rò). T = 0.935: một trong sáu FT seed vượt T.
+- Mức tuyệt đối của M_d, bộ không rò: P0 56.944, P1 57.707, P2 57.702, P3 57.702; bộ có rò: 57.142, 57.930, 57.893, 57.893.
+- P3 khác P2 chỉ ở FT seed r1 của bộ có rò (S5_Base 78.628 so với 78.723; S5_Disc 55.904 so với 55.782).
+- Không ảnh test nào được dự đoán vào khe chưa học: 0 ở cả 30 chuỗi × 5 phiên.
+- Chi phí thật: 109 s và 111 s mỗi run (15 chuỗi), không phải "dưới 15 phút" như ước lượng.
+- Dự đoán đã đăng ký: M_d(P1) − M_d(P0) trong 0–1.5: đúng. S5_New(P3) − S5_New(P0) trong 2–8: sai, kết quả +1.158 / +1.123. S5_Old(P3) thấp hơn S5_Old(P0): sai chiều, kết quả +0.551 / +0.569 (P3 không lấy khe lớp gốc; Old tăng vì phần Disc được ghép lại).
+
+### Kết luận (Rito duyệt tạm 2026-11-16)
+
+- Trên CUB t5, quy ước ghép tên đổi M_d dưới T: P1, P2, P3 cao hơn P0 từ 0.75 tới 0.79 điểm ở cả hai bộ đặc trưng. Hungarian toàn cục trùng SPE theo phiên (P3 = P2), trừ −0.032 điểm S5_Base trên bộ có rò.
+- Đại lượng chính của QD28 giữ nguyên (M_d dưới P0), như đã chốt trước. Ràng buộc S5_S0test (= S5_Base) không đổi dưới P0, P1, P2.
+- `09e` đặt tên bằng P1; mọi so sánh `09e` với nhánh có k-means chấm cả hai nhánh bằng P1. Lý do thêm sau khi có số: hiệu P1 − P0 của M_d (0.763 trên bộ không rò) bằng khoảng 82% của T (tính tay), nên chấm hai nhánh bằng hai thước sẽ cho `09e` gần trọn một ngưỡng T.
+- Đặt cạnh bài khác: báo P3 làm cột phụ, kèm hiệu P3 − P0 (+0.75 điểm M_d, +0.62 điểm S5_All).
+- D24 trên CUB: không mở câu hỏi mới về mất điểm test (0 ảnh vào khe chưa học).
+- [suy luận] Lý do P3 = P2: khe lớp gốc là Gaussian khớp trên ảnh có nhãn và không được cập nhật ở các phiên sau (C5 của QD28), nên ảnh lớp mới hiếm khi dồn đủ nhiều vào một khe lớp gốc để Hungarian đổi tên khe đó. E14.01 không kiểm giả thuyết này.
+- Giới hạn: như phần tiền đăng ký. "P3 = P2 trên pipeline này" không suy ra số của các bài khác so được với số của ta: các bài đó dùng đầu phân lớp huấn luyện chung, fine-tune mỗi phiên và chia dữ liệu khác.
