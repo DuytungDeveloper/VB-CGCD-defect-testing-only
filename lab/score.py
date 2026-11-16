@@ -14,6 +14,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e1101 --from <v2 run> --k-first 0 --k-last 3     E11.01, one snapshot (exp.py)
   python lab/score.py e1101-summary                                  E11.01: decision table from the 25 runs
   python lab/score.py cub-tb                                         CUB t5: T, B of QD28 from the default chains
+  python lab/score.py e1401 --prefix cub_chain_ft[_l25] [--checks-only]   E14.01, the 15 chains of one feature set (exp.py)
+  python lab/score.py e1401-summary                                  E14.01: table from the two runs
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -1345,9 +1347,144 @@ def cub_tb(prefixes=("cub_chain_ft", "cub_chain_ft_l25"), official="cub_chain_ft
     return out
 
 
+# ---- E14.01: sensitivity of the scores to the slot-class matching rule on CUB t5 (pre-registered at 5c6956f) ----
+RULES_1401 = ("P0", "P1", "P2", "P3")
+
+
+def _best_map_1401(pred, y, classes, slots):
+    """{class: slot}: the one-to-one map between `classes` and `slots` (equal sizes) with the most images of class c
+    predicted in the slot of c (Hungarian on the confusion block; images outside the block do not count)."""
+    classes, slots = np.asarray(classes), np.asarray(slots)
+    assert len(classes) == len(slots)
+    ci, si = {int(c): j for j, c in enumerate(classes)}, {int(s): j for j, s in enumerate(slots)}
+    cm = np.zeros((len(classes), len(slots)), dtype=np.int64)
+    for c, s in zip(y, pred):
+        if int(c) in ci and int(s) in si:
+            cm[ci[int(c)], si[int(s)]] += 1
+    rows, cols = linear_sum_assignment(-cm)
+    return {int(classes[r]): int(slots[c]) for r, c in zip(rows, cols)}
+
+
+def _rules_1401(preds, ys, luts0, base, inc):
+    """The four rules of E14.01 on the same predictions. preds[i-1], ys[i-1]: predicted slot and true class of the
+    test images of session i (old and novel); luts0[i-1]: the cumulative lut of the chain after session i (P0, QD15).
+    A lut maps a true class to its slot; an image is correct when pred == lut[class].
+    P1: block of session i matched on the predictions, blocks of earlier sessions frozen (P1 maps of those sessions).
+    P2: slots 0..base-1 keep their class, every novel slot seen so far is matched again at every session (SPE).
+    P3: one Hungarian over every seen slot and class (global).
+    Returns ({S<i>_<rule>_<All|Old|New|Base|Disc>: accuracy in %}, {G2_new, G2_all: bool}, images predicted in slots
+    not seen yet)."""
+    n_slots = len(luts0[0])
+    out, lut1, g2_new, g2_all, unseen = {}, np.arange(n_slots), True, True, 0
+    for i, (pred, y, lut0) in enumerate(zip(preds, ys, luts0), 1):
+        pred, y = np.asarray(pred).astype(int), np.asarray(y).astype(int)
+        off, seen = base + (i - 1) * inc, base + i * inc
+        assert y.max() < seen and (y >= off).any() and (y < off).any(), f"session {i}: unexpected test classes"
+        unseen += int((pred >= seen).sum())
+        lut1 = lut1.copy()
+        for c, s in _best_map_1401(pred, y, np.arange(off, seen), np.arange(off, seen)).items():
+            lut1[c] = s
+        lut2, lut3 = np.arange(n_slots), np.arange(n_slots)
+        for c, s in _best_map_1401(pred, y, np.arange(base, seen), np.arange(base, seen)).items():
+            lut2[c] = s
+        for c, s in _best_map_1401(pred, y, np.arange(seen), np.arange(seen)).items():
+            lut3[c] = s
+        sets = {"All": np.ones(len(y), bool), "Old": y < off, "New": y >= off, "Base": y < base,
+                "Disc": (y >= base) & (y < off)}
+        ok = {}
+        for rule, lut in zip(RULES_1401, (lut0, lut1, lut2, lut3)):
+            assert sorted(lut[:seen]) == list(range(seen)), f"session {i} {rule}: lut is not one-to-one on the seen classes"
+            ok[rule] = pred == np.asarray(lut)[y]
+            for name, sel in sets.items():
+                if sel.any():
+                    out[f"S{i}_{rule}_{name}"] = 100.0 * float(ok[rule][sel].mean())
+        g2_new &= bool(ok["P1"][sets["New"]].sum() >= ok["P0"][sets["New"]].sum())
+        g2_all &= bool(ok["P3"].sum() >= ok["P2"].sum() >= max(ok["P1"].sum(), ok["P0"].sum()))
+    for rule in RULES_1401:
+        out[f"Md_{rule}"] = float(np.mean([out[f"S{i}_{rule}_New"] for i in range(1, len(preds) + 1)]))
+    return out, {"G2_new": g2_new, "G2_all": g2_all}, unseen
+
+
+def tier2_e1401(prefix, checks_only=False):
+    """E14.01 on the 15 default chains <prefix>_r<r>_s<N> (prefix cub_chain_ft or cub_chain_ft_l25): at every session
+    the classifier of snapshot S<i>_13 predicts the test set of the session (as replay._confusion), and the
+    predictions are scored by the four rules (_rules_1401). No SVI, no RNG, no pool labels.
+    Keys: r<r>_s<N>_S<i>_<rule>_<set>, r<r>_s<N>_Md_<rule>; G1_ok, G2_ok, n_unseen, checks_ok.
+    G1: P0 equals acc1 of snapshot S<i>_14 (All, Old, Novel; 1e-6) and S<i>_All, S<i>_Old, S<i>_New of metrics.json
+    (0.006). G2: the orders that follow from the definitions (_rules_1401). checks_only: chain r0 s0 only, no keys."""
+    from replay import _clf, _git
+    from sessions import load as load_sessions, _device
+    assert prefix in ("cub_chain_ft", "cub_chain_ft_l25"), "E14.01 is pre-registered on the two sets of CUB chains"
+    t0 = time.time()
+    if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
+        raise SystemExit("e1401: commit the code first (same dirty rule as scripts/exp.py)")
+    out, g1, g2, unseen = {}, True, True, 0
+    for r, N in ((0, 0),) if checks_only else [(r, N) for r in range(3) for N in range(5)]:
+        tag = f"{prefix}_r{r}_s{N}"
+        st, views = load_sessions(tag)                  # the workbench first: torch, main, then jax, as the chains
+        import jax.numpy as jnp
+        _device()
+        a, ref = st["args"], _ref_metrics(tag)
+        assert a.dataset == "cub200" and a.load_mode == "t5" and len(views) == 5 and a.seed == N, f"{tag}: not a CUB t5 chain of seed {N}"
+        preds, ys, luts0 = [], [], []
+        for i, v in enumerate(views, 1):
+            clf, off = _clf(v), v["offset"]
+            _component(v["predict"])(clf)
+            clf.label_offset, clf.n_seen = off, off + a.increment
+            pr, _ = clf._predict(jnp.array(clf.pca.transform(v["test_all_x"])), _jnp(v["params1"]))
+            y = np.asarray(v["true_test_all_y"]).astype(int)
+            assert (y < off).sum() == len(v["test_old_x"]) and (y >= off).sum() == len(v["test1_x"]), f"{tag} S{i}: test_all is not old + novel"
+            preds.append(np.asarray(pr))
+            ys.append(y)
+            luts0.append(np.asarray(v["lut"]))
+        res, gates, n_un = _rules_1401(preds, ys, luts0, a.base, a.increment)
+        ok1 = True
+        for i, v in enumerate(views, 1):
+            for name, snap_key, key in (("All", "All", "All"), ("Old", "Old", "Old"), ("New", "Novel", "New")):
+                p0 = res[f"S{i}_P0_{name}"]
+                ok1 &= abs(p0 - float(v["acc1"][snap_key])) <= 1e-6 and abs(p0 - float(ref[f"S{i}_{key}"])) <= 0.006
+        g1, g2, unseen = g1 and ok1, g2 and gates["G2_new"] and gates["G2_all"], unseen + n_un
+        out.update({f"r{r}_s{N}_{k}": round(val, 4) for k, val in res.items()})
+        print(f"e1401 {tag}: G1 {'OK' if ok1 else 'DIFF'} | G2 new {'OK' if gates['G2_new'] else 'DIFF'}, all "
+              f"{'OK' if gates['G2_all'] else 'DIFF'} | M_d " + " ".join(f"{x} {res[f'Md_{x}']:.2f}" for x in RULES_1401)
+              + f" | S5_All " + " ".join(f"{x} {res[f'S5_{x}_All']:.2f}" for x in RULES_1401)
+              + f" | unseen-slot predictions {n_un} ({time.time() - t0:.0f} s)", flush=True)
+    chk = {"G1_ok": int(g1), "G2_ok": int(g2), "n_unseen": unseen}
+    chk["checks_ok"] = int(g1 and g2)
+    print(f"e1401 {prefix}: checks {'OK' if chk['checks_ok'] else 'FAILED'} ({time.time() - t0:.0f} s)")
+    return chk if checks_only else {**chk, **out}
+
+
+def e1401_summary(T=0.935, B=0.376):
+    """Table of E14.01 from the runs cub_e14_01_ft and cub_e14_01_ft_l25: per feature set and FT seed (mean of the 5
+    chains) M_d and the session-5 scores under the four rules, and the differences Pk - P0 next to T and B of QD28.
+    Descriptive: no pass/fail rule. Refuses to read a run without checks_ok = 1."""
+    cols = [("M_d", "Md_{}"), ("S5_All", "S5_{}_All"), ("S5_Old", "S5_{}_Old"), ("S5_New", "S5_{}_New"),
+            ("S5_Base", "S5_{}_Base"), ("S5_Disc", "S5_{}_Disc")]
+    for tag in ("cub_e14_01_ft", "cub_e14_01_ft_l25"):
+        if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+            print(f"\n{tag}: no run yet")
+            continue
+        m = _ref_metrics(tag)
+        assert m.get("checks_ok") == 1, f"{tag}: checks failed, results are not read"
+        v = {(name, rule): np.array([[m[f"r{r}_s{N}_{pat.format(rule)}"] for N in range(5)] for r in range(3)]).mean(1)
+             for name, pat in cols for rule in RULES_1401}
+        print(f"\n{tag}: G1, G2 OK; predictions in slots not seen yet: {m['n_unseen']}")
+        print("  " + "".join(f"{x:>10}" for x in ("", "rule", "r0", "r1", "r2", "mean", "Pk - P0")))
+        for name, _ in cols:
+            for rule in RULES_1401:
+                x, d = v[name, rule], v[name, rule].mean() - v[name, "P0"].mean()
+                print("  " + f"{name:>10}{rule:>10}" + "".join(f"{val:10.3f}" for val in x) + f"{x.mean():10.3f}"
+                      + (f"{d:+10.3f}" if rule != "P0" else f"{'':>10}"))
+        d1 = v["M_d", "P1"] - v["M_d", "P0"]
+        print(f"  M_d(P1) - M_d(P0) by FT seed: " + " ".join(f"{x:+.3f}" for x in d1) + f" (T = {T}); "
+              f"S5_Old(P3) - S5_Old(P0): {(v['S5_Old', 'P3'] - v['S5_Old', 'P0']).mean():+.3f} (B = {B})")
+    print("\ndescriptive (E14.01): the main quantity of QD28 stays M_d under P0; 09e is named by P1 and compared under P1")
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -1357,10 +1494,11 @@ def main(argv):
     p.add_argument("--features", help="e0604 cub200: features/<run_id>/<model>")
     p.add_argument("--ft", type=int, help="e0604 cub200: FT seed of the features")
     p.add_argument("--seed", type=int, help="e0604 cub200: seed of the chain")
-    p.add_argument("--checks-only", action="store_true", help="e0604: print the checks C1-C3 only, no result")
+    p.add_argument("--checks-only", action="store_true", help="e0604: print the checks C1-C3 only, no result; e1401: chain r0 s0 only")
+    p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25"], help="e1401: tag prefix of the 15 chains")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -1379,6 +1517,15 @@ def main(argv):
         return
     if o.step == "cub-tb":
         cub_tb()
+        return
+    if o.step == "e1401-summary":
+        e1401_summary()
+        return
+    if o.step == "e1401":
+        assert o.prefix, "e1401 needs --prefix"
+        out = tier2_e1401(o.prefix, o.checks_only)
+        if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
+            (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
     if o.step == "e0604":
         out = tier2_e0604(o.dataset, o.run, o.features, o.ft, o.seed, o.checks_only)
