@@ -20,6 +20,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e1402-summary                                  E14.02: tables from the two runs
   python lab/score.py e1402b --prefix cub_chain_ft[_l25] [--checks-only]  E14.02 amendment: tables 4 and 5 (exp.py)
   python lab/score.py e1402b-summary                                 E14.02 amendment: tables from the two runs
+  python lab/score.py e1403 --prefix cub_chain_ft[_l25] [--checks-only]   E14.03: old-slot competition, B, C, D (exp.py)
+  python lab/score.py e1403-summary                                  E14.03: tables from the two runs
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -1774,9 +1776,233 @@ def e1402b_summary():
     print("\ndescriptive (E14.02, amendment): table 5 is a correlation; the intervention is the oracle ladder (step D)")
 
 
+Q_1403 = (0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98)
+
+
+def _parts_1403(L, pred, y, lut, off, inc, base):
+    """Part A and D of E14.03 for one session. L: log-densities (images x slots, float64) of params1 on the test set of
+    the session; pred: the slot _predict chose; y: true class; lut: cumulative lut (P0). Returns (keys, G3 ok)."""
+    new, tgt = y >= off, lut[y]
+    out = {}
+    g3 = bool(np.array_equal(L.argmax(1), pred))                     # mask open on every slot = the pipeline
+    masks = {"c14": None, "nobase": (0, base), "nodisc": (base, off), "g20": None}
+    for name, cut in masks.items():
+        M = L.copy()
+        if name == "g20":
+            keep = np.zeros(L.shape[1], bool)
+            keep[off:off + inc] = True
+            M[:, ~keep] = -np.inf
+        elif cut is not None:
+            M[:, cut[0]:cut[1]] = -np.inf
+        out[name] = 100.0 * float((M.argmax(1) == tgt)[new].mean())
+    m = L[:, off:off + inc].max(1) - L[:, :off].max(1)              # margin new block - old slots, no labels
+    bs = [0.0] + [float(-np.quantile(m, q)) for q in Q_1403]
+    nb = np.zeros(L.shape[1])
+    nb[off:off + inc] = 1.0
+    for j, b in enumerate(bs):
+        pr = (L + b * nb).argmax(1)
+        out[f"D{j}_b"] = b
+        out[f"D{j}_New"] = 100.0 * float((pr == tgt)[new].mean())
+        out[f"D{j}_Old"] = 100.0 * float((pr == tgt)[~new].mean())
+    return out, g3
+
+
+def _gain_1403(d, n_pts, drop):
+    """New-class gain at an old-class drop of `drop` points along b >= 0 (New, Old monotone in b), linear between grid
+    points. Returns (gain, reached): reached False when the largest b on the grid drops Old by less than `drop`."""
+    pts = sorted((d[f"D{j}_b"], d[f"D{j}_New"], d[f"D{j}_Old"]) for j in range(n_pts) if d[f"D{j}_b"] >= 0)
+    n0, o0 = d["D0_New"], d["D0_Old"]
+    prev = (0.0, 0.0)
+    for _, n, o in pts:
+        dn, do = n - n0, o0 - o
+        if do >= drop:
+            if do == prev[1]:
+                return dn, True
+            return prev[0] + (dn - prev[0]) * (drop - prev[1]) / (do - prev[1]), True
+        prev = (dn, do)
+    return prev[0], False
+
+
+def _mech_1403(z, L, pred, y, lut, off, params, cache):
+    """Part B of E14.03: novel test images that the pipeline puts in an old slot o; n = their true slot.
+    D_det = -1/2 (logdet S_o - logdet S_n), D_maha = -1/2 (d2_o - d2_n), numpy float64 (Cholesky); G4: their sum equals
+    L[o] - L[n] within 1e-3 x max(1, |L[o]|). cache: slot -> (mean, cholesky, logdet). Returns (rows, G4 ok)."""
+    def slot(k):
+        if k not in cache:
+            mu = np.asarray(params["class_means"][k], np.float64)
+            C = np.linalg.cholesky(np.asarray(params["class_covs"][k], np.float64))
+            cache[k] = (mu, C, 2.0 * float(np.log(np.diag(C)).sum()))
+        return cache[k]
+
+    def d2(x, k):
+        mu, C, _ = slot(k)
+        w = np.linalg.solve(C, x - mu)
+        return float(w @ w)
+    rows, g4 = [], True
+    for idx in np.flatnonzero((y >= off) & (pred < off)):
+        o, n, x = int(pred[idx]), int(lut[y[idx]]), z[idx]
+        dd = -0.5 * (slot(o)[2] - slot(n)[2])
+        dm = -0.5 * (d2(x, o) - d2(x, n))
+        g4 &= abs(dd + dm - (L[idx, o] - L[idx, n])) <= 1e-3 * max(1.0, abs(L[idx, o]))
+        rows.append((o, dd, dm))
+    return rows, g4
+
+
+def tier2_e1403(prefix, checks_only=False):
+    """E14.03 (pre-registration 3e7e2b3) on the 15 default chains <prefix>_r<r>_s<N>. Per session: log-densities of
+    params1 (S<i>_13) on the test set; part A (argmax over slot sets), B (log det vs Mahalanobis on the novel images
+    taken by old slots), C (nearest-centroid pipeline on the raw features), D (bias b on the 20 slots of the session).
+    No SVI, no RNG; true labels for scoring and for the S0 class means only. Gates G1-G5 of the pre-registration.
+    G2 compares with new_disc + new_base of the E14.02 run, stored rounded to 4 decimals: tolerance 1e-6 + 100 x 1e-4.
+    Keys: r<r>_s<N>_<key>; G1_ok ... G5_ok, checks_ok. checks_only: chain r0 s0 only, no keys."""
+    from replay import _clf, _git
+    from sessions import load as load_sessions, _device
+    assert prefix in ("cub_chain_ft", "cub_chain_ft_l25"), "E14.03 is pre-registered on the two sets of CUB chains"
+    t0 = time.time()
+    if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
+        raise SystemExit("e1403: commit the code first (same dirty rule as scripts/exp.py)")
+    e02 = _ref_metrics("cub_e14_02_" + prefix[len("cub_chain_"):])
+    assert e02.get("checks_ok") == 1, "E14.02 run of this feature set: checks failed"
+    out, gates = {}, {f"G{k}": True for k in range(1, 6)}
+    for r, N in ((0, 0),) if checks_only else [(r, N) for r in range(3) for N in range(5)]:
+        tag, pre = f"{prefix}_r{r}_s{N}", f"r{r}_s{N}_"
+        st, views = load_sessions(tag)                  # the workbench first: torch, main, then jax, as the chains
+        import jax.numpy as jnp
+        _device()
+        a, ref = st["args"], _ref_metrics(tag)
+        assert a.dataset == "cub200" and a.load_mode == "t5" and len(views) == 5 and a.seed == N, f"{tag}: not a CUB t5 chain of seed {N}"
+        base, inc, res, g = a.base, a.increment, {}, {f"G{k}": True for k in range(1, 6)}
+        s0y = np.asarray(st["s0_y"]).astype(int)
+        g["G5"] &= bool(np.array_equal(np.bincount(s0y, minlength=base)[:base], np.full(base, 25)) and s0y.max() < base)
+        cent = np.stack([np.asarray(st["s0_x"], np.float64)[s0y == k].mean(0) for k in range(base)])
+        y0 = np.asarray(st["true_test0_y"]).astype(int)
+        x0 = np.asarray(st["test0_x"], np.float64)
+        near = lambda x, c: ((x ** 2).sum(1)[:, None] - 2.0 * x @ c.T + (c ** 2).sum(1)[None, :]).argmin(1)   # Euclid
+        res["C_S0_S0test"] = 100.0 * float((near(x0, cent) == y0).mean())
+        B = {"base": [], "disc": []}
+        for i, v in enumerate(views, 1):
+            off = v["offset"]
+            clf = _clf(v)
+            _component(v["predict"])(clf)
+            clf.label_offset, clf.n_seen = off, off + inc
+            z = np.asarray(clf.pca.transform(v["test_all_x"]), np.float64)
+            pr, lp = clf._predict(jnp.array(clf.pca.transform(v["test_all_x"])), _jnp(v["params1"]))
+            pr, L = np.asarray(pr).astype(int), np.asarray(lp, np.float64)
+            y, lut = np.asarray(v["true_test_all_y"]).astype(int), np.asarray(v["lut"])
+            new = y >= off
+            # part A, D
+            ad, ok3 = _parts_1403(L, pr, y, lut, off, inc, base)
+            g["G3"] &= ok3
+            km, y1 = np.asarray(v["cluster"].predict_raw(v["test1_x"])).astype(int), np.asarray(v["true_test1_y"]).astype(int)
+            c10 = 100.0 * float((off + np.array([v["pi_test"][int(c)] for c in km]) == y1).mean())
+            old_acc = 100.0 * float((pr == lut[y])[~new].mean())
+            g["G1"] &= abs(ad["c14"] - float(v["acc1"]["Novel"])) <= 1e-6 and abs(ad["c14"] - float(ref[f"S{i}_New"])) <= 0.006 \
+                and abs(old_acc - float(v["acc1"]["Old"])) <= 1e-6 and abs(old_acc - float(ref[f"S{i}_Old"])) <= 0.006 \
+                and abs(c10 - float(e02[f"{pre}S{i}_c10"])) <= 1e-4
+            bound = 100.0 * (float(e02[f"{pre}S{i}_new_disc"]) + float(e02[f"{pre}S{i}_new_base"]))
+            g["G2"] &= ad["g20"] - ad["c14"] <= bound + 1e-6 + 100 * 1e-4
+            res.update({f"S{i}_{k}": val for k, val in ad.items()})
+            res[f"S{i}_c10"] = c10
+            gb, rb = _gain_1403(ad, len(Q_1403) + 1, 0.376)
+            g1p, r1p = _gain_1403(ad, len(Q_1403) + 1, 1.0)
+            res.update({f"S{i}_D_gainB": gb, f"S{i}_D_reachB": int(rb), f"S{i}_D_gain1": g1p, f"S{i}_D_reach1": int(r1p)})
+            # part B
+            rows, ok4 = _mech_1403(z, L, pr, y, lut, off, v["params1"], {})
+            g["G4"] &= ok4
+            for o, dd, dm in rows:
+                B["base" if o < base else "disc"].append((dd, dm))
+            ld = lambda lo, hi: float(np.mean([np.linalg.slogdet(np.asarray(v["params1"]["class_covs"][k], np.float64))[1] for k in range(lo, hi)]))
+            res[f"S{i}_ld_base"], res[f"S{i}_ld_sess"] = ld(0, base), ld(off, off + inc)
+            if off > base:
+                res[f"S{i}_ld_disc"] = ld(base, off)
+            # part C: nearest centroid over the slots seen so far (raw features)
+            cent = np.concatenate([cent, np.asarray(v["cluster"].model.cluster_centers_, np.float64)])
+            assert len(cent) == off + inc, f"{tag} S{i}: {len(cent)} centroids"
+            x1 = np.asarray(v["test1_x"], np.float64)
+            g["G5"] &= bool(np.array_equal(near(x1, cent[off:]), km))
+            pc = near(np.asarray(v["test_all_x"], np.float64), cent)
+            okc = pc == lut[y]
+            cohort = np.where(y < base, 0, (y - base) // inc + 1)
+            res.update({f"S{i}_C_All": 100.0 * float(okc.mean()), f"S{i}_C_Old": 100.0 * float(okc[~new].mean()),
+                        f"S{i}_C_New": 100.0 * float(okc[new].mean()), f"S{i}_C_S0test": 100.0 * float(okc[y < base].mean())})
+            for c in range(i + 1):
+                res[f"S{i}_C_coh{c}"] = 100.0 * float(okc[cohort == c].mean())
+        for grp, rows in B.items():
+            res[f"B_{grp}_n"] = len(rows)
+            dd, dm = np.array(rows).T if rows else (np.array([np.nan]), np.array([np.nan]))
+            res.update({f"B_{grp}_med_det": float(np.median(dd)), f"B_{grp}_med_maha": float(np.median(dm)),
+                        f"B_{grp}_pos_det": float((dd > 0).mean()) if rows else float("nan"),
+                        f"B_{grp}_det_dom": float((np.abs(dd) > np.abs(dm)).mean()) if rows else float("nan")})
+        for k in gates:
+            gates[k] = gates[k] and g[k]
+        out.update({pre + k: round(val, 4) if isinstance(val, float) else val for k, val in res.items()})
+        mean = lambda k: np.mean([res[f"S{i}_{k}"] for i in range(1, 6)])
+        print(f"e1403 {tag}: " + " ".join(f"{k} {'OK' if g[k] else 'DIFF'}" for k in g)
+              + f" | c10 {mean('c10'):.2f} g20 {mean('g20'):.2f} nobase {mean('nobase'):.2f} nodisc {mean('nodisc'):.2f}"
+              f" c14 {mean('c14'):.2f} | L_comp {mean('g20') - mean('c14'):+.2f} L_10 {mean('c10') - mean('c14'):+.2f}"
+              f" | B base n {res['B_base_n']} disc n {res['B_disc_n']} | C M_d {mean('C_New'):.2f}"
+              f" | D gain at B {mean('D_gainB'):+.2f} ({time.time() - t0:.0f} s)", flush=True)
+    chk = {f"{k}_ok": int(v) for k, v in gates.items()}
+    chk["checks_ok"] = int(all(gates.values()))
+    print(f"e1403 {prefix}: checks {'OK' if chk['checks_ok'] else 'FAILED'} ({time.time() - t0:.0f} s)")
+    return chk if checks_only else {**chk, **out}
+
+
+def e1403_summary(T=0.935, B=0.376):
+    """Tables of E14.03 from the runs cub_e14_03_ft_l25 and cub_e14_03_ft. Every number is first the mean of the 5
+    chains of an FT seed; "mean" and "sd" are over the 3 FT seeds (sd with ddof 1). Part A: reading rule of the
+    pre-registration; B, C, D: report only. Refuses to read a run without checks_ok = 1."""
+    for tag in ("cub_e14_03_ft_l25", "cub_e14_03_ft"):
+        if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+            print(f"\n{tag}: no run yet")
+            continue
+        m = _ref_metrics(tag)
+        assert m.get("checks_ok") == 1, f"{tag}: checks failed, results are not read"
+        per = lambda key: np.array([[m[f"r{r}_s{N}_{key}"] for N in range(5)] for r in range(3)])
+        ses = lambda k: np.mean([per(f"S{i}_{k}") for i in range(1, 6)], axis=0)        # chains x mean over sessions
+        line = lambda name, x: f"  {name:<24}" + "".join(f"{val:9.3f}" for val in x.mean(1)) + f"{x.mean(1).mean():9.3f}{x.mean(1).std(ddof=1):9.3f}"
+        head = f"  {'':<24}" + "".join(f"{x:>9}" for x in ("r0", "r1", "r2", "mean", "sd"))
+        print(f"\n{tag}: G1-G5 OK\n  part A, novel test images, mean over the 5 sessions\n{head}")
+        for k in ("c10", "g20", "nobase", "nodisc", "c14"):
+            print(line(k, ses(k)))
+        L10, Lc, Lb, Ld = ses("c10") - ses("c14"), ses("g20") - ses("c14"), ses("nobase") - ses("c14"), ses("nodisc") - ses("c14")
+        for name, x in (("L_10 = c10 - c14", L10), ("L_comp = g20 - c14", Lc), ("L_base", Lb), ("L_disc", Ld)):
+            print(line(name, x))
+        print("  L_comp per chain (r0 s0..s4 | r1 | r2): " + " | ".join(" ".join(f"{v:.2f}" for v in row) for row in Lc))
+        lc, l10 = Lc.mean(1).mean(), L10.mean(1).mean()
+        verdict = ("old-slot competition at prediction is the main target of E09.08" if lc > T and lc >= 0.5 * l10 else
+                   "estimation at steps 11-13 is the target (as E14.02)" if lc <= T else "both")
+        print(f"  reading rule: L_comp {lc:.3f} vs T {T}, 1/2 L_10 {0.5 * l10:.3f} -> {verdict}")
+        print("  part B, novel test images taken by old slots, pooled over the 5 sessions of a chain")
+        for grp in ("base", "disc"):
+            print(head)
+            print(line(f"{grp}: n", per(f"B_{grp}_n").astype(float)))
+            for k in ("med_det", "med_maha", "pos_det", "det_dom"):
+                print(line(f"{grp}: {k}", per(f"B_{grp}_{k}")))
+        print("  mean log det of the slot covariances, per session (base / discovered / session)")
+        for i in range(1, 6):
+            print(f"  S{i}: {per(f'S{i}_ld_base').mean():9.3f} / " + (f"{per(f'S{i}_ld_disc').mean():9.3f}" if i > 1 else f"{'-':>9}")
+                  + f" / {per(f'S{i}_ld_sess').mean():9.3f}")
+        print("  part C, nearest-centroid pipeline (raw features); confounded: space, estimator and training data differ")
+        print(head)
+        print(line("C M_d (mean of New)", ses("C_New")))
+        print(line("pipeline M_d (c14)", ses("c14")))
+        for k in ("All", "Old", "S0test"):
+            print(line(f"C S5_{k}", per(f"S5_C_{k}")))
+        print(line("C M_f proxy", per("C_S0_S0test") - per("S5_C_S0test")))
+        forget = np.mean([per(f"S{c}_C_coh{c}") - per(f"S5_C_coh{c}") for c in range(1, 5)], axis=0)
+        print(line("C forgetting, cohorts 1-4", forget))
+        print("  part D, bias b on the 20 slots of the session (b >= 0), mean over the 5 sessions; not a method")
+        print(head)
+        print(line("New gain at Old drop B", ses("D_gainB")))
+        print(line("New gain at Old drop 1", ses("D_gain1")))
+        print(f"  sessions where the grid does not reach the drop: B {int((1 - ses('D_reachB')).sum() * 5)}, 1 point {int((1 - ses('D_reach1')).sum() * 5)} (of 75)")
+    print("\nE14.03: part A has the pre-registered reading rule; B, C, D are report only")
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -1790,7 +2016,7 @@ def main(argv):
     p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25"], help="e1401, e1402: tag prefix of the 15 chains")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -1819,9 +2045,12 @@ def main(argv):
     if o.step == "e1402b-summary":
         e1402b_summary()
         return
-    if o.step in ("e1401", "e1402", "e1402b"):
+    if o.step == "e1403-summary":
+        e1403_summary()
+        return
+    if o.step in ("e1401", "e1402", "e1402b", "e1403"):
         assert o.prefix, f"{o.step} needs --prefix"
-        out = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b}[o.step](o.prefix, o.checks_only)
+        out = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403}[o.step](o.prefix, o.checks_only)
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
