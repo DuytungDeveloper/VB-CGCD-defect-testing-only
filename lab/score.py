@@ -18,6 +18,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e1401-summary                                  E14.01: table from the two runs
   python lab/score.py e1402 --prefix cub_chain_ft[_l25] [--checks-only]   E14.02, the 15 chains of one feature set (exp.py)
   python lab/score.py e1402-summary                                  E14.02: tables from the two runs
+  python lab/score.py e1402b --prefix cub_chain_ft[_l25] [--checks-only]  E14.02 amendment: tables 4 and 5 (exp.py)
+  python lab/score.py e1402b-summary                                 E14.02 amendment: tables from the two runs
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -1645,9 +1647,136 @@ def e1402_summary(T=0.935, B=0.376):
     print("\ndescriptive (E14.02): tables under P0 (QD15); c10 knows which test images are novel; c11 is a counterfactual")
 
 
+# ---- E14.02, amendment of 2026-11-16: who takes the forgotten images (tables 4 and 5) ----
+def _tables_1402b(sess, base, inc, s0_all):
+    """Tables 4 and 5 of E14.02 for one chain. sess[i-1] of session i: pred, pred_prev (slot predicted for the test
+    images of the session by the classifier after session i and after session i-1; i = 1: the S0 classifier), y, lut
+    (cumulative, P0), pool_ids, y_pool, keep (filter of step 12, per pool image). s0_all: S0 test accuracy in %.
+    Table 4, old test images of cohort c at session i (% of the cohort): tr_c<c>_S<i>_lost_new (right before, now in
+    a slot of session i), _lost_other (right before, now wrong elsewhere), _gained (wrong before, right now).
+    Table 5, slots of session i ranked by the share of old images in their k-means cluster on the pool (S<i>_cap_top<k>)
+    or among the kept images of the cluster (S<i>_capk_top<k>): share of the old test images predicted in the slots
+    of the session that falls in the k highest-ranked slots, k = 1, 2, 5, 10. Context: S<i>_cap_n (old test images in
+    the slots of the session, % of the old test images), S<i>_pool_old, S<i>_keep_old (old share of the pool and of
+    the kept images), S<i>_f_old_kept, S<i>_f_new_kept (share of the old and of the novel pool images kept).
+    Returns (keys, {G4: bool, pure: bool}); pure: no _lost_other and no _gained anywhere."""
+    out, g4, pure, before = {}, True, True, {0: s0_all}
+    for i, d in enumerate(sess, 1):
+        pred, prev, y, lut = (np.asarray(d[x]).astype(int) for x in ("pred", "pred_prev", "y", "lut"))
+        off, seen = base + (i - 1) * inc, base + i * inc
+        ok, ok_prev, old = pred == lut[y], prev == lut[y], y < off
+        cohort = np.where(y < base, 0, (y - base) // inc + 1)
+        for c in range(i):
+            sel = cohort == c
+            g4 &= abs(100.0 * float(ok_prev[sel].mean()) - before[c]) <= 1e-6
+            lost = sel & ok_prev & ~ok
+            new_slot = (pred >= off) & (pred < seen)
+            vals = {"lost_new": lost & new_slot, "lost_other": lost & ~new_slot, "gained": sel & ~ok_prev & ok}
+            for name, m in vals.items():
+                out[f"tr_c{c}_S{i}_{name}"] = 100.0 * float(m.sum()) / int(sel.sum())
+            pure &= int(vals["lost_other"].sum()) == 0 and int(vals["gained"].sum()) == 0
+        before = {c: 100.0 * float(ok[cohort == c].mean()) for c in range(i + 1)}
+        # table 5
+        yp, ids, keep = np.asarray(d["y_pool"]).astype(int), np.asarray(d["pool_ids"]).astype(int), np.asarray(d["keep"]).astype(bool)
+        p_old = yp < off
+        cap = np.bincount(pred[old & (pred >= off) & (pred < seen)] - off, minlength=inc).astype(float)
+        assert cap.sum() > 0 and len(keep) == len(yp), f"session {i}: no old test image in the new slots, or keep of another length"
+        share = np.array([p_old[ids == c].mean() if (ids == c).any() else 0.0 for c in range(inc)])
+        share_k = np.array([p_old[(ids == c) & keep].mean() if ((ids == c) & keep).any() else 0.0 for c in range(inc)])
+        for name, sh in (("cap", share), ("capk", share_k)):
+            order = np.argsort(-sh, kind="stable")
+            for k in (1, 2, 5, 10):
+                out[f"S{i}_{name}_top{k}"] = float(cap[order[:k]].sum() / cap.sum())
+        out[f"S{i}_cap_n"] = 100.0 * float(cap.sum()) / int(old.sum())
+        out[f"S{i}_pool_old"], out[f"S{i}_keep_old"] = float(p_old.mean()), float(p_old[keep].mean())
+        out[f"S{i}_f_old_kept"], out[f"S{i}_f_new_kept"] = float(keep[p_old].mean()), float(keep[~p_old].mean())
+    return out, {"G4": g4, "pure": pure}
+
+
+def tier2_e1402b(prefix, checks_only=False):
+    """Amendment of E14.02 on the 15 default chains <prefix>_r<r>_s<N>: at session i the classifier after session i
+    and the classifier after session i-1 (i = 1: params0) predict the same test images, then _tables_1402b. Reads the
+    true pool labels, for table 5 only. No SVI, no RNG.
+    Keys: r<r>_s<N>_<key of _tables_1402b>; G1_ok, G4_ok, pure, checks_ok (= G1 and G4; pure is a result, not a gate).
+    G1: All of the classifier after session i equals acc1 of snapshot S<i>_14 (1e-6). G4: the previous classifier
+    scores on the images of session i what it scored on its own test set. checks_only: chain r0 s0 only, no keys."""
+    from replay import _clf, _git
+    from sessions import load as load_sessions, _device
+    assert prefix in ("cub_chain_ft", "cub_chain_ft_l25"), "E14.02 is pre-registered on the two sets of CUB chains"
+    t0 = time.time()
+    if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
+        raise SystemExit("e1402b: commit the code first (same dirty rule as scripts/exp.py)")
+    out, g1, g4, pure = {}, True, True, True
+    for r, N in ((0, 0),) if checks_only else [(r, N) for r in range(3) for N in range(5)]:
+        tag = f"{prefix}_r{r}_s{N}"
+        st, views = load_sessions(tag)                  # the workbench first: torch, main, then jax, as the chains
+        import jax.numpy as jnp
+        _device()
+        a = st["args"]
+        assert a.dataset == "cub200" and a.load_mode == "t5" and len(views) == 5 and a.seed == N, f"{tag}: not a CUB t5 chain of seed {N}"
+        sess, ok1 = [], True
+        for i, v in enumerate(views, 1):
+            clf, off = _clf(v), v["offset"]
+            _component(v["predict"])(clf)
+            clf.label_offset, clf.n_seen = off, off + a.increment
+            z = jnp.array(clf.pca.transform(v["test_all_x"]))
+            pr, _ = clf._predict(z, _jnp(v["params1"]))
+            pp, _ = clf._predict(z, _jnp(st["params0"] if i == 1 else views[i - 2]["params1"]))
+            d = dict(pred=np.asarray(pr), pred_prev=np.asarray(pp), y=np.asarray(v["true_test_all_y"]).astype(int),
+                     lut=np.asarray(v["lut"]), pool_ids=np.asarray(v["ids"]), y_pool=np.asarray(v["true_pool_y"]).astype(int),
+                     keep=np.asarray(v["keep"]))
+            ok1 &= abs(100.0 * float((d["pred"] == d["lut"][d["y"]]).mean()) - float(v["acc1"]["All"])) <= 1e-6
+            sess.append(d)
+        res, g = _tables_1402b(sess, a.base, a.increment, float(st["acc0"]["All"]))
+        g1, g4, pure = g1 and ok1, g4 and g["G4"], pure and g["pure"]
+        out.update({f"r{r}_s{N}_{k}": round(val, 4) for k, val in res.items()})
+        print(f"e1402b {tag}: G1 {'OK' if ok1 else 'DIFF'} | G4 {'OK' if g['G4'] else 'DIFF'} | pure {'yes' if g['pure'] else 'NO'}"
+              f" | lost to the new slots, cohort 0: " + " ".join(f"{res[f'tr_c0_S{i}_lost_new']:.2f}" for i in range(1, 6))
+              + f" | top-5 share " + " ".join(f"{res[f'S{i}_cap_top5']:.2f}" for i in range(1, 6)) + f" ({time.time() - t0:.0f} s)", flush=True)
+    chk = {"G1_ok": int(g1), "G4_ok": int(g4), "pure": int(pure), "checks_ok": int(g1 and g4)}
+    print(f"e1402b {prefix}: checks {'OK' if chk['checks_ok'] else 'FAILED'}; pure {'yes' if pure else 'NO'} ({time.time() - t0:.0f} s)")
+    return chk if checks_only else {**chk, **out}
+
+
+def e1402b_summary():
+    """Tables 4 and 5 of E14.02 from the runs cub_e14_02b_ft_l25 and cub_e14_02b_ft. Every number is first the mean of
+    the 5 chains of an FT seed; "mean" and "sd" are over the 3 FT seeds (sd with ddof 1). Descriptive.
+    Refuses to read a run without checks_ok = 1."""
+    for tag in ("cub_e14_02b_ft_l25", "cub_e14_02b_ft"):
+        if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+            print(f"\n{tag}: no run yet")
+            continue
+        m = _ref_metrics(tag)
+        assert m.get("checks_ok") == 1, f"{tag}: checks failed, results are not read"
+        ft = lambda key: np.array([[m[f"r{r}_s{N}_{key}"] for N in range(5)] for r in range(3)]).mean(1)
+        line = lambda name, x: f"  {name:<26}" + "".join(f"{val:9.3f}" for val in x) + f"{x.mean():9.3f}{x.std(ddof=1):9.3f}"
+        head = f"  {'':<26}" + "".join(f"{x:>9}" for x in ("r0", "r1", "r2", "mean", "sd"))
+        pairs = [(c, i) for i in range(1, 6) for c in range(i)]
+        other = sum(ft(f"tr_c{c}_S{i}_lost_other").sum() + ft(f"tr_c{c}_S{i}_gained").sum() for c, i in pairs)
+        print(f"\n{tag}: G1, G4 OK; pure = {m['pure']} (sum of every lost_other and gained cell: {other:.4f})")
+        print("  table 4: % of the test images of cohort c (rows) that were right after session i-1 and are in a slot of session i after session i (columns)")
+        print(f"  {'':<10}" + "".join(f"{'S' + str(i):>9}" for i in range(1, 6)))
+        for c in range(5):
+            print(f"  {'cohort ' + str(c):<10}" + "".join(f"{ft(f'tr_c{c}_S{i}_lost_new').mean():9.3f}" if i > c else f"{'':>9}" for i in range(1, 6)))
+        print(head)
+        print(line("first session after (c >= 1)", np.mean([ft(f"tr_c{c}_S{c + 1}_lost_new") for c in range(1, 5)], axis=0)))
+        print(line("later sessions (c >= 1)", np.mean([ft(f"tr_c{c}_S{i}_lost_new") for c, i in pairs if c >= 1 and i > c + 1], axis=0)))
+        print(line("cohort 0, per session", np.mean([ft(f"tr_c0_S{i}_lost_new") for i in range(1, 6)], axis=0)))
+        print("  table 5: share of the old test images taken by the slots of the session that falls in the k slots whose pool cluster")
+        print("  has the largest share of old images (cap) or of old images among the kept ones (capk); 20 slots, uniform = k / 20")
+        print(f"  {'':<10}" + "".join(f"{x:>9}" for x in ("top1", "top2", "top5", "top10", "k_top5", "taken %", "pool_old", "keep_old", "old_kept", "new_kept")))
+        keys = ("cap_top1", "cap_top2", "cap_top5", "cap_top10", "capk_top5", "cap_n", "pool_old", "keep_old", "f_old_kept", "f_new_kept")
+        for i in range(1, 6):
+            print(f"  {'S' + str(i):<10}" + "".join(f"{ft(f'S{i}_{k}').mean():9.3f}" for k in keys))
+        print("  mean over the 5 sessions\n" + head)
+        for k in keys:
+            print(line(k, np.mean([ft(f"S{i}_{k}") for i in range(1, 6)], axis=0)))
+    print("\ndescriptive (E14.02, amendment): table 5 is a correlation; the intervention is the oracle ladder (step D)")
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -1661,7 +1790,7 @@ def main(argv):
     p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25"], help="e1401, e1402: tag prefix of the 15 chains")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -1687,9 +1816,12 @@ def main(argv):
     if o.step == "e1402-summary":
         e1402_summary()
         return
-    if o.step in ("e1401", "e1402"):
+    if o.step == "e1402b-summary":
+        e1402b_summary()
+        return
+    if o.step in ("e1401", "e1402", "e1402b"):
         assert o.prefix, f"{o.step} needs --prefix"
-        out = (tier2_e1401 if o.step == "e1401" else tier2_e1402)(o.prefix, o.checks_only)
+        out = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b}[o.step](o.prefix, o.checks_only)
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
