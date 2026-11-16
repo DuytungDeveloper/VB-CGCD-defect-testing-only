@@ -790,3 +790,40 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - D24 trên CUB: không mở câu hỏi mới về mất điểm test (0 ảnh vào khe chưa học).
 - [suy luận] Lý do P3 = P2: khe lớp gốc là Gaussian khớp trên ảnh có nhãn và không được cập nhật ở các phiên sau (C5 của QD28), nên ảnh lớp mới hiếm khi dồn đủ nhiều vào một khe lớp gốc để Hungarian đổi tên khe đó. E14.01 không kiểm giả thuyết này.
 - Giới hạn: như phần tiền đăng ký. "P3 = P2 trên pipeline này" không suy ra số của các bài khác so được với số của ta: các bài đó dùng đầu phân lớp huấn luyện chung, fine-tune mỗi phiên và chia dữ liệu khác.
+
+## E14.02 — CUB t5: quên theo đợt lớp và sổ mất điểm theo phiên (QD28)
+
+### Tiền đăng ký (2026-11-16; viết trước khi có code và trước mọi số)
+
+- Câu hỏi:
+  - (a) một đợt lớp mất bao nhiêu điểm từ phiên nó được khám phá tới phiên 5?
+  - (b) điểm lớp mới của một phiên mất ở phân cụm (bước 09–10) hay ở phần sau phân cụm (bước 11–14)?
+- Vì sao: thay phép tính tay "điểm mất chủ yếu ở lúc khám phá, không ở quên" (chiến lược 2026-11-16 §2.1, ngoài repo) bằng số do code in; chọn khâu mà E09.08 nhắm tới và mức ưu tiên của hướng Plasticity–Stability. Đây là bản theo phiên của sổ mất điểm mà QD28 để lại làm sau.
+- Loại: phép đo mô tả trên pipeline mặc định, không có luật đạt/trượt, không thêm biến thể. Việc thay bộ phân lớp trên cả chuỗi không thuộc E14.02 (để ở thiết kế E09.08, làm nhánh đối chứng đơn giản); với lớp gốc, E06.04 đã đo.
+- Dữ liệu: 30 chuỗi mặc định như E14.01. Bộ không rò `cub_chain_ft_l25` là bộ đọc chính; `cub_chain_ft` báo kèm. Tên cụm theo P0 (QD15), bảng tên của các phiên trước đóng băng. Không SVI, không rút RNG. Đọc nhãn thật của pool chỉ để chấm cột 09.
+- Bảng 1, đợt lớp × phiên: đợt 0 = 100 lớp gốc, đợt c = 20 lớp của phiên c (c = 1…5). Ô (c, i), i ≥ c: độ chính xác của bộ phân lớp sau phiên i (`params1` của `S<i>_13`) trên ảnh test của đợt c; ô (0, 0) = S0_All của `metrics.json`. Quên của đợt c = ô (c, c) − ô (c, 5), c = 0…4.
+- Bảng 2, sổ của lớp mới ở phiên i, cùng 20 lớp:
+  - c09: trên ảnh pool lớp mới của phiên, độ chính xác của phân hoạch k-means (`ids`) sau khi ghép cụm với lớp bằng Hungarian trên chính các ảnh đó;
+  - c10: trên ảnh test lớp mới, độ chính xác của k-means (`cluster.predict_raw`) với bảng tên `pi_test`;
+  - c11: như c14 nhưng bộ phân lớp là `params_f` của lượt F (`S<i>_11`); phản thực tế, như cột 11 của E11.01;
+  - c14: S<i>_New.
+  - L_10 = c10 − c14; L_F = c10 − c11; L_S = c11 − c14.
+- Bảng 3, dòng lỗi ở phiên i, bộ phân lớp cuối: ảnh test lớp mới vào đúng khe / khe khác của phiên / khe của đợt đã khám phá / khe lớp gốc; ảnh test cũ vào đúng khe / khe của phiên / khe cũ khác. Tỉ lệ trên số ảnh của tập.
+- Tổng hợp: trung bình 5 chuỗi cho mỗi FT seed, rồi trung bình và SD của ba FT seed; quên và L_10, L_F, L_S báo cạnh T = 0.935 và B = 0.376 (QD28).
+- Cách đọc, chốt trước:
+  - quên của các đợt 1–4 (trung bình) nhỏ hơn B và c10 thấp: nút thắt ở phân cụm; E09.08 nhắm bước 09, hướng Plasticity–Stability xếp sau;
+  - L_10 lớn hơn T: phần sau phân cụm làm mất điểm; bảng 3 cho biết ảnh lớp mới rơi vào khe cũ hay khe mới khác, L_F và L_S cho biết lượt nào;
+  - quên của các đợt 1–4 lớn hơn B: giữ hướng Plasticity–Stability;
+  - các trường hợp không loại trừ nhau; ghi mọi trường hợp xảy ra.
+- Cổng kiểm:
+  - G1: các ô suy ra được từ `metrics.json` trùng `metrics.json` (S<i>_All, S<i>_Old, S<i>_New, S<i>_S0test = ô (0, i)) và `acc1` của ảnh chụp, ở cả 30 chuỗi.
+  - G2: số ảnh đúng của c10 bằng nghiệm tối ưu của Hungarian tính lại trên ảnh test lớp mới.
+  - G3: mỗi dòng của bảng 3 cộng lại bằng 1; số ảnh của các đợt cộng lại bằng số ảnh test của phiên.
+- Code (viết sau tiền đăng ký): runner trong `lab/score.py`, lệnh `e1402` qua `exp.py`, một run mỗi bộ đặc trưng (tag `cub_e14_02_ft`, `cub_e14_02_ft_l25`); lệnh `e1402-summary` chỉ đọc. Dùng lại cách nạp và dự đoán đã qua G1 của E14.01. Không sửa `lab/sessions.py`, `lab/replay.py`.
+- Chi phí [suy luận]: khoảng 2–4 phút mỗi run (E14.01: 109 s và 111 s; thêm một lần dự đoán với `params_f` và một lần gán cụm trên ảnh test mỗi phiên).
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp: quên của các đợt 1–4 trung bình 2–3 điểm, lớn hơn B; L_10 dưới 2 điểm; ảnh test lớp mới sai chủ yếu vào khe khác của cùng phiên; c09 cao hơn c10 không quá 3 điểm. Căn cứ: E14.01 cho S5_Disc 54.03 so với M_d 56.94 trên bộ không rò (hai tập lớp khác nhau, nên chỉ là gợi ý).
+- Giới hạn:
+  - c10 biết trước ảnh nào là lớp mới (k-means chỉ gán ảnh test lớp mới): cận trên của khâu đặt tên, không phải một bộ phân lớp thay thế.
+  - c09 đọc nhãn pool của r0–r2; các FT seed này không dùng cho kiểm định xác nhận về sau (T2 dùng FT seed mới).
+  - B được đo trên 100 lớp gốc; một đợt chỉ có 20 lớp nên nhiễu lớn hơn. SD giữa FT seed của quên theo đợt được in kèm.
+  - Bảng tên P0 đóng băng; E14.01 cho biết ghép lại tên (P2) thêm khoảng 1.3 điểm S5_Disc.
