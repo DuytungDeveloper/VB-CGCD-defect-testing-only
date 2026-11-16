@@ -33,7 +33,10 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
-- E14.01: đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
+- E14.01: điểm lớp mới theo bốn quy ước ghép tên P0–P3 trên cùng dự đoán, CUB t5 (2026-11-16; xong, Rito duyệt tạm: P1–P3 cao hơn P0 0.75–0.79 điểm M_d; P3 trùng P2) — mục E14.01 dưới đây
+- E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
+- E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17) — mục E14.03 dưới đây
+- E14.04 (= "E14.01" của đề xuất 2026-11-05; mã cũ trùng với E14.01 ở trên): đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
 
@@ -899,3 +902,51 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
 - [suy luận, sau khi thấy số] Khe khớp trên cụm gọn của một lớp mới là Gaussian sắc và lấy các ảnh cũ giống lớp đó; cụm gồm ảnh cũ của nhiều lớp thì loãng. Nếu đúng, bỏ ảnh cũ trước bước 09 không giảm quên. Chưa kiểm; nhánh oracle của bước D là phép can thiệp.
 - Chưa giải thích: phần ảnh pool cũ lọt qua bộ lọc giảm đều từ 0.873 (phiên 1) xuống 0.273 (phiên 5).
 - Giới hạn: hai bảng là phần khám phá, thêm sau khi thấy bảng 1–3; bảng 5 là tương quan trên 20 khe mỗi phiên; r0–r2.
+
+## E14.03 — CUB t5: L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, và khe cũ thắng nhờ số hạng nào? (QD28)
+
+### Tiền đăng ký (2026-11-17; viết trước khi có code và trước mọi số)
+
+- Câu hỏi:
+  - (a) trong L_10 = c10 − c14 của E14.02, bao nhiêu điểm mất vì ảnh test lớp mới bị khe cũ giành lúc dự đoán (khe lớp gốc, khe của các đợt trước)?
+  - (b) với các ảnh bị giành, khe cũ thắng nhờ số hạng log det hay số hạng Mahalanobis của log-mật độ?
+  - (c) phụ: pipeline gán theo tâm trên cả chuỗi cho bao nhiêu điểm; điểm hiện tại cách đường biên đánh đổi lớp mới / lớp cũ theo độ lệch b bao xa?
+- Vì sao: E14.02 chốt đích của E09.08 là bước 11–13, nhưng đi từ c10 sang c14 đổi hai thứ cùng lúc: bộ phân lớp, và tập khe được xét (từ 20 khe của phiên sang mọi khe). Ba nhánh của thang oracle (bước D) chỉ làm sạch dữ liệu huấn luyện, không chặn khe cũ giành ảnh test; nếu phần (a) lớn thì mức nâng nhỏ ở D không có nghĩa là cơ chế cũ/mới không có đích. Phần (b) nối với luận điểm của paper (lệch hiệp phương sai, Eq. 9–11) và với luật dừng theo định thức (`classifier/mngmm.py` `calculate_metrics_on_covariances`).
+- Loại: phép đo mô tả; phần A có luật đọc chốt trước, phần B, C, D chỉ báo cáo.
+- Dữ liệu: 15 chuỗi `cub_chain_ft_l25_r<r>_s<N>` (bộ đọc chính) và 15 chuỗi `cub_chain_ft_r<r>_s<N>` (báo kèm). Ở mỗi phiên i = 1…5: `params1` của `S<i>_13`, log-mật độ của `_predict` (thành phần dự đoán mặc định) trên tập test của phiên; tên theo P0 (QD15), bảng tên đóng băng. Không SVI, không rút RNG. Nhãn thật chỉ để chấm, và để lấy tâm lớp gốc từ `s0_x`, `s0_y` (S0 có nhãn theo giao thức).
+- Phần A, can thiệp sạch: cùng `params1`, argmax trên các tập khe khác nhau, chấm trên ảnh test lớp mới (off = 100 + 20 (i − 1)):
+  - c14: mọi khe (= S<i>_New, như pipeline);
+  - g_nobase: bỏ khe 0…99;
+  - g_nodisc: bỏ khe 100 … off − 1 (ở phiên 1 trùng c14);
+  - g20: chỉ khe off … off + 19.
+  - Đại lượng chính: L_comp = g20 − c14, trung bình 5 phiên. Báo kèm L_base = g_nobase − c14, L_disc = g_nodisc − c14 (không cộng lại thành L_comp) và L_10 = c10 − c14 tính lại trong cùng run.
+  - Biết trước, không phải kết quả: L_comp ≥ 0 (mặt nạ chỉ đổi dự đoán của ảnh đang nằm ngoài khe của phiên, mà với ảnh lớp mới các ảnh đó đều sai) và L_comp ≤ 100 × (new_disc + new_base) của bảng 3 E14.02 (trung bình 18.9 điểm, tính tay).
+- Phần B, cơ chế (chỉ báo cáo): với mỗi ảnh test lớp mới mà khe dự đoán o là khe cũ (o < off), n = khe đúng: Δ_det = −½ (log det Σ_o − log det Σ_n), Δ_maha = −½ (d²_o − d²_n), tính bằng numpy float64 (Cholesky) trong không gian PCA; Δ_det + Δ_maha = log p_o − log p_n. In theo nhóm khe o (lớp gốc, đợt trước): số ảnh, trung vị Δ_det, trung vị Δ_maha, tỉ lệ ảnh có Δ_det > 0, tỉ lệ ảnh có |Δ_det| > |Δ_maha|; kèm trung bình log det Σ của khe lớp gốc, khe các đợt trước và khe của phiên.
+- Phần C, pipeline gán theo tâm (chỉ báo cáo): tâm lớp gốc = trung bình `s0_x` theo lớp (đặc trưng thô); tâm của khe off_j + c = `cluster_centers_` của mô hình k-means ở `S<j>_09`. Ở phiên i, mỗi ảnh test vào khe có tâm gần nhất (Euclid, đặc trưng thô) trong các khe đã gặp. In S<i>_All, S<i>_Old, S<i>_New, S<i>_S0test, M_d, M_f proxy, quên theo đợt như bảng 1 của E14.02. Ghi rõ: so với c14, phần C đổi cùng lúc không gian (thô 768 so với PCA-384), cách ước lượng (tâm k-means so với SVI) và dữ liệu huấn luyện (cả pool so với ảnh được giữ); không dùng trong luật đọc.
+- Phần D, đường cong đánh đổi (chỉ báo cáo; không phải phương pháp): cộng độ lệch b vào log-mật độ của 20 khe của phiên rồi lấy argmax trên mọi khe. Lưới b của phiên i: b = 0 và b = −Q_q(m) với q ∈ {0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98}, m = (log-mật độ lớn nhất trên 20 khe của phiên) − (lớn nhất trên các khe cũ), tính trên mọi ảnh test của phiên, không dùng nhãn. In (S<i>_New, S<i>_Old) theo b; mức tăng S<i>_New nội suy tại mức giảm S<i>_Old bằng B (0.376) và bằng 1 điểm; trung bình 5 phiên. b không được chọn: không có b nào được báo như kết quả của một phương pháp.
+- Tổng hợp: trung bình 5 chuỗi cho mỗi FT seed, rồi trung bình và SD của ba FT seed (như E14.02); in kèm 15 giá trị theo chuỗi của L_comp.
+- Cách đọc phần A, chốt trước:
+  - L_comp > T (0.935) và L_comp ≥ ½ L_10: đích chính của E09.08 là cạnh tranh cũ/mới lúc dự đoán (cân thành phần mới với thành phần cũ cố định), không phải chất lượng ước lượng Gaussian trong phiên; kết luận E14.02 "đích là bước 11–13" ghi lại theo đó.
+  - L_comp ≤ T: đích là ước lượng ở bước 11–13, như E14.02.
+  - Còn lại (L_comp > T nhưng dưới ½ L_10): cả hai.
+  - Ngưỡng ½: phần lớn hơn là ưu tiên; không có căn cứ cho ngưỡng chặt hơn.
+  - g20 biết trước ảnh test nào là lớp mới: L_comp là lợi ích của một bộ định tuyến cũ/mới hoàn hảo lúc test, không phải mức đạt được. Phần D cho biết lấy lại một phần của nó tốn bao nhiêu điểm lớp cũ.
+- Hệ quả cho bước D: g20 là nhánh thứ tư của thang oracle (bộ định tuyến lúc test), có từ E14.03 mà không cần chạy thêm; luật ba vùng của D đọc kèm L_comp.
+- Cổng kiểm:
+  - G1: c14 và các cột lớp cũ tính lại trùng `acc1` của `S<i>_14` (1e-6) và `metrics.json` (0.006); c10 tính lại trùng `S<i>_c10` của run E14.02 cùng bộ.
+  - G2: ở mỗi phiên, g20 − c14 ≤ 100 × (new_disc + new_base) của run E14.02 (sai số 1e-6).
+  - G3: mặt nạ mở ra mọi khe cho lại đúng dự đoán của c14 ở mọi ảnh.
+  - G4: ở mỗi ảnh của phần B, |Δ_det + Δ_maha − (log p_o − log p_n)| ≤ 1e-3 × max(1, |log p_o|), với log p của `_predict`.
+  - G5: tâm của phần C chỉ trong 20 khe của phiên cho cùng cụm với `cluster.predict_raw` ở mọi ảnh test lớp mới; `s0_y` có đúng 25 ảnh mỗi lớp 0…99.
+- Code (viết sau tiền đăng ký): runner `tier2_e1403` trong `lab/score.py`, lệnh `e1403` qua `exp.py`, một run mỗi bộ đặc trưng (tag `cub_e14_03_ft_l25`, `cub_e14_03_ft`); lệnh `e1403-summary` chỉ đọc. Dùng lại cách nạp và dự đoán đã qua G1 của E14.01, E14.02. Không sửa `lab/sessions.py`, `lab/replay.py`.
+- Chi phí [suy luận]: khoảng 3–4 phút mỗi run (E14.02: 129 s và 139 s; thêm log det và Cholesky của các khe, và phần C).
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp:
+  - L_comp trong 7–11 điểm, tức hơn nửa L_10; L_base khoảng gấp đôi L_disc (12.7% so với 6.2% ảnh test lớp mới, bảng 3 E14.02).
+  - Phần B: Δ_det > 0 và |Δ_det| > |Δ_maha| ở hơn nửa số ảnh bị giành: khe cũ thắng nhờ định thức nhỏ hơn. Căn cứ: Gaussian gần khởi tạo (D23), nên số hạng Mahalanobis giữa các khe khác nhau ít; luật dừng cho khe mới dừng khi định thức trung bình vượt hệ số dừng nhân với định thức trung bình của khe cũ, hệ số của lượt F tăng từ 1.2 lên 2.0 qua 5 phiên (tính tay).
+  - Phần C: M_d của pipeline theo tâm thấp hơn c14.
+  - Phần D: tại mức giảm lớp cũ bằng B, S<i>_New tăng 2–5 điểm.
+- Giới hạn:
+  - Phần B chỉ xét các ảnh đã bị giành (chọn theo kết quả), nên mô tả cơ chế của lỗi, không phải của mọi quyết định.
+  - Phần C kế thừa tâm cụm khớp trên pool có 50–64% ảnh cũ; tâm lớp gốc từ 25 ảnh trong 768 chiều; là một mốc đơn giản, không phải bộ phân lớp tốt nhất dựa trên tâm.
+  - Phần D lấy lưới b từ phân phối của m trên ảnh test (không nhãn); đường cong là mô tả trên tập test.
+  - r0–r2 đã dùng ở E14.01, E14.02; không phải kiểm định xác nhận.
