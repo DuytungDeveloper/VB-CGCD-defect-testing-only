@@ -869,3 +869,33 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
 - Cổng kiểm: G1 (All của bộ phân lớp sau phiên i trùng `acc1`); G4 (bộ phân lớp trước, chấm trên ảnh của phiên i, cho đúng điểm của nó trên tập test của chính phiên trước, từng đợt; phiên 1 so với `acc0`). Dự đoán lost_other = gained = 0 là kết quả, không phải cổng.
 - Dự đoán của Claude [SUY LUẬN]: lost_other = gained = 0 (độ tin cao); phần rơi vào 5 khe đứng đầu trong 0.50–0.70 (độ tin thấp); bộ lọc giữ 10–25% ảnh pool cũ (độ tin thấp).
 - Giới hạn: ngưỡng 0.50 và 0.35 do Claude chọn; bảng in cả k = 1, 2, 5, 10 để kết quả không phụ thuộc một ngưỡng.
+
+### Kết quả của Sửa đổi (2026-11-16; run `cub_e14_02b_ft_l25`, `cub_e14_02b_ft`, code `dd876fc`, commit run `ea43b5e`; số in bằng `python lab/score.py e1402b-summary`; 30/30 chuỗi qua G1, G4)
+
+Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa FT seed trong ngoặc khi có.
+
+- Bảng 4: `pure` = 1 ở 30/30 chuỗi; tổng mọi ô lost_other và gained bằng 0.0000 ở cả hai bộ.
+  - lost_new, bộ không rò, đợt c ở phiên i (% số ảnh của đợt): đợt 0, phiên 1…5: 3.032, 1.250, 1.127, 0.772, 0.819; đợt 1, phiên 2…5: 3.885, 0.481, 0.505, 0.610; đợt 2, phiên 3…5: 2.328, 1.193, 0.670; đợt 3, phiên 4…5: 3.054, 0.361; đợt 4, phiên 5: 1.139.
+  - Đợt 1–4, phiên ngay sau khi học: 2.601 (0.116) / 2.499 (0.048); các phiên sau đó: 0.637 (0.080) / 0.652 (0.141). Đợt 0, trung bình mỗi phiên: 1.400 (0.020) / 1.363 (0.084).
+- Bảng 5, trung bình 5 phiên: phần ảnh test cũ bị các khe của phiên lấy rơi vào k khe có cụm nhiều ảnh cũ nhất: k = 1: 0.010 / 0.009; k = 2: 0.019 / 0.018; k = 5: 0.103 (0.014) / 0.098 (0.005); k = 10: 0.383 / 0.371. Mức đều: 0.05, 0.10, 0.25, 0.50. Xếp theo tỉ lệ ảnh cũ trong số ảnh được giữ, k = 5: 0.103 / 0.099.
+  - Theo phiên 1…5, k = 5, bộ không rò: 0.120, 0.078, 0.234, 0.043, 0.043.
+  - Ảnh test cũ nằm trong khe của phiên (% số ảnh test cũ), phiên 1…5: 6.120, 4.453, 3.252, 3.209, 2.233.
+- Ngữ cảnh, bộ không rò, phiên 1…5:
+  - tỉ lệ ảnh cũ trong pool: 0.498, 0.543, 0.582, 0.614, 0.641 (theo giao thức t5: 500 ảnh mới và 5 ảnh mỗi lớp cũ, tính tay 500/1000 … 900/1400);
+  - phần ảnh pool cũ được bộ lọc giữ: 0.873, 0.611, 0.413, 0.338, 0.273; trung bình 0.502 (0.015) / 0.498 (0.001);
+  - phần ảnh pool mới được giữ: 1.000, 1.000, 1.000, 0.998, 0.999;
+  - tỉ lệ ảnh cũ trong số ảnh được giữ: 0.464, 0.420, 0.363, 0.349, 0.328.
+- Cách đọc đã chốt: k = 5 cho 0.103, dưới 0.35: cụm lẫn ảnh cũ không phải nguồn chính của quên. Kết quả còn thấp hơn mức đều 0.25, một trường hợp mà cách đọc không lường.
+- Chi phí thật: 132 s và 143 s mỗi run.
+- Dự đoán đã ghi: lost_other = gained = 0: đúng. Phần rơi vào 5 khe đứng đầu trong 0.50–0.70: sai, ngược chiều (0.103). Bộ lọc giữ 10–25% ảnh pool cũ: sai (trung bình 50%, 87% ở phiên 1).
+
+### Kết luận của Sửa đổi (Rito duyệt 2026-11-16)
+
+- Quên trên CUB t5 là ảnh cũ bị khe của phiên mới giành, ở 30/30 chuỗi; không có trôi tham số (đúng với C5 của QD28). Câu [suy luận] trong Kết luận ở trên nay đã được kiểm.
+- Mức giành tập trung ở phiên ngay sau khi một đợt được học (2.60% số ảnh, so với 0.64% ở mỗi phiên sau).
+- Các khe có cụm nhiều ảnh cũ lấy ít ảnh test cũ hơn mức đều (5 khe đứng đầu: 0.103 so với 0.25). Giả thuyết "cụm lẫn ảnh cũ gây quên" bị bác.
+- Hướng Plasticity–Stability, theo nghĩa bảo vệ tham số cũ, không có đối tượng trong pipeline này; nó nhập vào bài toán tách cũ/mới của E09.08 (cân mật độ giữa thành phần cũ và mới).
+- Số cho thang oracle (bước D): pool có 50–64% ảnh cũ; bộ lọc giữ gần như mọi ảnh mới (0.999) và trung bình 50% ảnh cũ (87% ở phiên 1), nên lượt S khớp khe mới trên một tập có 33–46% ảnh cũ.
+- [suy luận, sau khi thấy số] Khe khớp trên cụm gọn của một lớp mới là Gaussian sắc và lấy các ảnh cũ giống lớp đó; cụm gồm ảnh cũ của nhiều lớp thì loãng. Nếu đúng, bỏ ảnh cũ trước bước 09 không giảm quên. Chưa kiểm; nhánh oracle của bước D là phép can thiệp.
+- Chưa giải thích: phần ảnh pool cũ lọt qua bộ lọc giảm đều từ 0.873 (phiên 1) xuống 0.273 (phiên 5).
+- Giới hạn: hai bảng là phần khám phá, thêm sau khi thấy bảng 1–3; bảng 5 là tương quan trên 20 khe mỗi phiên; r0–r2.
