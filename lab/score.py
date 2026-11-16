@@ -13,6 +13,7 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e0906-summary                                  E09.06: decision table from the 15 runs
   python lab/score.py e1101 --from <v2 run> --k-first 0 --k-last 3     E11.01, one snapshot (exp.py)
   python lab/score.py e1101-summary                                  E11.01: decision table from the 25 runs
+  python lab/score.py cub-tb                                         CUB t5: T, B of QD28 from the default chains
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -1297,9 +1298,56 @@ def e1101_summary(B=0.615):
     return df
 
 
+# ---- CUB t5: T, B of QD28 from the default chains of lab/sessions.py, on both feature sets ----
+def cub_tb(prefixes=("cub_chain_ft", "cub_chain_ft_l25"), official="cub_chain_ft_l25"):
+    """T = pooled SD of M_d, B = pooled SD of S5_S0test, between the 5 chain seeds inside each FT seed (QD28; as
+    14-eval section 3.3 for GC10), for each feature set: cub_chain_ft (fine-tuned on 2996 images, D9) and
+    cub_chain_ft_l25 (2500 labeled images). Reads runs/*/config.json and metrics.json only. T and B measure the
+    chain-seed noise on fixed features: the yardstick for paired variants on one snapshot, not for the difference of
+    the two feature sets (that one is the spread of the FT-seed means, n = 3; no test is made)."""
+    keys, out = ("M_d", "S5_S0test", "S5_All", "S5_Old", "M_f"), {}
+    for prefix in prefixes:
+        rows, tab = {}, {}
+        for f in sorted((ROOT / "runs").glob(f"*__{prefix}_r[0-9]_s[0-9]/config.json")):
+            cfg = json.loads(f.read_text())
+            if cfg.get("exit_code") != 0:
+                continue
+            m = re.fullmatch(rf"{re.escape(prefix)}_r(\d)_s(\d)", cfg["tag"])
+            key = (int(m.group(1)), int(m.group(2)))
+            assert key not in rows, f"{cfg['tag']}: more than one run with exit 0"
+            assert cfg["git"]["dirty"] is False, f"{cfg['run_id']}: dirty tree"
+            assert len(cfg["inputs"]) == 1, f"{cfg['run_id']}: expected one input"
+            rows[key] = (next(iter(cfg["inputs"].values())), json.loads((f.parent / "metrics.json").read_text()))
+        assert sorted(rows) == [(r, k) for r in range(3) for k in range(5)], f"{prefix}: need 3 FT seeds x 5 seeds, found {sorted(rows)}"
+        hashes = [{rows[r, k][0] for k in range(5)} for r in range(3)]
+        assert all(len(h) == 1 for h in hashes) and len(set.union(*hashes)) == 3, f"{prefix}: input hashes {hashes}"
+        for key in keys:
+            v = np.array([[rows[r, k][1][key] for k in range(5)] for r in range(3)], dtype=float)
+            tab[key] = (v.mean(1), v.std(1, ddof=1))
+        print(f"\n{prefix}: 15 runs, inputs {' '.join(sorted(h.pop()[:6] for h in hashes))}")
+        print("  FT seed  " + "  ".join(f"{key:>17}" for key in keys) + "     (mean, SD between the 5 seeds, ddof 1)")
+        for r in range(3):
+            print(f"  r{r}       " + "  ".join(f"{tab[key][0][r]:9.3f} {tab[key][1][r]:7.3f}" for key in keys))
+        t, b = (float(np.sqrt((tab[key][1] ** 2).mean())) for key in ("M_d", "S5_S0test"))
+        out[prefix] = {"T": t, "B": b, "mean": {key: float(tab[key][0].mean()) for key in keys},
+                       "sd_ft": {key: float(tab[key][0].std(ddof=1)) for key in keys}}
+        print(f"  T (pooled SD of M_d) = {t:.5f}   B (pooled SD of S5_S0test) = {b:.5f}   mean of the SDs: {tab['M_d'][1].mean():.5f}, {tab['S5_S0test'][1].mean():.5f}")
+        print("  mean over the FT seeds: " + "  ".join(f"{key} {out[prefix]['mean'][key]:.3f}" for key in keys))
+        print("  SD of the 3 FT-seed means: " + "  ".join(f"{key} {out[prefix]['sd_ft'][key]:.3f}" for key in keys))
+    if len(prefixes) == 2:
+        a, b = prefixes
+        print(f"\n{b} minus {a}: difference of two feature sets (2996 vs 2500 fine-tune images), not the leak size; "
+              "FT seeds are not paired, no test")
+        for key in keys:
+            print(f"  {key:>10} {out[b]['mean'][key] - out[a]['mean'][key]:+.3f}   (SD of the FT-seed means: {out[a]['sd_ft'][key]:.3f} and {out[b]['sd_ft'][key]:.3f})")
+    if official in out:
+        print(f"\nofficial for CUB (QD28): T = {out[official]['T']:.5f}, B = {out[official]['B']:.5f}, from {official}")
+    return out
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -1312,7 +1360,7 @@ def main(argv):
     p.add_argument("--checks-only", action="store_true", help="e0604: print the checks C1-C3 only, no result")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -1328,6 +1376,9 @@ def main(argv):
         return
     if o.step == "e1101-summary":
         e1101_summary()
+        return
+    if o.step == "cub-tb":
+        cub_tb()
         return
     if o.step == "e0604":
         out = tier2_e0604(o.dataset, o.run, o.features, o.ft, o.seed, o.checks_only)
