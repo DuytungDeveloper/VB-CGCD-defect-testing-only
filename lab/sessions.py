@@ -15,7 +15,10 @@ Commands (commit 3a; QD28 amended 2026-11-15):
   python lab/sessions.py check <chain> <main.py run>       C1 (and C5) for one chain of this file
   python lab/sessions.py check-hash <chain>                C4: code change of one step for every session
   load(run, upto), rerun(run, name) for notebooks.
-Variants (--from, --start, --at), C2, C3 come in commit 3b, after the E09.08 design.
+  python lab/sessions.py check-resume <chain> [item]     C2: one session again from the snapshots (3b-1)
+3b-1 (QD28, amended 2026-11-17): var_session runs session i again in memory from the parent's snapshot S<i>_<NN>, with
+variants (--at items of lab/variants.py) and a DIAGNOSTIC --view function of lab/oracle.py. 3b-2 (run --from, snapshots
+of variants) and C3 come later.
 The functions in the hash chain (new_state_sessions, s04_sessions, _step, run_s0, session_view, run_session, _pack,
 _unpack and the constants they read) are not changed after the first CUB chain (2026-11-15): changing them makes every
 snapshot of this file stale.
@@ -510,11 +513,8 @@ def rerun(run, name, rtol=1e-6):
                 views.append(session_view(st, st["sessions"], i, views[-1] if views else None))
             v = views[-1]
             _step(v, k, live=k != "10")
-            if k == "10":                                            # as run_session (not shared: hash chain)
-                lut = views[-2]["lut"].copy() if len(views) > 1 else np.arange(args.num_classes)
-                for c, t in v["pi_test"].items():
-                    lut[v["offset"] + t] = v["offset"] + c
-                v["lut"] = lut
+            if k == "10":                                            # as run_session (that copy stays: hash chain)
+                v["lut"] = var_lut(v, views[-2]["lut"] if len(views) > 1 else None, args.num_classes)
             new = {x: v[x] for x in OWNS[k]}
             if k in PACKED:
                 ref[PACKED[k]] = _unpack(ref[PACKED[k]], v["params0"])
@@ -530,7 +530,149 @@ def rerun(run, name, rtol=1e-6):
     return new, ok
 
 
-COMMANDS = {"run": cmd_run, "c0": cmd_c0, "check-gc10": cmd_check_gc10, "check": cmd_check, "check-hash": cmd_check_hash}
+# ---------------------------------------------------------------- 3b-1: one session again, variants (QD28, amended 2026-11-17)
+# Names start with var_: replay._closure follows co_names, attribute names included, so a new module-level name equal to
+# an attribute used by a function of the hash chain would enter the hash. None of the functions below is in the chain.
+def var_step(view, k, items):
+    """Step k on view through chain with the items of this step only (spec {k: items}): the item loop, _check_out and
+    _check_09 of lab/replay.py run unchanged; variants get view without the true_* keys. Returns (rng_in, log)."""
+    rng_in, buf = np.random.get_state(), io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        chain(view, spec={k: list(items)}, start=k, upto=k)
+    return rng_in, buf.getvalue()
+
+
+def var_lut(view, prev_lut, num_classes):
+    """Cumulative lut after step 10: lut of the session before (None for session 1) plus the map of this session, as
+    to_cluster of main.py. Same code as the block in run_session, which keeps its copy (hash chain)."""
+    lut = prev_lut.copy() if prev_lut is not None else np.arange(num_classes)
+    for c, t in view["pi_test"].items():
+        lut[view["offset"] + t] = view["offset"] + c
+    return lut
+
+
+def var_view_fn(name):
+    """--view function by name from lab/oracle.py (DIAGNOSTIC ONLY: it reads true labels)."""
+    return getattr(__import__("oracle"), name)
+
+
+def var_session(run, i, start="09", at=None, view=None, upto="14", crn=True, blobs=None):
+    """Session i of a chain of this file again, in memory, from snapshot S<i>_<start>: steps start..upto of session i;
+    the steps in `at` ({NN: [items]}) through var_step, the others as the default chain (_step). Writes nothing.
+    - Loads the parent's snapshots up to the one before S<i>_<start> (fresh hash chain required) and takes the key
+      sessions (sets and true labels of every session) off st before the session view is built.
+    - Sets the global RNG to rng_in of the parent's S<i>_<start> at the entry of that step (common random numbers);
+      crn=False skips it (negative control of C2 only).
+    - view: name of a function of lab/oracle.py (DIAGNOSTIC ONLY), start 09 only; it gets the view with the true_*
+      keys and may return pool_x, z_pool, true_pool_y and oracle_* keys only.
+    Returns (view after upto, {S<i>_<NN>: dict(out, rng_in, rng_out, log)}); params_f, params1 whole (not packed)."""
+    at = at or {}
+    blobs = blobs or snapshots_sessions(run)
+    fresh_sessions(blobs)
+    args = types.SimpleNamespace(**blobs["04"]["meta"]["args"])
+    n = N_SESSIONS[args.load_mode]
+    assert 1 <= i <= n and start in S_STEPS and upto in S_STEPS and start <= upto, f"session {i}, steps {start}..{upto}"
+    assert all(k in S_STEPS and start <= k <= upto for k in at), f"--at only for steps {start}..{upto}: {sorted(at)}"
+    assert view is None or start == "09", "--view changes the pool: start 09 only"
+    names = list(S0_STEPS) + [f"S{j}_{k}" for j in range(1, n + 1) for k in S_STEPS]
+    st, views = load(run, names[names.index(f"S{i}_{start}") - 1], check=False)
+    _device(blobs)                                               # after new_state (XLA_FLAGS)
+    sess = st.pop("sessions")
+    if start == "09":
+        prev = views[-1] if views else None
+        v = session_view(st, sess, i, prev)
+    else:
+        prev, v = (views[-2] if len(views) > 1 else None), views[-1]
+    assert "sessions" not in v, "the session view holds the sets of every session"
+    if view is not None:
+        out = var_view_fn(view)(v)
+        bad = [x for x in out if x not in ("pool_x", "z_pool", "true_pool_y") and not x.startswith("oracle_")]
+        assert not bad, f"--view {view} may not write {bad}"
+        v.update(out)
+    rec = {}
+    for k in S_STEPS[S_STEPS.index(start):S_STEPS.index(upto) + 1]:
+        if k == start and crn:
+            np.random.set_state(blobs[f"S{i}_{k}"]["rng_in"])
+        rng_in, log = var_step(v, k, at[k]) if k in at else _step(v, k, live=False)
+        if k == "10":
+            v["lut"] = var_lut(v, prev["lut"] if prev is not None else None, args.num_classes)
+            log = log.replace(STAGE_LINE, f"hungarian stage {i}:")
+        rec[f"S{i}_{k}"] = dict(out={x: v[x] for x in OWNS[k]}, rng_in=rng_in, rng_out=np.random.get_state(), log=log)
+    return v, rec
+
+
+def var_c2_items(n):
+    """Items of C2: from S<i>_09 for every session; from 10..14 in session 1 and session n; neg (negative control)."""
+    return [f"S{i}_09" for i in range(1, n + 1)] + [f"S{i}_{k}" for i in (1, n) for k in S_STEPS[1:]] + ["neg"]
+
+
+def var_rng_equal(a, b):
+    return a[0] == b[0] and np.array_equal(a[1], b[1]) and tuple(a[2:]) == tuple(b[2:])
+
+
+def var_c2_one(run, item):
+    """One item of C2 in this process. S<i>_<NN>: var_session from that snapshot with no variant; every output key of
+    S<i>_<NN>..S<i>_14 against the snapshot by the rule of rerun (discrete equal, floats within 1e-6 x max|value|;
+    bitwise reported too), and the RNG after each step against rng_in of the next snapshot. neg: step 09 of session 2
+    without the RNG reset must change ids, else INCOMPLETE. Returns "OK", "DIFF" or "INCOMPLETE"."""
+    blobs = snapshots_sessions(run)
+    args = types.SimpleNamespace(**blobs["04"]["meta"]["args"])
+    n = N_SESSIONS[args.load_mode]
+    names = list(S0_STEPS) + [f"S{j}_{k}" for j in range(1, n + 1) for k in S_STEPS]
+    if item == "neg":
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            v, _ = var_session(run, 2, "09", upto="09", crn=False, blobs=blobs)
+        same = bool(np.array_equal(np.asarray(v["ids"]), np.asarray(blobs["S2_09"]["out"]["ids"])))
+        verdict = "INCOMPLETE" if same else "OK"
+        print(f"  {verdict:10s} neg: S2_09 without the RNG reset, ids {'unchanged' if same else 'changed'}", flush=True)
+        return verdict
+    i, start = int(item[1:item.index("_")]), item[-2:]
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        v, rec = var_session(run, i, start, blobs=blobs)
+    rows = []
+    for name, r in rec.items():
+        ref, k = dict(blobs[name]["out"]), name[-2:]
+        if k in PACKED:
+            ref[PACKED[k]] = _unpack(ref[PACKED[k]], v["params0"])
+        for key, val in ref.items():
+            rows.append((name, key, _compare(r["out"][key], val, 1e-6)[2], _compare(r["out"][key], val, 0.0)[2]))
+        if names.index(name) + 1 < len(names):
+            rows.append((name, "rng", var_rng_equal(r["rng_out"], blobs[names[names.index(name) + 1]]["rng_in"]), None))
+    bad = [f"{nm}:{key}" for nm, key, ok, _ in rows if not ok]
+    bit = [b for *_, b in rows if b is not None]
+    verdict = "DIFF" if bad else "OK"
+    print(f"  {verdict:10s} from {item}: {len(rows) - len(bad)}/{len(rows)} checks, bitwise {sum(bit)}/{len(bit)} keys"
+          f"{' ' + str(bad) if bad else ''}", flush=True)
+    return verdict
+
+
+def cmd_check_resume(argv):
+    """C2 (QD28, amended 2026-11-17): python lab/sessions.py check-resume <chain> [item]. Without item: every item of
+    var_c2_items, each in a new process, as a variant run starts. Writes nothing."""
+    import subprocess
+    p = argparse.ArgumentParser(prog="sessions.py check-resume")
+    p.add_argument("chain", help="run id or tag of a chain of lab/sessions.py run")
+    p.add_argument("item", nargs="?", help="S<i>_<NN> or neg; default: every item, one process each")
+    o = p.parse_args(argv)
+    assert Path("main.py").exists(), "run from the repo root (relative paths: splits/, features/)"
+    if o.item:
+        return var_c2_one(o.chain, o.item) == "OK"
+    blobs = snapshots_sessions(o.chain)
+    fresh_sessions(blobs)
+    items = var_c2_items(N_SESSIONS[blobs["04"]["meta"]["args"]["load_mode"]])
+    print(f"C2 {o.chain} | commit {_git()['commit'][:7]} | {len(items)} items, one process each")
+    del blobs
+    t0, me, fail = time.time(), [sys.executable, str(Path(__file__).resolve()), "check-resume", o.chain], []
+    for item in items:
+        if subprocess.run(me + [item]).returncode:
+            fail.append(item)
+    print(f"C2 {'OK' if not fail else 'NOT OK'}: {len(items) - len(fail)}/{len(items)} items "
+          f"{'(DIFF or INCOMPLETE: ' + ', '.join(fail) + ')' if fail else ''}; {time.time() - t0:.0f} s")
+    return not fail
+
+
+COMMANDS = {"run": cmd_run, "c0": cmd_c0, "check-gc10": cmd_check_gc10, "check": cmd_check, "check-hash": cmd_check_hash,
+            "check-resume": cmd_check_resume}
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
