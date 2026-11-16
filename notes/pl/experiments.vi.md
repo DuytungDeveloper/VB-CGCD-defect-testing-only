@@ -827,3 +827,33 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - c09 đọc nhãn pool của r0–r2; các FT seed này không dùng cho kiểm định xác nhận về sau (T2 dùng FT seed mới).
   - B được đo trên 100 lớp gốc; một đợt chỉ có 20 lớp nên nhiễu lớn hơn. SD giữa FT seed của quên theo đợt được in kèm.
   - Bảng tên P0 đóng băng; E14.01 cho biết ghép lại tên (P2) thêm khoảng 1.3 điểm S5_Disc.
+
+### Kết quả (2026-11-16; run `cub_e14_02_ft_l25`, `cub_e14_02_ft`, code `a1c1d00`, commit run `0706ec8`; số in bằng `python lab/score.py e1402-summary`; 30/30 chuỗi qua G1–G3)
+
+Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa FT seed trong ngoặc khi có.
+
+- Bảng 2, trung bình 5 phiên: c09 66.547 / 66.552; c10 67.041 / 66.901; c11 61.124 / 60.996; c14 = M_d 56.944 / 57.142.
+  - L_10 = +10.096 (0.306) / +9.758 (0.681); L_F = +5.917 (0.462) / +5.904 (0.807); L_S = +4.179 (0.179) / +3.854 (0.333); c09 − c10 = −0.494 (0.142) / −0.349 (0.097).
+  - L_10 theo phiên 1…5, bộ không rò: 10.094, 6.474, 8.963, 11.303, 13.649. c10 theo phiên: 68.592, 62.567, 74.977, 61.056, 68.012.
+- Bảng 3, trung bình 5 phiên, tỉ lệ trên ảnh test lớp mới: đúng khe 0.569 / 0.571; khe khác của phiên 0.241 / 0.242; khe của đợt đã khám phá 0.062 / 0.058; khe lớp gốc 0.127 / 0.128; khe chưa học 0.000.
+  - Trên ảnh test cũ: đúng 0.740 / 0.744; khe của phiên 0.039 / 0.037; khe cũ khác 0.221 / 0.219; khe chưa học 0.000.
+- Bảng 1, bộ không rò, ô (c, i) với i = c … 5:
+  - đợt 0: 85.397, 82.365, 81.115, 79.989, 79.217, 78.398;
+  - đợt 1: 58.498, 54.613, 54.131, 53.627, 53.016;
+  - đợt 2: 56.093, 53.765, 52.572, 51.902;
+  - đợt 3: 66.014, 62.960, 62.599;
+  - đợt 4: 49.754, 48.615;
+  - đợt 5: 54.363.
+- Quên theo đợt 0…4: 6.999 (0.101), 5.481 (0.285), 4.191 (0.426), 3.415 (0.713), 1.138 (0.377) / 6.817 (0.421), 5.575 (0.108), 3.907 (0.718), 3.368 (0.496), 1.056 (0.323). Trung bình đợt 1–4: 3.556 (0.222) / 3.477 (0.217).
+- Cách đọc đã chốt: quên của đợt 1–4 lớn hơn B (0.376); L_10 lớn hơn T (0.935). Trường hợp "quên nhỏ hơn B và c10 thấp" không xảy ra.
+- Chi phí thật: 129 s và 139 s mỗi run.
+- Dự đoán đã đăng ký: quên đợt 1–4 trong 2–3 điểm: sai cỡ (3.556), đúng ở chỗ lớn hơn B. L_10 dưới 2 điểm: sai, kết quả +10.096. Ảnh lớp mới sai chủ yếu vào khe khác của cùng phiên: đúng (0.241 so với 0.189 vào khe cũ, tính tay 0.062 + 0.127). c09 − c10 không quá 3 điểm: đúng (c09 thấp hơn c10 0.494).
+
+### Kết luận (Rito duyệt tạm 2026-11-16)
+
+- Trên CUB t5 không rò, điểm lớp mới mất ở ba chỗ cùng cỡ: phân cụm (c10 = 67.0), phần sau phân cụm (L_10 = 10.1 điểm, lớn hơn T; lượt F 5.9, bộ lọc cộng lượt S 4.2), và quên sau khi học (trung bình 3.6 điểm mỗi đợt, lớn hơn B). Hai bộ đặc trưng cho cùng hình dạng.
+- Nhận định "trên CUB điểm mất chủ yếu ở lúc khám phá, không ở quên" (chiến lược 2026-11-16 §2.1, tính tay, ngoài repo) được thay bằng dòng trên.
+- E09.08 có đích trên CUB: bước 11–13. Đại lượng đích là L_10; 10.1 điểm M_d là cận trên của phần lấy lại được, không phải mức kỳ vọng, vì c10 biết trước ảnh nào là lớp mới.
+- Trong ảnh test lớp mới, 18.9% (tính tay) rơi vào khe cũ và 24.1% vào khe khác của cùng phiên: cả tách cũ/mới lẫn ghép trong phiên đều có chỗ để tăng. Bước D (thang oracle) giữ nguyên ba nhánh.
+- Hướng Plasticity–Stability giữ lại, với câu hỏi đặt lại. [suy luận] Khe của lớp cũ giữ nguyên từng bit qua các phiên (C5 của QD28), nên một ảnh cũ đang đúng chỉ thành sai khi một khe mới giành lấy nó; dòng "ảnh cũ vào khe của phiên" (0.039) khớp với cách hiểu này. E14.02 chưa kiểm trực tiếp: cần tách mức giảm của từng đợt theo khe đích.
+- Giới hạn thêm sau khi có số: c11 là cột duy nhất không có cổng kiểm trực tiếp, nên cách chia L_F / L_S kém chắc hơn tổng L_10; độ khó khác nhau giữa các đợt (ô đầu 49.8 tới 66.0), nên so quên giữa các đợt lẫn cả độ khó.
