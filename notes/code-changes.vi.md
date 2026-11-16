@@ -43,6 +43,8 @@ Cách chia nhóm dựa trên `git diff --name-status upstream-baseline` (xem m�
 
 - trên `infer_features_labels`: `@torch.no_grad()`, như PATCH 1 của `dino-cifar100.py` (QD27)
   Lý do: `eval()` không tắt autograd; ở batch 128 bản upstream không vừa 8 GB. Đổi số: không, vì giá trị forward không phụ thuộc autograd. Không có phép hồi quy: bản upstream không chạy được trên máy 8 GB.
+- trong `__main__`, chỗ chọn dữ liệu fine-tune (16/11, `4b36e47`): `FT_LABELED_IDX` có giá trị thì `select(idx)` trên 2500 ảnh có nhãn, kèm assert 2500 chỉ số khác nhau và đúng 25 ảnh mỗi lớp 0–99; rỗng thì `filter(labels < 100)` như upstream (2996 ảnh). `FT_FOLD` bị chặn trên CUB.
+  Lý do: sửa D9 trên CUB (QD28). Đổi số: có khi đặt biến; không đặt thì như upstream (phép hồi quy ở §4).
 
 ### `main.py`
 
@@ -104,7 +106,7 @@ Thêm `predict_raw(features)` (id cụm, không dùng nhãn) và hàm `hungarian
 
 ---
 
-## 1b. File mới, ảnh hưởng kết quả (9 file, cộng 26 file split ngân sách nhãn)
+## 1b. File mới, ảnh hưởng kết quả (11 file, cộng 26 file split ngân sách nhãn)
 
 - `clustering/kmeans.py`: Paper C.3 nói k-means, code chỉ có GMM (D5). Cùng interface với `GMMCluster`.
   Hàm chính: `KMeansCluster` (`fit`, `_pre_predict`), tham số `n_init`.
@@ -126,6 +128,10 @@ Thêm `predict_raw(features)` (id cụm, không dùng nhãn) và hàm `hungarian
   Hàm chính: `closed_form_params(X, y, classes, prev, num_classes)`.
 - `splits/<ds>_cls<m><sel>_img<k>[_r<r>].json` (26 file, 5/10): biến thể ngân sách nhãn cho phase 1: số lớp có nhãn và cách chọn (`first`, `top`, `rand`), số ảnh mỗi lớp (10, 25, 50, 80pct), lần rút r (E02.06, `97c57ee`).
   Hàm chính: dữ liệu, sinh bởi `scripts/make_label_splits.py`.
+- `scripts/make_labeled_idx_cub.py` (16/11, `581ae9f`): tính 2500 chỉ số HF mà phase 2 coi là có nhãn trên CUB t5, qua hoán vị D17 (47 shard gộp theo thứ tự chuỗi). Ba phép kiểm: nhãn gộp trùng `hf[P]`; tập hàng trùng tập S0 của `StrictPerClassIncrementalLoader`; 2500 chỉ số khác nhau, xếp theo khối lớp.
+  Hàm chính: script, `--check <thư mục đặc trưng>`.
+- `splits/cub_labeled_hf_idx.npy` (16/11, `49d5070`): 2500 chỉ số HF, 25 ảnh mỗi lớp 0–99; đầu vào cho việc sửa D9 trên CUB.
+  Hàm chính: dữ liệu, sha256 `6dbb1939…`.
 
 ---
 
@@ -340,6 +346,9 @@ Các run Eq. 3 dùng `FT_BATCH_SIZE=16 FT_ACCUM=8`, vì 32 × 2 view = 7.68 GB >
 - `lab/variants.py` (`multi_init`, `v09c_multi_init`; `709eeca`) và `lab/score.py` (`tier2_e0907`; `aab1178`): thêm hàm, không sửa thành phần nào của chuỗi băm. C1–C4 của E09.07 đạt ở 15/15 run `gc10_e09_07_r<r>_s<N>`; C1 là phép hồi quy: ở lần rút 0, phân hoạch của nhánh mặc định trùng `ids` của ảnh chụp và số ở bước 14 trùng chuỗi mặc định (rời rạc trùng hẳn, số thực lệch tương đối ≤ 1e-6) (`notes/pl/experiments.vi.md`, E09.07, Kết quả).
 - `lab/variants.py` (`v04a_cub_t5`; `440d60c`), `lab/niw.py` (`8a7fc23`), `lab/score.py` (`tier2_e0604`; `a5b4ff4`): `checks_ok` = 1 ở 30/30 run của E06.04. C1 là phép hồi quy: A0 của chuỗi lab trùng `acc0` của ảnh chụp GC10 và S0_All của run `cub_base_ft_r<r>_s<N>` cùng FT seed và seed, nên `v04a_cub_t5` cho lại đúng phiên đầu của `main.py` trên CUB; C2 kiểm `niw.py` trên dữ liệu thật của một chuỗi mỗi dataset; C3: A1 trùng `--estimator closed` (E06.04, Kết quả).
 - `lab/variants.py` (`v09b_merge` và các hàm gộp; `68285e7`), `lab/score.py` (`tier2_e0906`; `6996b57`): `checks_ok` = 1 ở 30/30 run của E09.06 (C1, C2 ở 15 run có lần rút 0; C3, C4, C5 ở cả 30). C1 là phép hồi quy của nhánh mặc định; C2: `09a` cho lại số tầng 1 đã lưu của E09.05 v2; C5 tính lại mọi cặp ở mọi bước gộp bằng `niw.log_evidence` (E09.06, Kết quả).
+- `feature_extractor/dino-cub200.py` với `FT_LABELED_IDX` (16/11, `4b36e47`): ba lần chạy `FT_EPOCHS=0` (code cũ; code mới không đặt biến; code mới có đặt biến) cho 4 file `.npy` trùng từng bit, `num_rows` 2996 / 2996 / 2500. Không có phép hồi quy từng bit cho phase 1 có fine-tune. Ba run `cub_ft_l25_r0`–`r2` ghi 2500 ảnh và 221,184 tham số huấn luyện được.
+- `lab/sessions.py` trên đặc trưng không rò (16/11, `ec522f8`): C1 OK 48/48 ở ba cặp `cub_chain_ft_l25_r<r>_s0` và `cub_km_evhung_det_ft_l25_r<r>_s0`; 3 mốc thay 15 (QD28, Sửa 2026-11-16).
+- `lab/score.py` (`cub_tb`, lệnh `cub-tb`; `6d75629`): thêm hàm chỉ đọc `config.json` và `metrics.json`, không sửa thành phần nào của chuỗi băm. Kiểm trong hàm: mỗi bộ đủ 3 FT seed × 5 seed với exit 0, cây sạch, 5 seed của một FT seed chung mã băm đầu vào.
 
 ---
 
@@ -349,7 +358,7 @@ Không chép danh sách vào đây (chép tay sẽ lệch, xem lỗi "12 file" c
 
     git diff --name-status upstream-baseline -- . ':(exclude)runs' ':(exclude)notes'
 
-Kiểm 2026-11-13, sau `8a7fc23` (HEAD lúc kiểm: commit 15 run C1 của QD28): **84 dòng = 9 `M` + 75 `A`**; `A` mới duy nhất là `lab/niw.py`, nên `lab/` có 25 file; 9 `M` không đổi. Lần kiểm 2026-11-05, sau khi thêm `@torch.no_grad()` vào `feature_extractor/dino-cub200.py` (QD27): 83 dòng = 9 `M` + 74 `A`; 74 `A` không đổi. Lần kiểm trước (2026-11-05, sau khi thêm `lab/14-eval.ipynb`, `58a698e`): 82 dòng = 8 `M` + 74 `A`; trong 74 `A` có 26 file split ngân sách nhãn, `scripts/` có 13 file, `lab/` có 24 file.
+Kiểm 2026-11-16, sau `6d75629`: **88 dòng = 9 `M` + 79 `A`**; 4 `A` mới: `lab/09b-overcluster-merge.ipynb`, `lab/sessions.py`, `scripts/make_labeled_idx_cub.py`, `splits/cub_labeled_hf_idx.npy`, nên `lab/` có 27 file; 9 `M` không đổi. Lần kiểm 2026-11-13, sau `8a7fc23` (HEAD lúc kiểm: commit 15 run C1 của QD28): 84 dòng = 9 `M` + 75 `A`; `A` mới duy nhất là `lab/niw.py`, nên `lab/` có 25 file; 9 `M` không đổi. Lần kiểm 2026-11-05, sau khi thêm `@torch.no_grad()` vào `feature_extractor/dino-cub200.py` (QD27): 83 dòng = 9 `M` + 74 `A`; 74 `A` không đổi. Lần kiểm trước (2026-11-05, sau khi thêm `lab/14-eval.ipynb`, `58a698e`): 82 dòng = 8 `M` + 74 `A`; trong 74 `A` có 26 file split ngân sách nhãn, `scripts/` có 13 file, `lab/` có 24 file.
 Nếu lệnh cho số khác, tài liệu này đã lệch.
 
 ---
