@@ -37,6 +37,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
 - E14.04 (= "E14.01" của đề xuất 2026-11-05; mã cũ trùng với E14.01 ở trên): đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
+- E14.05: CUB t5, khe cũ giành ảnh test lớp mới vì mean khe mới đặt lệch (bộ ước lượng, ảnh cũ lẫn vào cụm, cụm sai lớp) hay vì chồng lấn trong biểu diễn: thang Mk, Mc, M1 và Σ chung (tiền đăng ký 2026-11-17) — mục E14.05 dưới đây
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
 
@@ -987,3 +988,47 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
 - Phần chú thích của vùng 1 trong luật đọc ("cân thành phần mới với thành phần cũ cố định") không được ủng hộ: một độ lệch đều cho khe của phiên chỉ lấy lại +0.874 điểm lớp mới tại mức giảm lớp cũ bằng B, +2.098 tại mức giảm 1 điểm. [suy luận] Tính theo số ảnh, độ lệch đều đổi nhiều ảnh cũ lấy ít ảnh mới, vì lớp cũ đông hơn lớp mới 5 lần trở lên.
 - Câu hỏi mở cho bước kế: ảnh lớp mới gần khe cũ hơn khe đúng vì mean khe mới đặt lệch (ước lượng, ví dụ ảnh cũ lẫn vào pool) hay vì lớp mới và lớp cũ chồng lấn thật trong không gian đặc trưng (biểu diễn)? Phép đo kế, làm trước thang oracle: L_comp khi thay mean khe mới bằng mean thật của lớp từ ảnh pool có nhãn, và khi tính d² với một Σ chung. Thiết kế E09.08 chờ phép đo này.
 - Giới hạn thêm sau khi có số: phần A, C, D lộ trước khi đọc bảng (chỉ phần B còn mù); phần B chỉ xét ảnh đã bị giành; r0–r2 không phải kiểm định xác nhận.
+
+## E14.05 — CUB t5: khe cũ giành ảnh test lớp mới vì mean khe mới đặt lệch hay vì lớp mới và lớp cũ chồng lấn? (QD28)
+
+### Tiền đăng ký (2026-11-17; viết trước khi có code và trước mọi số của thí nghiệm)
+
+- Câu hỏi: trong L_comp của E14.03 (10.18 điểm, bộ không rò), phần nào lấy lại được khi chỉ đổi mean của 20 khe của phiên, và nguồn lệch nằm ở bộ ước lượng (SVI của bước 13), ở ảnh cũ lẫn vào cụm, hay ở cụm sai lớp? Nếu không nấc nào lấy lại được phần lớn: lớp mới và lớp cũ chồng lấn trong không gian đặc trưng (giới hạn của biểu diễn).
+- Vì sao: Kết luận E14.03 để mở câu hỏi này và đặt nó trước thang oracle; phần B của E14.03 cho thấy khe cũ thắng nhờ số hạng Mahalanobis, nhưng chưa tách mean với hình dạng Σ. Bước 13 (`lab/replay.py` `s13_gauss_s`) chạy SVI trên ảnh được giữ với nhãn là id cụm (`ids + off`), khởi động lại từ Gaussian của S0; D23 ghi tham số gần như không rời khởi tạo (đo trên GC10).
+- Loại: phép đo mô tả có can thiệp; một luật đọc chốt trước trên R(M).
+- Dữ liệu đầu vào đã xem trước khi viết (đếm, không phải kết quả; lệnh chỉ đọc 2026-11-17 trên `cub_chain_ft_l25_r0_s0…s4`): mỗi lớp mới có 25 ảnh pool ở mọi phiên; bộ lọc giữ 24–25 trong 25 ảnh của mỗi lớp mới; ảnh cũ được giữ 231–440 mỗi phiên, giảm từ S1 tới S5; ảnh test mỗi lớp mới từ 11 tới 30 (trung vị 30).
+- Dữ liệu: 15 chuỗi `cub_chain_ft_l25_r<r>_s<N>` (bộ đọc chính) và 15 chuỗi `cub_chain_ft_r<r>_s<N>` (báo kèm). Ở mỗi phiên i = 1…5: `params1` của `S<i>_13`; log-mật độ tính bằng `_predict` (MVN, không trọng số) với tham số đã thay; không gian PCA của S0; tập test của phiên; tên theo P0 (QD15), `lut` cộng dồn. Không SVI, không rút RNG. Nhãn pool chỉ dùng ở nấc Mc, M1, M3; nhãn test chỉ để chấm.
+- Can thiệp: chỉ thay mean của khe off + c, c = 0…19 (off = 100 + 20 (i − 1)); khe cũ giữ nguyên.
+  - M0: mean của `params1` (= pipeline; c14 như E14.03).
+  - Mk: trung bình `z_pool` của các ảnh được giữ (`keep`) có `ids` = c (đúng tập ảnh và nhãn mà bước 13 dùng); không dùng nhãn.
+  - Mc: như Mk nhưng bỏ các ảnh có `true_pool_y` < off.
+  - M1: trung bình `z_pool` của mọi ảnh pool thuộc lớp y với `lut[y]` = off + c (25 ảnh, kể cả ảnh bộ lọc bỏ).
+  - Cụm không còn ảnh ở Mk hoặc Mc: giữ mean M0 cho khe đó và đếm số khe như vậy.
+- Nhánh Σ chung (chỉ báo cáo): Σ chung = trung bình `class_covs` của khe 0…99 trong `params1` (không dùng thêm nhãn); M2 = mean M0 với Σ chung cho mọi khe, M3 = mean M1 với Σ chung cho mọi khe.
+- Đại lượng ở mỗi nấc M: New(M) = điểm ảnh test lớp mới khi argmax trên mọi khe (c14 của nấc), Old(M), g20(M) (argmax chỉ trên 20 khe của phiên), L_comp(M) = g20(M) − New(M). Trung bình 5 phiên mỗi chuỗi, rồi trung bình 5 chuỗi mỗi FT seed, rồi trung bình và SD của ba FT seed (như E14.03).
+- Đại lượng chính: R(M) = [New(M) − New(M0)] / L_comp(M0), tính trên trung bình 5 phiên của mỗi FT seed rồi lấy trung bình ba FT seed, với M ∈ {Mk, Mc, M1}. R có thể vượt 1 (đổi mean cũng có thể sửa lỗi ghép trong phiên) hoặc âm.
+- Báo kèm: ΔOld(M) = Old(M) − Old(M0); khoảng cách Mahalanobis d(μ_M0, μ_Mk) của mỗi khe mới theo Σ của khe đó, trung vị theo phiên, kèm trung vị khoảng cách từ μ_Mk tới mean khe cũ gần nhất (thang so); số ảnh nhỏ nhất của một cụm trong tập giữ; số khe rỗng ở Mk, Mc.
+- Cách đọc, chốt trước (bộ không rò; bộ có rò báo kèm):
+  - R(Mk) ≥ ½: nguồn chính là bộ ước lượng của bước 13; E09.08 nhắm vào cách ước lượng mean khe mới (mean mẫu, hoặc hậu nghiệm VB thật theo Eq. 7). Vì Mk không dùng nhãn, đây là ứng viên phương pháp, cần kiểm lại trên FT seed khác (r3, r4) hoặc trên server trước khi báo như kết quả.
+  - R(Mk) < ½ và R(M1) ≥ ½: nguồn chính là dữ liệu đưa vào bước 13 (ảnh cũ lẫn vào cụm hoặc cụm sai lớp); thang oracle của bước D có đích; R(Mc) − R(Mk) là phần do ảnh cũ lẫn vào cụm, R(M1) − R(Mc) là phần do cụm sai lớp.
+  - R(M1) < ½: lớp mới và lớp cũ chồng lấn trong không gian đặc trưng; trần của mọi biến thể bước 09–13 thấp, kể cả E09.08 với VB-GMM; hướng tiếp theo phải đụng tới biểu diễn hoặc tới cách định tuyến cũ/mới.
+  - Ngưỡng ½ theo cùng lý do như E14.03: phần lớn hơn là ưu tiên.
+  - Mọi kết luận đọc kèm ΔOld: một nấc lấy lại lớp mới bằng cách làm mất nhiều hơn B (0.376) điểm lớp cũ được ghi rõ là đánh đổi.
+- Cổng kiểm:
+  - G1: nấc M0 (tham số thay bằng chính nó, qua cùng đường tính) cho New, Old trùng `acc1` của `S<i>_14` (1e-6) và trùng `S<i>_c14`, `S<i>_g20` của run E14.03 cùng bộ (sai số 1e-4, vì E14.03 lưu số làm tròn 4 chữ số).
+  - G2: tổng số ảnh dùng ở Mk qua 20 cụm bằng `keep.sum()`; mỗi lớp mới có đúng 25 ảnh pool; `lut` là song ánh từ 20 lớp mới lên 20 khe của phiên.
+  - G3: với cụm không có ảnh cũ, mean Mc trùng mean Mk từng bit; tập ảnh của Mc là tập con của Mk.
+  - G4: Σ chung xác định dương (Cholesky không lỗi).
+  - Runner chỉ in trạng thái cổng và thời gian, không in số của từng chuỗi (bài học của E14.03).
+- Code (viết sau tiền đăng ký): runner `tier2_e1405` trong `lab/score.py`, lệnh `e1405` qua `exp.py`, một run mỗi bộ đặc trưng (tag `cub_e14_05_ft_l25`, `cub_e14_05_ft`); lệnh `e1405-summary` chỉ đọc. Dùng lại cách nạp và dự đoán đã qua G1 của E14.03. Không sửa `lab/sessions.py`, `lab/replay.py`.
+- Chi phí [suy luận]: 5–8 phút mỗi run (E14.03: 5.6 phút; sáu lần dự đoán mỗi phiên).
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp:
+  - R(Mk) trong 0.1–0.4: mean SVI lệch khỏi mean mẫu chưa đủ để giải thích phần lớn L_comp, vì g20 ≈ c10 ở E14.03 cho thấy các khe mới đặt đúng tương đối với nhau.
+  - R(Mc) − R(Mk) trong 0.1–0.2: 33–47% ảnh được giữ là ảnh cũ (tính tay từ số đếm trên).
+  - R(M1) trong 0.4–0.7, tức gần ngưỡng; ΔOld(M1) trong khoảng −1 tới 0 điểm.
+  - d(μ_M0, μ_Mk) nhỏ hơn ⅓ khoảng cách từ μ_Mk tới mean khe cũ gần nhất.
+- Giới hạn:
+  - Mean thật từ 25 ảnh trong 384 chiều; Σ của khe giữ nguyên khi đổi mean, nên Σ không còn khớp với mean mới (trừ nhánh Σ chung).
+  - Mc, M1, M3 dùng nhãn pool: là trần, không phải phương pháp; không đụng tập test.
+  - Chỉ đổi khe của phiên đang xét; khe đợt trước giữ mean của pipeline, nên ảnh bị khe đợt trước giành không được sửa ở phiên sau.
+  - r0–r2 đã dùng ở E14.01–E14.03; không phải kiểm định xác nhận.
