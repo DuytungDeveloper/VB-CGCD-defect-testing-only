@@ -37,7 +37,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
 - E14.04 (= "E14.01" của đề xuất 2026-11-05; mã cũ trùng với E14.01 ở trên): đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
-- E14.05: CUB t5, khe cũ giành ảnh test lớp mới vì mean khe mới đặt lệch (bộ ước lượng, ảnh cũ lẫn vào cụm, cụm sai lớp) hay vì chồng lấn trong biểu diễn: thang Mk, Mc, M1 và Σ chung (tiền đăng ký 2026-11-17) — mục E14.05 dưới đây
+- E14.05: CUB t5, khe cũ giành ảnh test lớp mới vì mean khe mới đặt lệch (bộ ước lượng, ảnh cũ lẫn vào cụm, cụm sai lớp) hay vì chồng lấn trong biểu diễn: thang Mk, Mc, M1 và Σ chung (tiền đăng ký 2026-11-17; xong, chờ Rito duyệt: R(Mk) 0.98 nhưng Old giảm 52 điểm, là đánh đổi; mean của pipeline bằng khoảng 1% mean mẫu) — mục E14.05 dưới đây
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
 
@@ -1032,3 +1032,31 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
   - Mc, M1, M3 dùng nhãn pool: là trần, không phải phương pháp; không đụng tập test.
   - Chỉ đổi khe của phiên đang xét; khe đợt trước giữ mean của pipeline, nên ảnh bị khe đợt trước giành không được sửa ở phiên sau.
   - r0–r2 đã dùng ở E14.01–E14.03; không phải kiểm định xác nhận.
+
+### Kết quả (2026-11-17; run `cub_e14_05_ft_l25`, `cub_e14_05_ft`, code `0777048`, commit run `7f90f57`; số in bằng `python lab/score.py e1405-summary`; 30/30 chuỗi qua G1–G4)
+
+Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa FT seed trong ngoặc khi có.
+
+- Theo nấc, trung bình 5 phiên và 5 chuỗi (New, Old, L_comp):
+  - M0: 56.944 / 57.142; 74.046 / 74.427; 10.177 / 9.860 (trùng E14.03);
+  - Mk: 66.960 / 66.998; 22.098 / 22.078; 0.536 / 0.508;
+  - Mc: 67.354 / 67.271; 39.518 / 40.121; 0.579 / 0.571;
+  - M1: 91.216 / 91.662; 43.588 / 44.209; 1.322 / 1.256;
+  - M2: 47.032 / 47.194; 72.992 / 73.340; 19.802 / 19.517;
+  - M3: 92.199 / 92.406; 29.681 / 30.143; 1.074 / 1.111.
+- R(M) và ΔOld(M):
+  - Mk: R 0.984 (0.007) / 0.999 (0.036); ΔOld −51.948 (0.480) / −52.348 (0.619);
+  - Mc: R 1.023 (0.010) / 1.027 (0.033); ΔOld −34.528 / −34.305;
+  - M1: R 3.372 (0.158) / 3.506 (0.170); ΔOld −30.458 / −30.217;
+  - M2: R −0.975 / −1.009; ΔOld −1.054 / −1.086;
+  - M3: R 3.468 / 3.582; ΔOld −44.365 / −44.284.
+- Khoảng cách, trung vị trên 20 khe rồi trung bình: d(μ_M0, μ_Mk) 9.142 / 9.203; d(μ_Mk, mean khe cũ gần nhất) 9.156 / 9.215; tỉ lệ 0.998 / 0.999.
+- Cụm giữ nhỏ nhất 5 / 4 ảnh; khe rỗng ở Mk 0 / 0, ở Mc 70 / 87 trên 1500 (cụm chỉ có ảnh cũ).
+- Luật đọc: R(Mk) 0.984 ≥ ½, nhánh "bộ ước lượng của bước 13 là nguồn chính". Điều khoản ΔOld của tiền đăng ký áp vào: ΔOld(Mk) = −51.95 điểm, lớn hơn B (0.376) hơn 100 lần, nên mức tăng lớp mới ở mọi nấc Mk, Mc, M1, M3 là đánh đổi, không phải phần L_comp lấy lại được; câu "Mk là ứng viên phương pháp" của luật đọc không đứng.
+- Dự đoán đã đăng ký, cả năm sai: R(Mk) 0.1–0.4 (kết quả 0.984); R(Mc) − R(Mk) 0.1–0.2 (0.039, tính tay); R(M1) 0.4–0.7 (3.372); ΔOld(M1) từ −1 tới 0 (−30.458); tỉ lệ khoảng cách dưới ⅓ (0.998).
+- Lệch so với tiền đăng ký: runner cắt tham số về các khe đã gặp (off + 20) và lấy argmax trên các khe này, để khe chưa học (mean 0, Σ = I) không vào nhánh Σ chung; ở M0 điều này không đổi dự đoán (G1 qua ở 30/30 chuỗi, so với `acc1` và với E14.03).
+- Phân tích sau khi thấy số (không thuộc tiền đăng ký; một lệnh chỉ đọc ngày 2026-11-17, chưa đưa vào repo, trên `cub_chain_ft_l25_r0_s0…s4`, 5 phiên mỗi chuỗi). Giả thuyết: mọi mean của pipeline bị kéo về gần gốc tọa độ với cùng một hệ số. Luật đọc viết trước khi chạy: đứng nếu ở cả khe lớp gốc và khe mới α trung vị ≤ 0.5 và cos trung vị ≥ 0.8; đổ nếu α của khe lớp gốc ≥ 0.8. α = ⟨μ_pipeline, μ_mẫu⟩ / ‖μ_mẫu‖², μ_mẫu là mean của ảnh S0 có nhãn (khe lớp gốc) hoặc của ảnh giữ theo cụm (khe mới).
+  - Khe lớp gốc: α trung vị 0.009 (từ 0.006 tới 0.013), cos 0.812–0.814, ‖μ_pipeline‖ 0.132–0.133 so với ‖μ_mẫu‖ 12.143–12.145.
+  - Khe mới: α trung vị 0.008–0.010 (từ 0.005 tới 0.014), cos 0.709–0.748, ‖μ_pipeline‖ 0.122–0.131 so với ‖μ_mẫu‖ 9.631–11.116.
+  - Chuẩn trung vị của ảnh test trong không gian PCA: 18.075–18.101.
+  - Đọc: phần α đứng ở cả hai nhóm (mean của pipeline bằng khoảng 1% mean mẫu, cùng hệ số ở hai nhóm); phần cos đứng ở khe lớp gốc, không đạt ở khe mới (0.71–0.75 dưới 0.8). Mean mẫu theo cụm có lẫn ảnh cũ nên là mốc nhiễu hơn mean S0.
