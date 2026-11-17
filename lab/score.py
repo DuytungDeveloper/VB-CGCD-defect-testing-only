@@ -26,6 +26,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e1405-summary                                  E14.05: tables from the two runs
   python lab/score.py e1406 --prefix cub_chain_ft[_l25] [--checks-only]   E14.06: NIW posterior for every slot (exp.py)
   python lab/score.py e1406-summary                                  E14.06: tables from the two runs
+  python lab/score.py e1202 --prefix cub_chain_ft[_l25] [--checks-only]   E12.02: unlabeled old/new filter, model N (exp.py)
+  python lab/score.py e1202-summary                                  E12.02: tables from the two runs
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -2357,9 +2359,355 @@ def e1406_summary(T=0.935, B=0.376):
     print("\nE14.06: the reading rules are read on cub_e14_06_ft_l25; cub_e14_06_ft is reported alongside")
 
 
+# ---- E12.02: unlabeled old/new filter from the old-class model (pre-registered d566669, amended 571660b) ----
+CANDS_1202 = ("A1", "A3_25", "A3_100", "A3_250", "A3_1000")
+ALPHAS_1202 = {"NFa02": 0.02, "NFa05": 0.05, "NF": 0.10, "NFa20": 0.20, "NFa30": 0.30, "NFa50": 0.50}
+BRANCHES_1202 = ("N", "Nc", "NF", "NFand", "NFa02", "NFa05", "NFa20", "NFa30", "NFa50", "NFcnt")
+
+
+def _loo_t_1202(z, y, off):
+    """Leave-one-out Student-t log density of every labeled row under the NIW posterior of its own class fitted
+    without that row, m0 and the pooled covariance also recomputed without it: the body of niw.loo_curve
+    (loo_class=False) for one off, returned per row (row order of z) instead of summed."""
+    import niw
+    z, y = np.asarray(z, np.float64), np.asarray(y).astype(int)
+    st = niw.class_stats(z, y)
+    d, N, C, k0 = st["d"], st["N"], len(st["n"]), niw.K0
+    St = st["scatter"].sum(0)
+    out = np.empty(N)
+    for k, cls in enumerate(st["classes"]):
+        rows = np.flatnonzero(y == cls)
+        n, xb, x = st["n"][k], st["mean"][k], z[rows]
+        A = off * St / (N - 1 - C) + st["scatter"][k]
+        a = (off / (N - 1 - C) + 1) * n / (n - 1)
+        u = x - xb
+        m0 = st["m0"] - (x - st["m0"]) / (N - 1)
+        w = xb - u / (n - 1) - m0
+        kn, vn, c = k0 + n - 1, d + 1 + off + n - 1, k0 * (n - 1) / (k0 + n - 1)
+        r = x - (k0 * m0 + (n - 1) * (xb - u / (n - 1))) / kn
+        L = np.linalg.cholesky(A)
+        lu, lw, lr = (np.linalg.solve(L, v.T) for v in (u, w, r))
+        m11, m22, m12 = -1 / a + (lu * lu).sum(0), 1 / c + (lw * lw).sum(0), (lu * lw).sum(0)
+        b1, b2 = (lu * lr).sum(0), (lw * lr).sum(0)
+        det = m11 * m22 - m12 ** 2
+        assert (det < 0).all(), "leave-one-out: Psi without the row is not positive definite"
+        q = (lr * lr).sum(0) - (m22 * b1 ** 2 - 2 * m12 * b1 * b2 + m11 * b2 ** 2) / det
+        logdet = 2 * np.log(np.diag(L)).sum() + np.log(a * c) + np.log(-det)
+        out[rows] = niw._t_logpdf(q, logdet, kn, vn, d)
+    return out
+
+
+def _gslot_1202(x):
+    """A1 slot from rows x (n >= 3; at n = 2 Ledoit-Wolf gives shrinkage 0 and a singular covariance): sample mean and
+    Ledoit-Wolf covariance (closed_form_params, branch n >= 2).
+    Returns (mean, cholesky, log det)."""
+    from sklearn.covariance import LedoitWolf
+    lw = LedoitWolf().fit(np.asarray(x, np.float64))
+    L = np.linalg.cholesky(lw.covariance_)
+    return lw.location_, L, 2.0 * float(np.log(np.diag(L)).sum())
+
+
+def _logd_1202(kind, slots, x):
+    """(len(x), len(slots)) log densities: A1 Gaussian with (mean, chol, logdet) slots; A3 Student-t predictive with
+    _post_1406 slots (as niw.log_density). Float64, triangular solves."""
+    import niw
+    from scipy.linalg import solve_triangular
+    x = np.asarray(x, np.float64)
+    d, out = x.shape[1], np.empty((len(x), len(slots)))
+    for k, s in enumerate(slots):
+        if kind == "A1":
+            m, L, ld = s
+            q = (solve_triangular(L, (x - m).T, lower=True) ** 2).sum(0)
+            out[:, k] = -0.5 * ld - 0.5 * q - d / 2 * np.log(2 * np.pi)
+        else:
+            mn, kn, vn, L, ld = s
+            q = (solve_triangular(L, (x - mn).T, lower=True) ** 2).sum(0)
+            out[:, k] = niw._t_logpdf(q, ld, kn, vn, d)
+    return out
+
+
+def _cand_1202(name, z0, y0, prior_n):
+    """One candidate of the score model on S0: (kind, prior, base slots, L0 = log densities of the S0 rows under the
+    full-S0 slots, own = leave-one-out log density of each row under its own class). prior_n gives m0 and P."""
+    base = int(y0.max()) + 1
+    if name == "A1":
+        slots = [_gslot_1202(z0[y0 == k]) for k in range(base)]
+        own = np.empty(len(y0))
+        for k in range(base):
+            rows = np.flatnonzero(y0 == k)
+            for j in rows:
+                s = _gslot_1202(z0[rows[rows != j]])
+                own[j] = _logd_1202("A1", [s], z0[j:j + 1])[0, 0]
+        return "A1", None, slots, _logd_1202("A1", slots, z0), own
+    off = int(name.split("_")[1])
+    m0, k0, P = prior_n[0], prior_n[1], prior_n[4]
+    prior = (m0, k0, z0.shape[1] + 1 + off, off * P)
+    slots = [_post_1406(z0[y0 == k], prior) for k in range(base)]
+    return "A3", prior, slots, _logd_1202("A3", slots, z0), _loo_t_1202(z0, y0, off)
+
+
+def _select_1202(z0, y0, prior_n, off_n):
+    """Choice of the score model by a leave-one-class-out simulation on S0 only (pre-registration of E12.02).
+    Fake old score of a row = max(own leave-one-out density, densities under the other classes); fake new score of a
+    row of class k = max over the classes j != k (full-S0 slots). AUROC with fake old as the positive class; the
+    largest wins, ties go to the A3 candidate whose off is nearest off_n (A1 loses ties).
+    Returns (name, {name: auroc}, {name: candidate}, {name: sorted calibration scores})."""
+    from sklearn.metrics import roc_auc_score
+    res, au, cal = {}, {}, {}
+    idx = np.arange(len(y0))
+    for name in CANDS_1202:
+        c = _cand_1202(name, z0, y0, prior_n)
+        L0 = c[3].copy()
+        L0[idx, y0] = -np.inf
+        new = L0.max(1)
+        old = np.maximum(c[4], new)
+        au[name] = float(roc_auc_score(np.r_[np.ones(len(old)), np.zeros(len(new))], np.r_[old, new]))
+        res[name], cal[name] = c, np.sort(old)
+    rank = lambda nm: (au[nm], nm != "A1", -abs(int(nm.split("_")[1]) - off_n) if nm != "A1" else 0)
+    return max(CANDS_1202, key=rank), au, res, cal
+
+
+def _pval_1202(s, cal):
+    """Conformal p-value (Bates et al. 2023) of scores s against sorted calibration scores: (1 + #{s_j <= s}) / (n + 1)."""
+    return (1.0 + np.searchsorted(cal, s, side="right")) / (len(cal) + 1.0)
+
+
+def _branch_1202(ctx, rule):
+    """One branch of E12.02 over the 5 sessions. rule: ("fixed", [keep per session]) for N, Nc; ("override", [keep])
+    = the filter path with the keep replaced (G2); ("alpha", a); ("and", a) = filter and pipeline keep; ("count",)
+    = the number of novel pool images, lowest scores (oracle). The keep rules see the scores only (count: one number).
+    Slots of earlier sessions (N posterior and score-model slot) come from this branch's own keep.
+    Returns ([per-session dict], [keep per session], [score per session or None])."""
+    kind, base, inc = ctx["kind"], ctx["base"], ctx["inc"]
+    discN, discF, out, keeps, scores = [], [], [], [], []
+    for i, sv in enumerate(ctx["sess"], 1):
+        off = base + (i - 1) * inc
+        zp, ids, yp = sv["zp"], sv["ids"], sv["yp"]
+        s = None
+        if rule[0] != "fixed":
+            s = ctx["fpool"][i - 1].max(1)
+            if discF:
+                s = np.maximum(s, _logd_1202(kind, discF, zp).max(1))
+        if rule[0] in ("fixed", "override"):
+            keep = np.asarray(rule[1][i - 1]).astype(bool)
+        elif rule[0] == "alpha":
+            keep = _pval_1202(s, ctx["cal"]) <= rule[1]
+        elif rule[0] == "and":
+            keep = (_pval_1202(s, ctx["cal"]) <= rule[1]) & sv["keep_pipe"]
+        elif rule[0] == "count":
+            keep = np.zeros(len(zp), bool)
+            keep[np.argsort(s, kind="stable")[:int((yp >= off).sum())]] = True
+        else:
+            raise ValueError(rule)
+        sessN, sessF, empty = [], [], 0
+        for c in range(inc):
+            sel = keep & (ids == c)
+            empty += int(not sel.any())
+            sessN.append(_post_1406(zp[sel], ctx["priorN"]))
+            if sel.sum() >= (3 if kind == "A1" else 2):              # Ledoit-Wolf at n = 2: shrinkage 0, singular
+                sessF.append(_gslot_1202(zp[sel]) if kind == "A1" else _post_1406(zp[sel], ctx["priorF"]))
+        lt, _ = _logd_1406(discN + sessN, sv["zt"], ctx["d"])
+        r = _score_1406(np.concatenate([sv["lbN"], lt], 1), sv["y"], sv["tgt"], off, inc, base)
+        old_b, old_d, nov = yp < base, (yp >= base) & (yp < off), yp >= off
+        r.update(empty=empty, oldbase_kept=float(keep[old_b].mean()), new_dropped=float(1.0 - keep[nov].mean()))
+        if old_d.any():
+            r["olddisc_kept"] = float(keep[old_d].mean())
+        if s is not None:
+            from sklearn.metrics import roc_auc_score
+            r["auroc_pool"] = float(roc_auc_score((yp < off).astype(int), s))
+        out.append(r)
+        keeps.append(keep)
+        scores.append(s)
+        discN, discF = discN + sessN, discF + sessF
+    return out, keeps, scores
+
+
+def tier2_e1202(prefix, checks_only=False):
+    """E12.02 (pre-registration d566669, amendment 571660b) on the 15 default chains <prefix>_r<r>_s<N>.
+    Score model chosen per chain on S0 (_select_1202); filter = conformal p-value <= alpha on the pool of each
+    session; model N of E14.06 fitted on the kept images (branches BRANCHES_1202, _branch_1202). The rules that keep
+    images read the scores only; pool labels serve the oracle branches (Nc, NFcnt) and the scoring of the filter; test
+    labels serve scoring. No SVI, no RNG. Gates:
+    G1 pipeline columns = acc1 (1e-6); N, Nc, c10 = the E14.06 run of this set (New, Old, All, g20, c10; 1e-4).
+    G2 the filter path with the pipeline keep gives N (1e-6).
+    G3 (amended) session 1: keeps nested in alpha, NFand within NF; every session: the alphas on the NF score vector
+    give nested keeps.
+    G4 sum of _loo_t_1202 = niw.loo_curve for every A3 candidate (1e-8); class 0 of S0: _loo_t_1202 = refit by
+    niw.fit without the row (off of N, 1e-8); base slots of N = niw.fit (1e-8); A1 base labels on the S0 test set =
+    mngmm._fit_closed + _predict (base slots).
+    G5 calibration p-values (own row left out) <= alpha at a rate within 1/(n + 1) + ties of alpha.
+    The progress line prints the gates and the time only. Keys: r<r>_s<N>_<key>; G1_ok ... G5_ok, checks_ok."""
+    import niw
+    from replay import _clf, _git
+    from sessions import load as load_sessions, _device
+    assert prefix in ("cub_chain_ft", "cub_chain_ft_l25"), "E12.02 is pre-registered on the two sets of CUB chains"
+    t0 = time.time()
+    if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
+        raise SystemExit("e1202: commit the code first (same dirty rule as scripts/exp.py)")
+    e06 = _ref_metrics("cub_e14_06_" + prefix[len("cub_chain_"):])
+    assert e06.get("checks_ok") == 1, "E14.06 run of this feature set: checks failed"
+    out, gates = {}, {f"G{k}": True for k in range(1, 6)}
+    for r, N in ((0, 0),) if checks_only else [(r, N) for r in range(3) for N in range(5)]:
+        tag, pre = f"{prefix}_r{r}_s{N}", f"r{r}_s{N}_"
+        st, views = load_sessions(tag)                  # the workbench first: torch, main, then jax, as the chains
+        import jax.numpy as jnp
+        _device()
+        a = st["args"]
+        assert a.dataset == "cub200" and a.load_mode == "t5" and len(views) == 5 and a.seed == N, f"{tag}: not a CUB t5 chain of seed {N}"
+        base, inc, res, g = a.base, a.increment, {}, {f"G{k}": True for k in range(1, 6)}
+        z0, y0 = np.asarray(st["z_s0"], np.float64), np.asarray(st["s0_y"]).astype(int)
+        assert np.array_equal(np.unique(y0), np.arange(base)), f"{tag}: S0 classes"
+        d = z0.shape[1]
+        # model N (E14.06)
+        off_n = niw.choose(niw.loo_curve(z0, y0))
+        sts = niw.class_stats(z0, y0)
+        P = niw.prior_cov(sts, 0)
+        prior_n = (sts["m0"], niw.K0, d + 1 + off_n, off_n * P, P)
+        priorN = prior_n[:4]
+        baseN = [_post_1406(z0[y0 == k], priorN) for k in range(base)]
+        ref = niw.fit(z0, y0, off_n)
+        rel = lambda u, w: float(np.max(np.abs(np.asarray(u) - np.asarray(w))) / max(1e-300, float(np.max(np.abs(w)))))
+        g["G4"] &= rel(np.stack([s[0] for s in baseN]), ref["mn"]) <= 1e-8 and rel(np.array([s[4] for s in baseN]), ref["logdet"]) <= 1e-8
+        # score model, chosen on S0
+        sel, au, cands, cals = _select_1202(z0, y0, prior_n, off_n)
+        for name in CANDS_1202:
+            if name != "A1":
+                o = int(name.split("_")[1])
+                g["G4"] &= rel(cands[name][4].sum(), niw.loo_curve(z0, y0, (o,))[0]) <= 1e-8
+        rows0 = np.flatnonzero(y0 == 0)
+        own_n = _loo_t_1202(z0, y0, off_n)
+        for j in rows0:
+            keepj = np.arange(len(y0)) != j
+            m = niw.fit(z0[keepj], y0[keepj], off_n)
+            g["G4"] &= rel(own_n[j], niw.log_density(m, z0[j:j + 1], "t")[0, int(np.flatnonzero(m["classes"] == 0)[0])]) <= 1e-8
+        clf = _clf(views[0])
+        clf.global_params, clf.label_offset = None, 0
+        with contextlib.redirect_stdout(io.StringIO()):
+            p1 = clf._fit_closed(st["z_s0"], st["s0_y"], None, "e1202")
+        zt0 = np.asarray(st["z_test0"], np.float64)
+        lab_pipe = np.asarray(clf._predict(jnp.asarray(st["z_test0"]), p1)[1])[:, :base].argmax(1)
+        g["G4"] &= bool(np.array_equal(_logd_1202("A1", cands["A1"][2], zt0).argmax(1), lab_pipe))
+        kind, priorF, slotsF = cands[sel][0], cands[sel][1], cands[sel][2]
+        cal = cals[sel]
+        n_cal = len(cal)
+        p_self = (1.0 + np.searchsorted(cal, cal, side="right") - 1.0) / (n_cal + 1.0)
+        ties = 1.0 - len(np.unique(cal)) / n_cal
+        g["G5"] &= all(abs(float((p_self <= al).mean()) - al) <= 1.0 / (n_cal + 1) + ties for al in ALPHAS_1202.values())
+        res.update({"sel": CANDS_1202.index(sel), "off": int(off_n)})
+        res.update({f"auroc_{nm}": au[nm] for nm in CANDS_1202})
+        # per-session inputs and the pipeline columns
+        sess = []
+        for i, v in enumerate(views, 1):
+            off = v["offset"]
+            clf = _clf(v)
+            _component(v["predict"])(clf)
+            clf.label_offset, clf.n_seen = off, off + inc
+            xt = clf.pca.transform(v["test_all_x"])
+            zt = np.asarray(xt, np.float64)
+            y, lut = np.asarray(v["true_test_all_y"]).astype(int), np.asarray(v["lut"])
+            tgt, new = lut[y], y >= off
+            pr = np.asarray(clf._predict(jnp.array(xt), _jnp(v["params1"]))[0]).astype(int)
+            okp = pr == tgt
+            res.update({f"S{i}_P_New": 100.0 * float(okp[new].mean()), f"S{i}_P_Old": 100.0 * float(okp[~new].mean()),
+                        f"S{i}_P_All": 100.0 * float(okp.mean())})
+            g["G1"] &= abs(res[f"S{i}_P_New"] - float(v["acc1"]["Novel"])) <= 1e-6 and abs(res[f"S{i}_P_Old"] - float(v["acc1"]["Old"])) <= 1e-6
+            km, y1 = np.asarray(v["cluster"].predict_raw(v["test1_x"])).astype(int), np.asarray(v["true_test1_y"]).astype(int)
+            res[f"S{i}_c10"] = 100.0 * float((off + np.array([v["pi_test"][int(c)] for c in km]) == y1).mean())
+            g["G1"] &= abs(res[f"S{i}_c10"] - float(e06[f"{pre}S{i}_c10"])) <= 1e-4
+            zp = np.asarray(v["z_pool"], np.float64)
+            yp = np.asarray(v["true_pool_y"]).astype(int)
+            sess.append(dict(zp=zp, ids=np.asarray(v["ids"]).astype(int), yp=yp, keep_pipe=np.asarray(v["keep"]).astype(bool),
+                             zt=zt, y=y, tgt=tgt, lbN=_logd_1406(baseN, zt, d)[0]))
+        ctx = dict(kind=kind, base=base, inc=inc, d=d, priorN=priorN, priorF=priorF, cal=cal, sess=sess,
+                   fpool=[_logd_1202(kind, slotsF, sv["zp"]) for sv in sess])
+        pipe = [sv["keep_pipe"] for sv in sess]
+        oracle = [sv["keep_pipe"] & (sv["yp"] >= base + i * inc) for i, sv in enumerate(sess)]
+        rules = {"N": ("fixed", pipe), "Nc": ("fixed", oracle), "NF": ("alpha", ALPHAS_1202["NF"]),
+                 "NFand": ("and", ALPHAS_1202["NF"]), "NFcnt": ("count",),
+                 **{b: ("alpha", al) for b, al in ALPHAS_1202.items() if b != "NF"}}
+        br = {b: _branch_1202(ctx, rules[b]) for b in BRANCHES_1202}
+        g2, _, _ = _branch_1202(ctx, ("override", pipe))
+        qs = ("New", "Old", "All", "g20")
+        for i in range(1, 6):
+            for b in ("N", "Nc"):
+                g["G1"] &= all(abs(br[b][0][i - 1][q] - float(e06[f"{pre}S{i}_{b}_{q}"])) <= 1e-4 for q in qs)
+            g["G2"] &= all(abs(g2[i - 1][q] - br["N"][0][i - 1][q]) <= 1e-6 for q in qs + ("nobase", "nodisc"))
+        order = ("NFa02", "NFa05", "NF", "NFa20", "NFa30", "NFa50")
+        k1 = {b: br[b][1][0] for b in order + ("NFand",)}
+        g["G3"] &= all(not np.any(k1[x] & ~k1[y]) for x, y in zip(order, order[1:])) and not np.any(k1["NFand"] & ~k1["NF"])
+        for s in br["NF"][2]:
+            ks = [_pval_1202(s, cal) <= ALPHAS_1202[b] for b in order]
+            g["G3"] &= all(not np.any(x & ~y) for x, y in zip(ks, ks[1:]))
+        for b in BRANCHES_1202:
+            for i, rr in enumerate(br[b][0], 1):
+                res.update({f"S{i}_{b}_{q}": val for q, val in rr.items()})
+        for kk in gates:
+            gates[kk] = gates[kk] and g[kk]
+        out.update({pre + kk: round(val, 4) if isinstance(val, float) else val for kk, val in res.items()})
+        print(f"e1202 {tag}: " + " ".join(f"{kk} {'OK' if g[kk] else 'DIFF'}" for kk in g) + f" ({time.time() - t0:.0f} s)", flush=True)
+    chk = {f"{kk}_ok": int(v) for kk, v in gates.items()}
+    chk["checks_ok"] = int(all(gates.values()))
+    print(f"e1202 {prefix}: checks {'OK' if chk['checks_ok'] else 'FAILED'} ({time.time() - t0:.0f} s)")
+    return chk if checks_only else {**chk, **out}
+
+
+def e1202_summary(T=0.935, B=0.376):
+    """Tables of E12.02 from the runs cub_e12_02_ft_l25 and cub_e12_02_ft. Every number is first the mean of the 5
+    sessions and 5 chains of an FT seed; "mean" and "sd" are over the 3 FT seeds (sd with ddof 1). rho(branch) =
+    (Old - Old_N) / (Old_Nc - Old_N) per FT seed, then the mean. Reading rule of the pre-registration on NF, leak-free
+    set. Refuses to read a run without checks_ok = 1."""
+    for tag in ("cub_e12_02_ft_l25", "cub_e12_02_ft"):
+        if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+            print(f"\n{tag}: no run yet")
+            continue
+        m = _ref_metrics(tag)
+        assert m.get("checks_ok") == 1, f"{tag}: checks failed, results are not read"
+        per = lambda key: np.array([[m[f"r{r}_s{N}_{key}"] for N in range(5)] for r in range(3)], float)
+        ft = lambda k, ss=range(1, 6): np.mean([per(f"S{i}_{k}") for i in ss], axis=0).mean(1)
+        line = lambda name, x: f"  {name:<28}" + "".join(f"{val:9.3f}" for val in x) + f"{x.mean():9.3f}{x.std(ddof=1):9.3f}"
+        head = f"  {'':<28}" + "".join(f"{x:>9}" for x in ("r0", "r1", "r2", "mean", "sd"))
+        print(f"\n{tag}: G1-G5 OK\n  score model chosen on S0 (chains): "
+              + ", ".join(f"{nm} {int((per('sel') == j).sum())}" for j, nm in enumerate(CANDS_1202)))
+        print(head)
+        for nm in CANDS_1202:
+            print(line(f"S0 leave-one-class-out AUROC {nm}", per(f"auroc_{nm}").mean(1)))
+        print(f"  mean over 5 sessions and 5 chains\n{head}")
+        for q in ("New", "Old", "All"):
+            print(line(f"pipeline {q}", ft(f"P_{q}")))
+        oN, oC = ft("N_Old"), ft("Nc_Old")
+        for b in BRANCHES_1202:
+            for q in ("New", "Old", "All", "g20"):
+                print(line(f"{b} {q}", ft(f"{b}_{q}")))
+            print(line(f"{b} L_comp = g20 - New", ft(f"{b}_g20") - ft(f"{b}_New")))
+            for q in ("New", "Old"):
+                print(line(f"{b} d{q} vs pipeline", ft(f"{b}_{q}") - ft(f"P_{q}")))
+                print(line(f"{b} d{q} vs N", ft(f"{b}_{q}") - ft(f"N_{q}")))
+            print(line(f"{b} rho", (ft(f"{b}_Old") - oN) / (oC - oN)))
+            print(line(f"{b} old base kept", ft(f"{b}_oldbase_kept")))
+            print(line(f"{b} old discovered kept (S2-S5)", ft(f"{b}_olddisc_kept", range(2, 6))))
+            print(line(f"{b} novel dropped", ft(f"{b}_new_dropped")))
+            if b not in ("N", "Nc"):
+                print(line(f"{b} pool AUROC of s", ft(f"{b}_auroc_pool")))
+            print(f"  {b} empty N slots: {int(sum(per(f'S{i}_{b}_empty').sum() for i in range(1, 6)))} (of 1500)")
+        print(f"  NF per session (old base kept / old discovered kept / novel dropped / pool AUROC):")
+        for i in range(1, 6):
+            od = f"{per(f'S{i}_NF_olddisc_kept').mean():.3f}" if i > 1 else "-"
+            print(f"  S{i}: {per(f'S{i}_NF_oldbase_kept').mean():.3f} / {od} / {per(f'S{i}_NF_new_dropped').mean():.3f} / "
+                  f"{per(f'S{i}_NF_auroc_pool').mean():.3f}")
+        rho = ((ft("NF_Old") - oN) / (oC - oN)).mean()
+        dnew = (ft("NF_New") - ft("P_New")).mean()
+        verdict = ("NF is better than the pipeline (secondary rule of E14.06): starting rung of E09.08; confirm on r3, r4 or "
+                   "the server" if rho >= 0.67 and dnew > T else
+                   "the hard filter recovers only part: soft responsibilities stay the main mechanism of E09.08" if rho >= 1 / 3 else
+                   "the old-class model alone does not separate enough: see NFcnt and the pool AUROC")
+        print(f"  reading rule: rho(NF) {rho:.3f}, dNew(NF) vs pipeline {dnew:+.3f} (T {T}) -> {verdict}")
+        print(f"  L_comp(NF) {(ft('NF_g20') - ft('NF_New')).mean():.3f}: the filter does not target the competition at prediction")
+    print("\nE12.02: the reading rule is read on cub_e12_02_ft_l25; cub_e12_02_ft is reported alongside")
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -2373,7 +2721,7 @@ def main(argv):
     p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25"], help="e1401, e1402: tag prefix of the 15 chains")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -2411,9 +2759,12 @@ def main(argv):
     if o.step == "e1406-summary":
         e1406_summary()
         return
-    if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406"):
+    if o.step == "e1202-summary":
+        e1202_summary()
+        return
+    if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406", "e1202"):
         assert o.prefix, f"{o.step} needs --prefix"
-        out = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406}[o.step](o.prefix, o.checks_only)
+        out = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406, "e1202": tier2_e1202}[o.step](o.prefix, o.checks_only)
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
