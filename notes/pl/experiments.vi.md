@@ -794,6 +794,12 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Chi phí [suy luận], thay dòng Chi phí: 45–90 phút mỗi run, vì runner chạy 10 nhánh tuần tự qua 5 phiên (N, Nc, NF, NF∧, 5 nhánh NF-α, NF-count), không chỉ một nhánh.
 - Không đổi gì khác: câu hỏi, đại lượng chính, luật đọc, các nhánh, dự đoán.
 
+### Sửa đổi thứ hai (2026-11-17; sau khi viết code, trước mọi run trên dữ liệu thật; tiền đăng ký `d566669` và Sửa đổi `571660b` giữ nguyên)
+
+- Dòng "Mô hình điểm", ý "cụm có dưới 2 ảnh được giữ thì không có khe trong mô hình điểm": với ứng viên A1, ngưỡng là dưới 3 ảnh; với A3 giữ dưới 2 ảnh.
+- Lý do: Ledoit–Wolf của scikit-learn ở n = 2 cho hệ số co bằng 0 và hiệp phương sai hạng 1, nên Cholesky báo lỗi. Phát hiện khi thử runner trên chuỗi giả ngoài repo (code `e680c16`), trước mọi số trên dữ liệu thật. Với n = 1, nhánh của `closed_form_params` dùng Σ đẳng hướng gộp, nhưng tiền đăng ký đã bỏ khe khi n < 2, nên không dùng nhánh đó.
+- Không đổi gì khác.
+
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
 ### Tiền đăng ký (2026-11-16; viết trước khi có code và trước mọi số)
