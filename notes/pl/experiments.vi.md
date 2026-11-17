@@ -787,6 +787,13 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - Ảnh cũ lặp lại giữa các phiên (D16); mỗi phiên quyết định độc lập.
   - α, hai ngưỡng 1/3 và 0.67 của luật đọc và lưới ứng viên do Claude đặt; r0–r2 đã dùng ở E14.01–E14.06, nên đây không phải kiểm định xác nhận.
 
+### Sửa đổi (2026-11-17; trước khi viết code và trước mọi run; phần tiền đăng ký ở trên, `d566669`, giữ nguyên)
+
+- G3 thay bằng: (a) ở phiên 1, tập giữ lồng nhau theo α và tập của NF∧ là tập con của NF; (b) ở mọi phiên, áp các α của nhánh NF và NF-α lên cùng một vectơ điểm của nhánh NF cho các tập lồng nhau (kiểm cài đặt của luật giữ).
+- Lý do: từ phiên 2, mỗi nhánh có khe đã khám phá riêng, khớp trên tập giữ của chính nhánh đó, nên mô hình điểm khác nhau giữa các nhánh và tập giữ của hai nhánh không bắt buộc lồng nhau. G3 như bản gốc có thể báo lỗi khi code đúng. Chỉ ở phiên 1 mọi nhánh mới có cùng mô hình điểm (khe lớp gốc).
+- Chi phí [suy luận], thay dòng Chi phí: 45–90 phút mỗi run, vì runner chạy 10 nhánh tuần tự qua 5 phiên (N, Nc, NF, NF∧, 5 nhánh NF-α, NF-count), không chỉ một nhánh.
+- Không đổi gì khác: câu hỏi, đại lượng chính, luật đọc, các nhánh, dự đoán.
+
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
 ### Tiền đăng ký (2026-11-16; viết trước khi có code và trước mọi số)
