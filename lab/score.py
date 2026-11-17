@@ -24,6 +24,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e1403-summary                                  E14.03: tables from the two runs
   python lab/score.py e1405 --prefix cub_chain_ft[_l25] [--checks-only]   E14.05: mean ladder Mk, Mc, M1, shared cov (exp.py)
   python lab/score.py e1405-summary                                  E14.05: tables from the two runs
+  python lab/score.py e1406 --prefix cub_chain_ft[_l25] [--checks-only]   E14.06: NIW posterior for every slot (exp.py)
+  python lab/score.py e1406-summary                                  E14.06: tables from the two runs
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -2171,9 +2173,193 @@ def e1405_summary(B=0.376):
     print("\nE14.05: the reading rule is read on cub_e14_05_ft_l25; cub_e14_05_ft is reported alongside")
 
 
+def _post_1406(x, prior):
+    """NIW posterior of one slot from rows x (lab/niw.py formulas; prior = (m0, k0, nu0, psi0)). No rows: the prior.
+    Returns (mn, kn, vn, chol of Psi_n, log det Psi_n)."""
+    m0, k0, nu0, psi0 = prior
+    n = len(x)
+    if n == 0:
+        mn, kn, vn, psi = m0, k0, nu0, psi0
+    else:
+        xb = x.mean(0)
+        S = (x - xb).T @ (x - xb)
+        kn, vn = k0 + n, nu0 + n
+        mn = (k0 * m0 + n * xb) / kn
+        psi = psi0 + S + (k0 * n / kn) * np.outer(xb - m0, xb - m0)
+    L = np.linalg.cholesky(psi)
+    return mn, kn, vn, L, 2.0 * float(np.log(np.diag(L)).sum())
+
+
+def _logd_1406(slots, x, d):
+    """(len(x), len(slots)) log densities, Student-t (A3) and Gaussian plug-in (A2), as niw.log_density."""
+    import niw
+    t, g = np.empty((len(x), len(slots))), np.empty((len(x), len(slots)))
+    for k, (mn, kn, vn, L, ld) in enumerate(slots):
+        q = (np.linalg.solve(L, (x - mn).T) ** 2).sum(0)
+        t[:, k] = niw._t_logpdf(q, ld, kn, vn, d)
+        c = vn - d - 1
+        g[:, k] = -0.5 * (ld - d * np.log(c)) - 0.5 * q * c - d / 2 * np.log(2 * np.pi)
+    return t, g
+
+
+def _score_1406(L, y, tgt, off, inc, base):
+    """New, Old, All, g20, nobase, nodisc (percent) of one log-density matrix over the seen slots."""
+    new, n = y >= off, off + inc
+    pr = L.argmax(1)
+    ok = pr == tgt
+    M = L.copy()
+    M[:, :base] = -np.inf
+    nob = (M.argmax(1) == tgt)[new]
+    M = L.copy()
+    M[:, base:off] = -np.inf
+    nod = (M.argmax(1) == tgt)[new]
+    g20 = (off + L[:, off:n].argmax(1) == tgt)[new]
+    pc = lambda a: 100.0 * float(np.mean(a))
+    return {"New": pc(ok[new]), "Old": pc(ok[~new]), "All": pc(ok), "g20": pc(g20), "nobase": pc(nob), "nodisc": pc(nod)}
+
+
+def tier2_e1406(prefix, checks_only=False):
+    """E14.06 (pre-registration ac26f0e) on the 15 default chains <prefix>_r<r>_s<N>. Model N: NIW posterior for every
+    slot with one prior (m0 = mean of S0, kappa0 = niw.K0, Psi0 = off x pooled S0 covariance, off by leave-one-out on
+    S0): base slots from the labeled S0 rows (= A3 of E06.04), slot off_j + c of session j <= i from the kept pool
+    images of session j with cluster id c (the rows of step 13); empty cluster = the prior. Prediction: argmax of the
+    Student-t log density over the seen slots. Reported with it: A2 (Gaussian plug-in of the same posterior) and Nc
+    (oracle: session slots from kept images whose true class is a novel class of that session). The pipeline columns
+    (c14, Old, All) come from params1 through _predict; c10 as E14.03. No SVI, no RNG. Gates G1-G4; the progress line
+    prints the gates only. Keys: r<r>_s<N>_<key>; G1_ok ... G4_ok, checks_ok. checks_only: chain r0 s0 only, no keys."""
+    import niw
+    from replay import _clf, _git
+    from sessions import load as load_sessions, _device
+    assert prefix in ("cub_chain_ft", "cub_chain_ft_l25"), "E14.06 is pre-registered on the two sets of CUB chains"
+    t0 = time.time()
+    if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
+        raise SystemExit("e1406: commit the code first (same dirty rule as scripts/exp.py)")
+    e03 = _ref_metrics("cub_e14_03_" + prefix[len("cub_chain_"):])
+    assert e03.get("checks_ok") == 1, "E14.03 run of this feature set: checks failed"
+    out, gates = {}, {f"G{k}": True for k in range(1, 5)}
+    for r, N in ((0, 0),) if checks_only else [(r, N) for r in range(3) for N in range(5)]:
+        tag, pre = f"{prefix}_r{r}_s{N}", f"r{r}_s{N}_"
+        st, views = load_sessions(tag)                  # the workbench first: torch, main, then jax, as the chains
+        import jax.numpy as jnp
+        _device()
+        a = st["args"]
+        assert a.dataset == "cub200" and a.load_mode == "t5" and len(views) == 5 and a.seed == N, f"{tag}: not a CUB t5 chain of seed {N}"
+        base, inc, res, g = a.base, a.increment, {}, {f"G{k}": True for k in range(1, 5)}
+        z0, y0 = np.asarray(st["z_s0"], np.float64), np.asarray(st["s0_y"]).astype(int)
+        d = z0.shape[1]
+        off0 = niw.choose(niw.loo_curve(z0, y0))
+        sts = niw.class_stats(z0, y0)
+        prior = (sts["m0"], niw.K0, d + 1 + off0, off0 * niw.prior_cov(sts, 0))
+        base_slots = [_post_1406(z0[y0 == k], prior) for k in range(base)]
+        ref = niw.fit(z0, y0, off0)
+        rel = lambda u, w: float(np.max(np.abs(u - w)) / max(1e-300, float(np.max(np.abs(w)))))
+        g["G3"] &= rel(np.stack([s[0] for s in base_slots]), ref["mn"]) <= 1e-8 \
+            and rel(np.array([s[4] for s in base_slots]), ref["logdet"]) <= 1e-8
+        zt0, yt0 = np.asarray(st["z_test0"], np.float64), np.asarray(st["true_test0_y"]).astype(int)
+        lt0, _ = _logd_1406(base_slots, zt0, d)
+        g["G3"] &= rel(lt0[:50], niw.log_density(ref, zt0[:50], "t")) <= 1e-8
+        acc_s0 = 100.0 * float((lt0.argmax(1) == yt0).mean())
+        res["off"], res["S0_A3"] = off0, acc_s0
+        if prefix == "cub_chain_ft":
+            e64 = _ref_metrics(f"cub_e06_04_r{r}_s{N}")
+            g["G2"] &= int(e64["off"]) == int(off0) and abs(float(e64["acc_A3"]) - acc_s0) <= 1e-6
+        disc = {"N": [], "Nc": []}                       # posteriors of the slots of earlier sessions
+        for i, v in enumerate(views, 1):
+            off = v["offset"]
+            n = off + inc
+            zp = np.asarray(v["z_pool"], np.float64)
+            ids, k = np.asarray(v["ids"]).astype(int), np.asarray(v["keep"]).astype(bool)
+            yp = np.asarray(v["true_pool_y"]).astype(int)
+            g["G4"] &= int(sum((k & (ids == c)).sum() for c in range(inc))) == int(k.sum())
+            sess = {"N": [], "Nc": []}
+            empty = {"N": 0, "Nc": 0}
+            for c in range(inc):
+                sk = k & (ids == c)
+                sc = sk & (yp >= off)
+                g["G4"] &= bool(np.all(sk[sc]))
+                for name, sel in (("N", sk), ("Nc", sc)):
+                    empty[name] += int(not sel.any())
+                    sess[name].append(_post_1406(zp[sel], prior))
+            clf = _clf(v)
+            _component(v["predict"])(clf)
+            clf.label_offset, clf.n_seen = off, n
+            xt = clf.pca.transform(v["test_all_x"])
+            zt = np.asarray(xt, np.float64)
+            y, lut = np.asarray(v["true_test_all_y"]).astype(int), np.asarray(v["lut"])
+            tgt, new = lut[y], y >= off
+            pr = np.asarray(clf._predict(jnp.array(xt), _jnp(v["params1"]))[0]).astype(int)
+            okp = pr == tgt
+            res.update({f"S{i}_P_New": 100.0 * float(okp[new].mean()), f"S{i}_P_Old": 100.0 * float(okp[~new].mean()),
+                        f"S{i}_P_All": 100.0 * float(okp.mean())})
+            g["G1"] &= abs(res[f"S{i}_P_New"] - float(v["acc1"]["Novel"])) <= 1e-6 and abs(res[f"S{i}_P_Old"] - float(v["acc1"]["Old"])) <= 1e-6
+            km, y1 = np.asarray(v["cluster"].predict_raw(v["test1_x"])).astype(int), np.asarray(v["true_test1_y"]).astype(int)
+            c10 = 100.0 * float((off + np.array([v["pi_test"][int(c)] for c in km]) == y1).mean())
+            g["G1"] &= abs(c10 - float(e03[f"{pre}S{i}_c10"])) <= 1e-4
+            res[f"S{i}_c10"] = c10
+            lb_t, lb_g = _logd_1406(base_slots, zt, d)
+            for name in ("N", "Nc"):
+                lt, lg = _logd_1406(disc[name] + sess[name], zt, d)
+                Lt, Lg = np.concatenate([lb_t, lt], 1), np.concatenate([lb_g, lg], 1)
+                assert Lt.shape[1] == n, f"{tag} S{i}: {Lt.shape[1]} slots"
+                res.update({f"S{i}_{name}_{q}": val for q, val in _score_1406(Lt, y, tgt, off, inc, base).items()})
+                if name == "N":
+                    res.update({f"S{i}_A2_{q}": val for q, val in _score_1406(Lg, y, tgt, off, inc, base).items()})
+                res[f"S{i}_{name}_empty"] = empty[name]
+                disc[name] = disc[name] + sess[name]
+        for kk in gates:
+            gates[kk] = gates[kk] and g[kk]
+        out.update({pre + kk: round(val, 4) if isinstance(val, float) else val for kk, val in res.items()})
+        print(f"e1406 {tag}: " + " ".join(f"{kk} {'OK' if g[kk] else 'DIFF'}" for kk in g) + f" ({time.time() - t0:.0f} s)", flush=True)
+    chk = {f"{kk}_ok": int(v) for kk, v in gates.items()}
+    chk["checks_ok"] = int(all(gates.values()))
+    print(f"e1406 {prefix}: checks {'OK' if chk['checks_ok'] else 'FAILED'} ({time.time() - t0:.0f} s)")
+    return chk if checks_only else {**chk, **out}
+
+
+def e1406_summary(T=0.935, B=0.376):
+    """Tables of E14.06 from the runs cub_e14_06_ft_l25 and cub_e14_06_ft. Every number is first the mean of the 5
+    sessions and 5 chains of an FT seed; "mean" and "sd" are over the 3 FT seeds (sd with ddof 1). Main and secondary
+    reading rules of the pre-registration on the leak-free set. Refuses to read a run without checks_ok = 1."""
+    for tag in ("cub_e14_06_ft_l25", "cub_e14_06_ft"):
+        if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+            print(f"\n{tag}: no run yet")
+            continue
+        m = _ref_metrics(tag)
+        assert m.get("checks_ok") == 1, f"{tag}: checks failed, results are not read"
+        per = lambda key: np.array([[m[f"r{r}_s{N}_{key}"] for N in range(5)] for r in range(3)], float)
+        ft = lambda k: np.mean([per(f"S{i}_{k}") for i in range(1, 6)], axis=0).mean(1)
+        line = lambda name, x: f"  {name:<26}" + "".join(f"{val:9.3f}" for val in x) + f"{x.mean():9.3f}{x.std(ddof=1):9.3f}"
+        head = f"  {'':<26}" + "".join(f"{x:>9}" for x in ("r0", "r1", "r2", "mean", "sd"))
+        print(f"\n{tag}: G1-G4 OK\n  mean over 5 sessions and 5 chains\n{head}")
+        print(line("c10", ft("c10")))
+        for q in ("New", "Old", "All"):
+            print(line(f"pipeline {q}", ft(f"P_{q}")))
+        for v in ("N", "A2", "Nc"):
+            for q in ("New", "Old", "All", "g20", "nobase", "nodisc"):
+                print(line(f"{v} {q}", ft(f"{v}_{q}")))
+            print(line(f"{v} L_comp = g20 - New", ft(f"{v}_g20") - ft(f"{v}_New")))
+            print(line(f"{v} L_10 = c10 - New", ft("c10") - ft(f"{v}_New")))
+            for q in ("New", "Old", "All"):
+                print(line(f"{v} d{q} vs pipeline", ft(f"{v}_{q}") - ft(f"P_{q}")))
+        print(line("S0 A3 (base test)", per("S0_A3").mean(1)))
+        offs = sorted(set(int(x) for x in per("off").ravel()))
+        print(f"  off chosen: {offs}; empty slots N {int(sum(per(f'S{i}_N_empty').sum() for i in range(1, 6)))}, "
+              f"Nc {int(sum(per(f'S{i}_Nc_empty').sum() for i in range(1, 6)))} (of 1500)")
+        lc = (ft("N_g20") - ft("N_New")).mean()
+        l10 = (ft("c10") - ft("N_New")).mean()
+        verdict = ("old/new competition stays the main target of E09.08 under a consistent estimator" if lc > T and lc >= 0.5 * l10 else
+                   "the competition of E14.03 came from the near-zero means; E09.08 targets the rest of L_10_N" if lc <= T else "both")
+        print(f"  main rule: L_comp_N {lc:.3f} vs T {T}, 1/2 L_10_N {0.5 * l10:.3f} -> {verdict}")
+        dn, do = (ft("N_New") - ft("P_New")).mean(), (ft("N_Old") - ft("P_Old")).mean()
+        better = dn > T and do > -B
+        print(f"  secondary rule: dNew {dn:+.3f} (> T {T}?), dOld {do:+.3f} (> -B {-B}?) -> "
+              + ("N is better than the pipeline: starting rung of E09.08" if better else "N is not better than the pipeline"))
+    print("\nE14.06: the reading rules are read on cub_e14_06_ft_l25; cub_e14_06_ft is reported alongside")
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -2187,7 +2373,7 @@ def main(argv):
     p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25"], help="e1401, e1402: tag prefix of the 15 chains")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -2222,9 +2408,12 @@ def main(argv):
     if o.step == "e1405-summary":
         e1405_summary()
         return
-    if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405"):
+    if o.step == "e1406-summary":
+        e1406_summary()
+        return
+    if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406"):
         assert o.prefix, f"{o.step} needs --prefix"
-        out = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405}[o.step](o.prefix, o.checks_only)
+        out = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406}[o.step](o.prefix, o.checks_only)
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
