@@ -37,7 +37,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
 - E14.04 (= "E14.01" của đề xuất 2026-11-05; mã cũ trùng với E14.01 ở trên): đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
-- E14.05: CUB t5, khe cũ giành ảnh test lớp mới vì mean khe mới đặt lệch (bộ ước lượng, ảnh cũ lẫn vào cụm, cụm sai lớp) hay vì chồng lấn trong biểu diễn: thang Mk, Mc, M1 và Σ chung (tiền đăng ký 2026-11-17; xong, chờ Rito duyệt: R(Mk) 0.98 nhưng Old giảm 52 điểm, là đánh đổi; mean của pipeline bằng khoảng 1% mean mẫu) — mục E14.05 dưới đây
+- E14.05: CUB t5, khe cũ giành ảnh test lớp mới vì mean khe mới đặt lệch (bộ ước lượng, ảnh cũ lẫn vào cụm, cụm sai lớp) hay vì chồng lấn trong biểu diễn: thang Mk, Mc, M1 và Σ chung (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: R(Mk) 0.98 nhưng Old giảm 52 điểm, là đánh đổi; mean của pipeline bằng khoảng 1% mean mẫu) — mục E14.05 dưới đây
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
 
@@ -1060,3 +1060,17 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
   - Khe mới: α trung vị 0.008–0.010 (từ 0.005 tới 0.014), cos 0.709–0.748, ‖μ_pipeline‖ 0.122–0.131 so với ‖μ_mẫu‖ 9.631–11.116.
   - Chuẩn trung vị của ảnh test trong không gian PCA: 18.075–18.101.
   - Đọc: phần α đứng ở cả hai nhóm (mean của pipeline bằng khoảng 1% mean mẫu, cùng hệ số ở hai nhóm); phần cos đứng ở khe lớp gốc, không đạt ở khe mới (0.71–0.75 dưới 0.8). Mean mẫu theo cụm có lẫn ảnh cũ nên là mốc nhiễu hơn mean S0.
+- Phân tích sau khi thấy số, thứ hai (lệnh chỉ đọc ngày 2026-11-17, chưa đưa vào repo): chuẩn trung vị của mean các khe đã học trong `saved_models` của 83 run `main.py` trên laptop. Luật đọc viết trước khi chạy, cho các run CUB: dưới 1 là chế độ của chính code upstream; từ 5 trở lên là lỗi tái lập của dự án; ở giữa không kết luận.
+  - CUB, 48 run (`cub_base_ft`, `cub_km_evhung_ft`, `cub_km_evhung_det_ft` r0–r2 × s0–s4 và `cub_km_evhung_det_ft_l25` r0–r2 s0): stage 0 từ 0.1308 tới 0.1328, stage 5 từ 0.1291 tới 0.1308; khe chưa học 0.0000; log det trung vị của Σ ở stage 0 từ −10.077 tới −9.922 (384 chiều).
+  - Báo kèm, không thuộc luật đọc (không gian và thang khác): GC10 d64 0.0866–0.1159; NEU d128 0.0548–0.0623 ở stage 0.
+  - Đọc: dưới 1 ở 48/48 run CUB, gồm lưới `cub_base_ft` đã tái lập S0 và S5 của paper (Q05.01, `50d72f3`): chế độ mean gần 0 là của code upstream. Phép đo chỉ dùng chuẩn của mean, không có mean mẫu đi kèm, nên yếu hơn phép đo α ở trên; nó dựa trên việc chuỗi lab trùng `main.py` ở C1.
+
+### Kết luận (Rito duyệt tạm 2026-11-17)
+
+- Trên CUB t5, mean của mọi khe (lớp gốc và lớp mới) bằng khoảng 1% mean mẫu (α trung vị 0.009) và Σ gần I (log det khoảng −10 trên 384 chiều, tức phương sai mỗi chiều khoảng 0.974, tính tay). Chế độ này có ở cả 48 run `main.py` trên CUB, kể cả lưới tái lập số của paper. D23 được xác nhận trên CUB, ở cỡ lớn hơn dự kiến.
+- [suy luận] Với μ_k ≈ α m_k và Σ ≈ I, log p_k(x) ≈ −½‖x‖² + α xᵀm_k − ½α²‖m_k‖²; số hạng đầu chung cho mọi khe, số hạng cuối khoảng 0.006. Bộ phân lớp Gaussian của pipeline vì vậy vận hành như một bộ phân lớp theo hướng prototype (argmax xᵀm_k). Luận điểm lệch hiệp phương sai của paper (Eq. 9–11) không hoạt động trong các run này, vì Σ gần như chưa rời khởi tạo.
+- Thang của E14.05 bị nhiễu bởi chỗ lệch tầm mean giữa các nhóm khe: đặt một nhóm khe về đúng tầm trong khi nhóm kia còn bị co làm nhóm đúng tầm hút ảnh của nhóm kia (ví dụ tính tay: ảnh cũ ‖x‖ = 18, khe đúng bị co cho −162, khe mới đúng tầm ‖m‖ = 10 với cos 0.3 cho −158). Không nấc nào là phần lấy lại được; mọi mức tăng lớp mới đổi bằng 30–52 điểm lớp cũ.
+- Kết luận E14.03 đọc lại: "khe cũ thắng nhờ số hạng Mahalanobis" nghĩa là thắng nhờ tích vô hướng với hướng prototype; L_comp là chuyện hướng của prototype, không phải chuyện hình dạng Gaussian.
+- M1 cho thấy khi mean đặt đúng, 20 lớp mới tách nhau tới 92.5% (g20 của M1), so với 67.0% của c10: giả thuyết "chồng lấn trong biểu diễn" không đứng cho việc tách các lớp mới với nhau.
+- Đích của E09.08 chuyển từ "bước 13" sang bộ ước lượng của cả mô hình: một cách ước lượng nhất quán cho mọi khe (mean mẫu, hoặc hậu nghiệm VB thật theo Eq. 7). Bước kế: tiền đăng ký E14.06, ước lượng lại mọi khe nhất quán (mean mẫu với Σ mẫu có co hoặc Σ chung) và so New, Old với pipeline.
+- Giới hạn: hai phép phân tích sau làm sau khi thấy số, bằng lệnh chưa có trong repo; phép đo α chỉ trên r0; mô tả "bộ phân lớp theo hướng" là suy luận từ phép khai triển, chưa có thí nghiệm riêng.
