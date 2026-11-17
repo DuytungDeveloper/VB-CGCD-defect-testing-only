@@ -38,7 +38,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
 - E14.04 (= "E14.01" của đề xuất 2026-11-05; mã cũ trùng với E14.01 ở trên): đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
 - E14.05: CUB t5, khe cũ giành ảnh test lớp mới vì mean khe mới đặt lệch (bộ ước lượng, ảnh cũ lẫn vào cụm, cụm sai lớp) hay vì chồng lấn trong biểu diễn: thang Mk, Mc, M1 và Σ chung (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm, có Sửa cùng ngày: R(Mk) 0.98 nhưng Old giảm 52 điểm, là đánh đổi; mean gần 0 ở mọi khe, như D23 và E06.04; E09.08 phải dùng một bộ ước lượng cho mọi khe) — mục E14.05 dưới đây
-- E14.06: CUB t5, L_10 và L_comp khi mọi khe dùng hậu nghiệm NIW với dự đoán Student-t (A3 của E06.04 cho lớp gốc, cùng tiên nghiệm cho khe của các phiên); phụ: mô hình đó có hơn pipeline không (tiền đăng ký 2026-11-17) — mục E14.06 dưới đây
+- E14.06: CUB t5, L_10 và L_comp khi mọi khe dùng hậu nghiệm NIW với dự đoán Student-t (A3 của E06.04 cho lớp gốc, cùng tiên nghiệm cho khe của các phiên); phụ: mô hình đó có hơn pipeline không (tiền đăng ký 2026-11-17; xong, chờ Rito duyệt: L_comp_N = 6.50, cạnh tranh vẫn là đích; N không hơn pipeline vì Old giảm 4.9; N sạch hơn pipeline ở cả New và Old) — mục E14.06 dưới đây
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
 
@@ -1124,3 +1124,19 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
   - off chọn trên S0 và dùng cho mọi khe; với off lớn, Σ của cụm nhỏ (4–5 ảnh) gần như bằng P.
   - Một tiên nghiệm cho mọi khe; độ trải của lớp mới có thể khác lớp gốc.
   - r0–r2 đã dùng ở E14.01–E14.05; không phải kiểm định xác nhận.
+
+### Kết quả (2026-11-17; run `cub_e14_06_ft_l25`, `cub_e14_06_ft`, code `49792bc`, commit run `c7c4815`; số in bằng `python lab/score.py e1406-summary`; 30/30 chuỗi qua G1–G4)
+
+Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa FT seed trong ngoặc khi có.
+
+- Pipeline (tính lại trong run, trùng `acc1`): New 56.944 / 57.142; Old 74.046 / 74.427; All 71.794 / 72.138; c10 67.041 / 66.901 (trùng E14.03).
+- Mô hình N (hậu nghiệm NIW cho mọi khe, Student-t): New 61.033 (0.560) / 61.032 (0.455); Old 69.161 / 69.329; All 68.045 / 68.181; g20 67.535 / 67.433; g_nobase 63.377 / 63.296; g_nodisc 63.965 / 63.884.
+  - L_comp_N = +6.502 (0.286) / +6.402 (0.437); L_10_N = +6.008 (0.113) / +5.869 (0.501).
+  - ΔNew +4.089 (0.302) / +3.890 (0.495); ΔOld −4.885 (0.365) / −5.098 (0.593); ΔAll −3.749 (0.340) / −3.956 (0.530).
+- A2 (Gaussian plug-in của cùng hậu nghiệm): New 61.026 / 60.974; Old 69.133 / 69.317; L_comp 6.516 / 6.464; |A3 − A2| ở New 0.007 / 0.058 (tính tay).
+- N sạch (oracle, nhãn pool): New 60.932 / 60.959; Old 75.935 / 76.277; All 73.927 / 74.218; L_comp 6.993 / 6.786; so với pipeline ΔNew +3.988 / +3.817, ΔOld +1.889 / +1.850, ΔAll +2.133 / +2.080; so với N: New −0.101, Old +6.774 (tính tay, bộ không rò).
+- Phần lớp gốc ở phiên đầu (A3 trên tập test S0): 86.981 / 87.343; off = 250 ở 30/30 chuỗi (bộ có rò trùng E06.04 ở 15/15, G2). Khe rỗng: N 0, N sạch 70 / 87 trên 1500 (cụm chỉ có ảnh cũ, cùng số với Mc của E14.05).
+- Luật đọc chính: L_comp_N 6.502 > T (0.935) và ≥ ½ L_10_N (3.004); bộ có rò 6.402 ≥ 2.934. Cạnh tranh cũ/mới lúc dự đoán vẫn là đích chính của E09.08 khi bộ ước lượng đã nhất quán.
+- Luật đọc phụ: ΔNew +4.089 > T nhưng ΔOld −4.885 < −B: N không hơn pipeline.
+- Dự đoán đã đăng ký: c14_N trong 55–65: đúng (61.033); L_comp_N trong 3–8: đúng (6.502); ΔOld trong −5 tới +2: đúng, sát biên dưới (−4.885); N sạch cao hơn N 3–8 điểm ở c14: sai (−0.101); |A3 − A2| dưới 1 điểm: đúng.
+- Chi phí: run `cub_e14_06_ft_l25` 10.8 phút. Run `cub_e14_06_ft` ghi 177.1 phút, nhưng dòng tiến độ có hai bước nhảy khoảng 5000 s (sau r0_s4 và sau r2_s3) giữa các chuỗi khoảng 43–46 s [suy luận: máy ngủ hai lần]; runner không dùng RNG hay SVI, nên số không phụ thuộc thời gian chạy.
