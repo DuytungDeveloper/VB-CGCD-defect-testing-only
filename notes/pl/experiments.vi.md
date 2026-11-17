@@ -33,6 +33,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
+- E12.02: CUB t5, bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ (A3 hoặc A1, chọn bằng mô phỏng bỏ-một-lớp trên S0; ngưỡng p-value conformal α = 0.10) thay `keep` của bước 12, rồi khớp mô hình N của E14.06: lấy lại bao nhiêu phần khoảng lớp cũ giữa N và N sạch (tiền đăng ký 2026-11-17) — mục E12.02 dưới đây
 - E14.01: điểm lớp mới theo bốn quy ước ghép tên P0–P3 trên cùng dự đoán, CUB t5 (2026-11-16; xong, Rito duyệt tạm: P1–P3 cao hơn P0 0.75–0.79 điểm M_d; P3 trùng P2) — mục E14.01 dưới đây
 - E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
@@ -738,6 +739,53 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - câu 4: luật dừng là núm đánh đổi cũ/mới thật; E09.08 so các nhánh ở cùng mức ảnh cũ.
 - Không chạy mở rộng (1) và (2): điều kiện của chúng (CẢ HAI; BỘ LỌC VÀ LƯỢT S) không xảy ra.
 - Giới hạn: phép đo mô tả trên r0–r4 (đã dùng để chọn phương pháp), 4 lần rút mỗi chuỗi; cột 11 là phản thực tế, không phải đầu ra của pipeline.
+
+## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
+
+### Tiền đăng ký (2026-11-17; viết trước khi có code và trước mọi số của thí nghiệm)
+
+- Mã: theo bước 12 (bộ lọc cũ/mới), QD22. E12.01 (WSM) là một đề xuất khác, chưa tiền đăng ký.
+- Câu hỏi: trên CUB t5, nếu thay `keep` của bước 12 bằng một bộ lọc chỉ dựa trên mô hình lớp cũ, không dùng nhãn pool, rồi khớp mô hình N của E14.06 trên tập được giữ, thì lấy lại được bao nhiêu phần ρ của khoảng lớp cũ giữa N và N sạch, và lớp mới mất bao nhiêu?
+- Vì sao: E14.06 cho thấy N (hậu nghiệm NIW cho mọi khe) đổi khoảng 4 điểm lớp mới lấy khoảng 5 điểm lớp cũ; N sạch (bỏ ảnh cũ khỏi cụm bằng nhãn) cho lớp cũ +6.774 so với N, lớp mới gần như không đổi. Bộ lọc của pipeline giữ trung bình 50% ảnh pool cũ, 87% ở phiên 1 (E14.02, Sửa đổi). Đây là bước nhỏ đi trước trách nhiệm mềm của E09.08 (Kết luận E14.06). Nó chỉ làm sạch tập khớp khe mới, không nhắm vào cạnh tranh lúc dự đoán: L_comp của N sạch là 6.993, không nhỏ hơn của N (6.502).
+- Đã tra trước khi viết: D9, D12, D16, D23, D24, D25 (`notes/paper-code-discrepancies.md`); Kết quả và Kết luận của E06.04, E14.02 (cả Sửa đổi), E14.03, E14.05 (cả Sửa), E14.06; Q12.02; `lab/niw.py`; `_post_1406`, `_logd_1406`, `_score_1406` của `lab/score.py`.
+- Loại: phép đo mô tả có can thiệp; một luật đọc chốt trước trên ρ.
+- Dữ liệu: như E14.06: 15 chuỗi `cub_chain_ft_l25_r<r>_s<N>` (bộ đọc chính) và 15 chuỗi `cub_chain_ft_r<r>_s<N>` (báo kèm); không gian PCA của S0; `ids`, `pi_test`, `lut` (P0, QD15) lấy từ ảnh chụp. Không SVI, không rút RNG. Nhãn pool chỉ dùng để chấm bộ lọc và cho các nhánh oracle; nhãn test chỉ để chấm.
+- Mô hình N: đúng như E14.06 (tiên nghiệm m0 = mean của `z_s0`, κ0 = `niw.K0`, Ψ0 = off × P, off = `niw.choose(niw.loo_curve(z_s0, s0_y))`; khe lớp gốc từ S0; khe off_j + c từ các ảnh pool của phiên j có `ids` = c và được giữ; cụm rỗng là tiên nghiệm; dự đoán Student-t, argmax trên các khe đã gặp). Chỉ đổi tập giữ.
+- Mô hình điểm ở phiên i (một ứng viên, chọn theo dòng "Chọn ứng viên"): khe lớp gốc 0…99 khớp trên S0; khe đã khám phá off_j + c, j < i, khớp trên các ảnh mà chính bộ lọc này giữ ở phiên j, theo `ids` (cụm có dưới 2 ảnh được giữ thì không có khe trong mô hình điểm). Ứng viên:
+  - A1: trung bình mẫu cộng Ledoit–Wolf về đẳng hướng (như `_fit_closed`, A1 của E06.04), log mật độ Gaussian;
+  - A3 với off ∈ {25, 100, 250, 1000}: Ψ0 = off × P, cùng m0, κ0 như N; log mật độ dự đoán Student-t.
+- Điểm: s(x) = max trên các khe của mô hình điểm của log mật độ của x. Điểm thấp nghĩa là lạ với mọi lớp cũ.
+- Ngưỡng, p-value conformal (Bates, Candès, Lei, Romano & Sesia 2023, Ann. Statist.): điểm hiệu chuẩn s_j của mọi ảnh S0, tính như s nhưng khe của chính ảnh j khớp lại khi bỏ ảnh j (leave-one-out); p(x) = (1 + #{j : s_j ≤ s(x)}) / (n + 1). Bộ lọc giữ x (coi là mới) khi p(x) ≤ α. Nếu ảnh cũ của pool có cùng phân phối với ảnh S0 khi bỏ ra thì P(giữ ảnh cũ) ≤ α, nên α là tỉ lệ ảnh cũ bị giữ theo danh định, so được với mức 0.50 của pipeline. α chính = 0.10.
+- Chọn ứng viên, trong từng chuỗi, chỉ bằng S0 (mô phỏng bỏ-một-lớp): điểm "cũ giả" là s_j như trên; điểm "mới giả" của một ảnh lớp k là max trên các khe j ≠ k của log mật độ, với các khe khớp trên đủ S0 (khe j ≠ k chưa thấy ảnh đó). Chọn ứng viên có AUROC lớn nhất (cũ giả là lớp dương, s cao là cũ); hoà thì lấy A3 có off gần off của N nhất. Xấp xỉ đã biết, không sửa: P, do đó Ψ0, vẫn chứa tán xạ của lớp k, trọng số khoảng 1/100.
+- Nhánh, cùng chuỗi, cùng ảnh chụp:
+  - N, Nc: như E14.06, tính lại; Nc dùng nhãn pool (oracle);
+  - NF (nhánh chính): N trên tập giữ của bộ lọc, α = 0.10; khe đã khám phá dùng ở các phiên sau cũng khớp trên tập giữ của bộ lọc;
+  - NF∧ (báo cáo): giữ khi cả bộ lọc lẫn `keep` của pipeline cùng giữ;
+  - NF-α (báo cáo): α ∈ {0.02, 0.05, 0.20, 0.30, 0.50};
+  - NF-count (oracle, báo cáo): giữ đúng số ảnh lớp mới thật của pool, chọn các ảnh có s thấp nhất; tách phần thua do ngưỡng khỏi phần thua do điểm.
+- Đại lượng chính: ρ = (Old_NF − Old_N) / (Old_Nc − Old_N), tính trên trung bình 5 phiên và 5 chuỗi của mỗi FT seed, rồi lấy trung bình 3 FT seed (như R của E14.05).
+- Báo kèm: New, Old, All, g20, L_comp của mọi nhánh; ΔNew, ΔOld, ΔAll so với pipeline và so với N; ứng viên được chọn và AUROC bỏ-một-lớp của mọi ứng viên; trên pool, theo phiên (nhãn chỉ để chấm): tỉ lệ ảnh cũ bị giữ, tách ảnh cũ lớp gốc và ảnh cũ của đợt đã khám phá, đặt cạnh α; tỉ lệ ảnh mới bị loại; AUROC của s; số khe rỗng của N ở mỗi nhánh.
+- Cách đọc, chốt trước (bộ không rò; bộ có rò báo kèm):
+  - ρ ≥ 0.67 và ΔNew của NF so với pipeline > T (0.935): NF hơn pipeline theo luật đọc phụ của E14.06 và là nấc khởi đầu của E09.08; kiểm lại trên r3, r4 hoặc server trước khi báo như cải tiến. Căn cứ của 0.67 (tính tay từ E14.06): NF cần ΔOld > −B = −0.376, tức lấy lại ít nhất 4.509 trong 6.774 điểm.
+  - 1/3 ≤ ρ < 0.67: bộ lọc cứng chỉ lấy lại một phần; E09.08 giữ trách nhiệm mềm làm cơ chế chính, NF là nhánh đối chứng.
+  - ρ < 1/3: mô hình lớp cũ đứng một mình không tách đủ; NF-count và AUROC của s cho biết phần thua do điểm hay do ngưỡng.
+  - Mọi kết luận đọc kèm L_comp của NF: bộ lọc không nhắm vào cạnh tranh lúc dự đoán.
+- Cổng kiểm:
+  - G1: cột pipeline trùng `acc1` của `S<i>_14` (1e-6); N và Nc tính lại trùng `S<i>_N_*`, `S<i>_Nc_*` của run E14.06 cùng bộ (1e-4, vì E14.06 lưu số làm tròn 4 chữ số).
+  - G2: đưa `keep` của pipeline vào đúng đường tính của NF cho lại N; đưa tập giữ oracle vào cho lại Nc (1e-6).
+  - G3: tập giữ lồng nhau theo α (α nhỏ hơn cho tập con); tập của NF∧ là tập con của NF.
+  - G4: khe lớp gốc của A3 trùng `niw.fit` (1e-8 tương đối); s_j của một lớp tính nhanh trùng khớp lại trực tiếp (1e-8); khe lớp gốc của A1 cho cùng nhãn với `closed_form_params` trên tập test S0 (như C3 của E06.04).
+  - G5: trên S0, tỉ lệ ảnh có p ≤ α lệch α không quá 1/(n + 1) cộng phần hoà (kiểm cài đặt).
+  - Runner chỉ in trạng thái cổng và thời gian, không in số của từng chuỗi.
+- Code (viết sau tiền đăng ký): runner `tier2_e1202` trong `lab/score.py`, lệnh `e1202` qua `exp.py`, một run mỗi bộ (tag `cub_e12_02_ft_l25`, `cub_e12_02_ft`); lệnh `e1202-summary` chỉ đọc. Dùng lại `_post_1406`, `_logd_1406`, `_score_1406`; không sửa `lab/niw.py`, `lab/sessions.py`, `lab/replay.py`.
+- Chi phí [suy luận]: 20–40 phút mỗi run (E14.06: 10.8 phút; thêm điểm leave-one-out trên S0 cho 5 ứng viên).
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp: AUROC của s trên pool (bộ không rò) trong 0.70–0.82; tỉ lệ ảnh cũ bị giữ ở α = 0.10 trong 0.15–0.30, cao hơn α vì ảnh S0 đã được fine-tune thấy; ρ trong 0.25–0.55; New của NF thấp hơn N 0–2 điểm; L_comp của NF trong 6–7.5.
+- Giới hạn:
+  - Ảnh S0 có nhãn đã được fine-tune thấy (đúng giao thức), nên điểm hiệu chuẩn lạc quan so với ảnh cũ không nhãn của pool; mức lọt thực tế được đo ở phần báo kèm, không sửa.
+  - Điểm hiệu chuẩn chỉ có cho lớp gốc; dùng chung cho khe đã khám phá là một giả định (với off lớn, κn và νn của hai loại khe cùng cỡ); kiểm bằng tỉ lệ giữ tách theo đợt.
+  - Bộ lọc đứng sau bước 09, nên không sửa phân cụm; "bỏ ảnh cũ trước bước 09" là một ablation riêng.
+  - Ảnh cũ lặp lại giữa các phiên (D16); mỗi phiên quyết định độc lập.
+  - α, hai ngưỡng 1/3 và 0.67 của luật đọc và lưới ứng viên do Claude đặt; r0–r2 đã dùng ở E14.01–E14.06, nên đây không phải kiểm định xác nhận.
 
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
