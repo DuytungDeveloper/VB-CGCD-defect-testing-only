@@ -38,7 +38,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
 - E14.04 (= "E14.01" của đề xuất 2026-11-05; mã cũ trùng với E14.01 ở trên): đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
 - E14.05: CUB t5, khe cũ giành ảnh test lớp mới vì mean khe mới đặt lệch (bộ ước lượng, ảnh cũ lẫn vào cụm, cụm sai lớp) hay vì chồng lấn trong biểu diễn: thang Mk, Mc, M1 và Σ chung (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm, có Sửa cùng ngày: R(Mk) 0.98 nhưng Old giảm 52 điểm, là đánh đổi; mean gần 0 ở mọi khe, như D23 và E06.04; E09.08 phải dùng một bộ ước lượng cho mọi khe) — mục E14.05 dưới đây
-- E14.06: CUB t5, L_10 và L_comp khi mọi khe dùng hậu nghiệm NIW với dự đoán Student-t (A3 của E06.04 cho lớp gốc, cùng tiên nghiệm cho khe của các phiên); phụ: mô hình đó có hơn pipeline không (tiền đăng ký 2026-11-17; xong, chờ Rito duyệt: L_comp_N = 6.50, cạnh tranh vẫn là đích; N không hơn pipeline vì Old giảm 4.9; N sạch hơn pipeline ở cả New và Old) — mục E14.06 dưới đây
+- E14.06: CUB t5, L_10 và L_comp khi mọi khe dùng hậu nghiệm NIW với dự đoán Student-t (A3 của E06.04 cho lớp gốc, cùng tiên nghiệm cho khe của các phiên); phụ: mô hình đó có hơn pipeline không (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp_N = 6.50, cạnh tranh vẫn là đích; N không hơn pipeline vì Old giảm 4.9; N sạch hơn pipeline ở cả New và Old) — mục E14.06 dưới đây
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
 
@@ -1140,3 +1140,13 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
 - Luật đọc phụ: ΔNew +4.089 > T nhưng ΔOld −4.885 < −B: N không hơn pipeline.
 - Dự đoán đã đăng ký: c14_N trong 55–65: đúng (61.033); L_comp_N trong 3–8: đúng (6.502); ΔOld trong −5 tới +2: đúng, sát biên dưới (−4.885); N sạch cao hơn N 3–8 điểm ở c14: sai (−0.101); |A3 − A2| dưới 1 điểm: đúng.
 - Chi phí: run `cub_e14_06_ft_l25` 10.8 phút. Run `cub_e14_06_ft` ghi 177.1 phút, nhưng dòng tiến độ có hai bước nhảy khoảng 5000 s (sau r0_s4 và sau r2_s3) giữa các chuỗi khoảng 43–46 s [suy luận: máy ngủ hai lần]; runner không dùng RNG hay SVI, nên số không phụ thuộc thời gian chạy.
+
+### Kết luận (Rito duyệt tạm 2026-11-17)
+
+- Dưới bộ ước lượng nhất quán (hậu nghiệm NIW cho mọi khe), cạnh tranh cũ/mới lúc dự đoán vẫn là đích chính của E09.08: L_comp_N = 6.50 điểm. Khoảng 3.7 điểm của L_comp ở E14.03 (10.18) là sản phẩm của chế độ mean gần 0 (tính tay: 10.18 − 6.50).
+- Mô hình N đổi khoảng 4 điểm lớp mới lấy khoảng 5 điểm lớp cũ, nên không hơn pipeline. [suy luận] Lớp cũ cao của pipeline một phần là nhờ khe mới yếu (mean gần 0, Σ gần I), nên khe mới ít giành ảnh cũ.
+- Phần lớp cũ mà N mất đến từ ảnh cũ lẫn trong cụm: N sạch cho lớp cũ +6.77 điểm so với N, lớp mới gần như không đổi (−0.10). Trong chế độ NIW, câu "cụm lẫn ảnh cũ không gây quên" của Kết luận Sửa đổi E14.02 không còn đúng; câu đó vẫn đúng cho pipeline, nơi nó được đo. Câu "Plasticity–Stability không có đối tượng" của E14.02 đọc lại: khi khe mới học đúng tầm, đối tượng cần bảo vệ là tập ảnh dùng để khớp khe mới. N sạch bỏ ảnh cũ sau bước 09, không phải trước bước 09 như suy luận của E14.02.
+- N sạch hơn pipeline ở lớp mới (+3.99) và lớp cũ (+1.89): trần của "bộ ước lượng nhất quán cộng bộ lọc cũ/mới hoàn hảo". Khoảng 6.8 điểm lớp cũ giữa N và N sạch là giá trị của một bộ lọc cũ/mới hoàn hảo.
+- Hệ quả cho E09.08: cần cả bộ ước lượng nhất quán lẫn cách giữ ảnh cũ khỏi tập khớp khe mới. Trách nhiệm mềm với thành phần cũ A3 (thiết kế VB-GMM của QD27) là một cách; một bộ lọc không nhãn dựa trên mô hình lớp cũ (A3, hoặc A1 có AUROC tách cũ/mới 0.85 trên pool phiên 1 theo E06.04) là bước nhỏ hơn đi trước.
+- A2 và A3 cho kết quả như nhau (chênh dưới 0.06 điểm ở lớp mới); E09.08 có thể dùng A2.
+- Giới hạn: bộ lọc (bước 12) vẫn là của pipeline; N sạch dùng nhãn pool; r0–r2 không phải kiểm định xác nhận.
