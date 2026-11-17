@@ -38,6 +38,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
 - E14.04 (= "E14.01" của đề xuất 2026-11-05; mã cũ trùng với E14.01 ở trên): đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
 - E14.05: CUB t5, khe cũ giành ảnh test lớp mới vì mean khe mới đặt lệch (bộ ước lượng, ảnh cũ lẫn vào cụm, cụm sai lớp) hay vì chồng lấn trong biểu diễn: thang Mk, Mc, M1 và Σ chung (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm, có Sửa cùng ngày: R(Mk) 0.98 nhưng Old giảm 52 điểm, là đánh đổi; mean gần 0 ở mọi khe, như D23 và E06.04; E09.08 phải dùng một bộ ước lượng cho mọi khe) — mục E14.05 dưới đây
+- E14.06: CUB t5, L_10 và L_comp khi mọi khe dùng hậu nghiệm NIW với dự đoán Student-t (A3 của E06.04 cho lớp gốc, cùng tiên nghiệm cho khe của các phiên); phụ: mô hình đó có hơn pipeline không (tiền đăng ký 2026-11-17) — mục E14.06 dưới đây
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
 
@@ -1079,3 +1080,47 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
   - Câu "bộ phân lớp theo hướng prototype (argmax xᵀm_k)" sai về cơ chế: phép khai triển bỏ số hạng bậc hai −½ xᵀ(Σ⁻¹ − I) x. D23 đo trên GC10 rằng số hạng này quyết định ở phiên đầu (trải 10.2–11.0 mỗi ảnh, so với 0.73–0.75 của số hạng tuyến tính; riêng nó cho đúng nhãn của pipeline ở 240/241 ảnh), tức một QDA lượng tử hoá theo dấu. Trên CUB số hạng này chưa đo. Cách giải thích chỗ sập Old ở Mk, M1, M3 vẫn đứng ở mức suy luận, vì khi một nhóm khe có mean đúng tầm thì chênh lệch của số hạng mean cỡ hàng trăm (ví dụ tính tay −162 so với −158 ở trên chỉ tính số hạng mean), lớn hơn trải của số hạng bậc hai đo trên GC10.
   - Câu "đích của E09.08 chuyển từ bước 13 sang bộ ước lượng của cả mô hình" không phải hướng mới: QD27 và E06.04 đã đặt E09.08 trên hậu nghiệm NIW (A3) cho lớp cũ, và E06.04 đo A3 hơn pipeline +1.586 điểm ở phiên đầu trên CUB. E14.05 bổ sung hai điều: (a) khe mới trong các phiên cũng ở chế độ này (α 0.008–0.010); (b) thay bộ ước lượng cho một nhóm khe mà giữ nhóm kia làm Old giảm 30–52 điểm, nên E09.08 phải dùng cùng một bộ ước lượng cho mọi khe (A3 cho lớp cũ và hậu nghiệm cùng họ cho lớp mới). Kết luận E14.02 ("đích là bước 11–13") và E14.03 ("đích là cạnh tranh cũ/mới") đều đo trên pipeline có mean gần 0 và cần đo lại trên mô hình dùng bộ ước lượng nhất quán trước khi dùng để thiết kế.
   - Không cần E14.06 như đã ghi ở trên; bước kế là thiết kế E09.08 theo QD27, với yêu cầu (b).
+
+## E14.06 — CUB t5: L_10 và L_comp còn bao nhiêu khi mọi khe dùng hậu nghiệm NIW? (QD27, QD28)
+
+### Tiền đăng ký (2026-11-17; viết trước khi có code và trước mọi số của thí nghiệm)
+
+- Mã: E14.06 ở đây là thiết kế NIW này; thiết kế "mean mẫu với Σ mẫu có co" nhắc ở Kết luận E14.05 không làm (dòng Sửa của E14.05).
+- Câu hỏi: khi mọi khe (lớp gốc và khe của mọi phiên) dùng cùng một bộ ước lượng là hậu nghiệm Normal–Inverse-Wishart với dự đoán Student-t (A3 của E06.04), L_10 = c10 − c14 và L_comp = g20 − c14 (định nghĩa của E14.03) còn bao nhiêu? Phụ: mô hình đó có hơn pipeline không?
+- Vì sao: Sửa E14.05 ghi rằng kết luận E14.02 và E14.03 đo trên pipeline có mean gần 0 (D23, E06.04) và cần đo lại trên mô hình dùng một bộ ước lượng cho mọi khe trước khi thiết kế E09.08; thay bộ ước lượng cho một nhóm khe mà giữ nhóm kia làm lớp cũ giảm 30–52 điểm (E14.05). Mô hình ở đây là nấc đầu của E09.08 theo QD27.
+- Đã tra trước khi viết: D23 (`notes/paper-code-discrepancies.md`), Kết quả E06.04, `lab/niw.py`, Kết quả và Sửa của E14.03, E14.05.
+- Loại: phép đo mô tả có can thiệp; một luật đọc chính và một luật đọc phụ chốt trước.
+- Dữ liệu: 15 chuỗi `cub_chain_ft_l25_r<r>_s<N>` (bộ đọc chính) và 15 chuỗi `cub_chain_ft_r<r>_s<N>` (báo kèm); không gian PCA của S0 (`z_s0`, `z_pool`, ảnh test qua `pca.transform`); tên theo P0 (QD15), `lut` cộng dồn. Bước 09–12 giữ nguyên của pipeline (`ids`, `keep`, `pi_test` từ ảnh chụp); không SVI, không rút RNG.
+- Mô hình N (công thức của `lab/niw.py`; Murphy 2012 §4.6.3): với n hàng, mean x̄, tán xạ S: κn = κ0 + n, νn = ν0 + n, mn = (κ0 m0 + n x̄)/κn, Ψn = Ψ0 + S + (κ0 n/κn)(x̄ − m0)(x̄ − m0)ᵀ; dự đoán Student-t, νn − d + 1 bậc, tâm mn, ma trận tỉ lệ Ψn(κn + 1)/(κn(νn − d + 1)).
+  - Tiên nghiệm, một cho mọi khe: m0 = mean của `z_s0`, κ0 = `niw.K0` (0.01), Ψ0 = off × P, P = hiệp phương sai trong lớp gộp của S0 (`niw.prior_cov`), off = `niw.choose(niw.loo_curve(z_s0, s0_y))` trên lưới `niw.OFFS`, chọn một lần mỗi chuỗi.
+  - Khe lớp gốc 0…99: hậu nghiệm từ ảnh S0 có nhãn (= A3 của E06.04).
+  - Khe off_j + c của phiên j ≤ i: hậu nghiệm từ các ảnh pool của phiên j có `keep` và `ids` = c (đúng tập ảnh và nhãn của bước 13); cụm không có ảnh: hậu nghiệm bằng tiên nghiệm (đếm số khe như vậy).
+  - Dự đoán ở phiên i: argmax log-mật độ Student-t trên các khe 0 … off_i + 19 (khe chưa gặp không tham gia, như E14.05; với mô hình này khe chưa gặp không có tham số).
+- Đại lượng ở mỗi phiên, như phần A của E14.03 nhưng trên N: c14_N (ảnh test lớp mới, mọi khe đã gặp), g_nobase_N, g_nodisc_N, g20_N, Old_N, All_N; c10 lấy lại như E14.03 (không phụ thuộc bộ phân lớp). L_comp_N = g20_N − c14_N; L_10_N = c10 − c14_N. So với pipeline: ΔNew = c14_N − c14, ΔOld = Old_N − Old, ΔAll = All_N − All (c14, Old, All của pipeline tính lại trong cùng run). Trung bình 5 phiên, 5 chuỗi mỗi FT seed, rồi trung bình và SD của ba FT seed.
+- Báo kèm, không thuộc luật đọc:
+  - A2: cùng hậu nghiệm, dự đoán bằng Gaussian với mean mn và hiệp phương sai Ψn/(νn − d − 1) (`kind = "gauss"`).
+  - N sạch (oracle, dùng nhãn pool): như N nhưng khe của phiên chỉ dùng ảnh giữ có nhãn thật là lớp mới của phiên đó; tách phần L_comp_N do ảnh cũ lẫn vào cụm. Không phải phương pháp.
+  - off được chọn; số khe rỗng ở N và N sạch.
+- Cách đọc chính, chốt trước (bộ không rò; bộ có rò báo kèm):
+  - L_comp_N > T (0.935) và L_comp_N ≥ ½ L_10_N: cạnh tranh cũ/mới lúc dự đoán vẫn là đích chính của E09.08 khi bộ ước lượng đã nhất quán.
+  - L_comp_N ≤ T: cạnh tranh đo ở E14.03 là sản phẩm của chế độ mean gần 0; E09.08 nhắm vào phần còn lại của L_10_N.
+  - Còn lại: cả hai.
+- Cách đọc phụ, chốt trước: N hơn pipeline khi ΔNew > T và ΔOld > −B (B = 0.376); khi đó N là nấc khởi đầu của E09.08. ΔAll báo kèm, không dùng trong luật.
+- Cổng kiểm:
+  - G1: c10 tính lại trùng `S<i>_c10` của run E14.03 cùng bộ (1e-4); c14, Old của pipeline tính lại trùng `acc1` của `S<i>_14` (1e-6).
+  - G2: trên bộ có rò, off chọn được và độ chính xác của phần lớp gốc trên tập test S0 trùng `off` và `acc_A3` của run `cub_e06_04_r<r>_s<N>`. Nếu cổng này báo lỗi vì E06.04 dùng dữ liệu S0 khác chuỗi, dừng để điều tra, không đọc số. Trên bộ không rò chỉ báo off.
+  - G3: hậu nghiệm của khe lớp gốc tính trong runner trùng `niw.fit` trên cùng hàng (1e-8 tương đối).
+  - G4: tổng số ảnh của 20 cụm bằng `keep.sum()` ở mọi phiên; tập ảnh của N sạch là tập con của N.
+  - Runner chỉ in trạng thái cổng và thời gian.
+- Code (viết sau tiền đăng ký): runner `tier2_e1406` trong `lab/score.py`, lệnh `e1406` qua `exp.py`, một run mỗi bộ (tag `cub_e14_06_ft_l25`, `cub_e14_06_ft`); `e1406-summary` chỉ đọc. Dùng `lab/niw.py` không sửa; không sửa `lab/sessions.py`, `lab/replay.py`.
+- Chi phí [suy luận]: 10–20 phút mỗi run (một Cholesky 384 × 384 mỗi khe mỗi phiên, Student-t trên ảnh test; E06.04 làm việc tương tự ở phiên đầu).
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp:
+  - c14_N trong 55–65; L_comp_N trong 3–8 điểm, tức vẫn trên T: cụm của pipeline lẫn 33–47% ảnh cũ nên mean khe mới bị kéo về phía lớp cũ.
+  - ΔOld trong khoảng −5 tới +2: khe mới đúng tầm và học trên cụm lẫn ảnh cũ có thể giành ảnh cũ.
+  - N sạch có c14 cao hơn N 3–8 điểm.
+  - |A3 − A2| dưới 1 điểm ở c14.
+- Giới hạn:
+  - Bộ lọc (bước 12) dùng bộ phân lớp lượt F của pipeline, vẫn ở chế độ mean gần 0; tập ảnh giữ là sản phẩm của pipeline cũ. E14.06 chỉ thay bộ ước lượng cuối; thay cả chuỗi là việc của E09.08.
+  - off chọn trên S0 và dùng cho mọi khe; với off lớn, Σ của cụm nhỏ (4–5 ảnh) gần như bằng P.
+  - Một tiên nghiệm cho mọi khe; độ trải của lớp mới có thể khác lớp gốc.
+  - r0–r2 đã dùng ở E14.01–E14.05; không phải kiểm định xác nhận.
