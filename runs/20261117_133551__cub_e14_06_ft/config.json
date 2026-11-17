@@ -1,0 +1,32 @@
+{
+  "run_id": "20261117_133551__cub_e14_06_ft",
+  "tag": "cub_e14_06_ft",
+  "command": [
+    "python",
+    "lab/score.py",
+    "e1406",
+    "--prefix",
+    "cub_chain_ft"
+  ],
+  "cwd": "/home/rito/projects/VB-CGCD-defect",
+  "started": "2026-11-17T13:35:51+07:00",
+  "git": {
+    "commit": "49792bcf43fa03f0eb1e06616efd8b29a817c732",
+    "dirty": false,
+    "dirty_files": []
+  },
+  "env": {
+    "id": "893900df6375",
+    "pip_freeze": "runs/envs/893900df6375.txt",
+    "conda_env": "vbcgcd",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU, 621.24"
+  },
+  "python": "3.12.14",
+  "host": "Rito",
+  "inputs_source": "none",
+  "inputs": {},
+  "warnings": [],
+  "finished": "2026-11-17T16:32:58+07:00",
+  "duration_min": 177.1,
+  "exit_code": 0
+}
