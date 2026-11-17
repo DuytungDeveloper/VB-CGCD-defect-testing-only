@@ -35,7 +35,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
 - E14.01: điểm lớp mới theo bốn quy ước ghép tên P0–P3 trên cùng dự đoán, CUB t5 (2026-11-16; xong, Rito duyệt tạm: P1–P3 cao hơn P0 0.75–0.79 điểm M_d; P3 trùng P2) — mục E14.01 dưới đây
 - E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
-- E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17) — mục E14.03 dưới đây
+- E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, chờ Rito duyệt: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
 - E14.04 (= "E14.01" của đề xuất 2026-11-05; mã cũ trùng với E14.01 ở trên): đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
@@ -950,3 +950,31 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
   - Phần C kế thừa tâm cụm khớp trên pool có 50–64% ảnh cũ; tâm lớp gốc từ 25 ảnh trong 768 chiều; là một mốc đơn giản, không phải bộ phân lớp tốt nhất dựa trên tâm.
   - Phần D lấy lưới b từ phân phối của m trên ảnh test (không nhãn); đường cong là mô tả trên tập test.
   - r0–r2 đã dùng ở E14.01, E14.02; không phải kiểm định xác nhận.
+
+### Kết quả (2026-11-17; run `cub_e14_03_ft_l25`, `cub_e14_03_ft`, code `c7359f8`, commit run `6e7920f`; số in bằng `python lab/score.py e1403-summary`; 30/30 chuỗi qua G1–G5)
+
+Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa FT seed trong ngoặc khi có.
+
+- Phần A, trung bình 5 phiên, ảnh test lớp mới: c10 67.041 / 66.901; g20 67.121 / 67.002; g_nobase 62.970 / 63.195; g_nodisc 58.733 / 58.704; c14 56.944 / 57.142.
+  - L_comp = +10.177 (0.372) / +9.860 (0.500); L_10 = +10.096 (0.306) / +9.758 (0.681), trùng E14.02; L_base = +6.026 (0.315) / +6.053 (0.498); L_disc = +1.788 (0.157) / +1.562 (0.085).
+  - L_comp theo chuỗi, bộ không rò (r0 s0…s4 | r1 | r2): 9.79 10.38 9.41 9.84 9.31 | 11.01 9.99 9.91 9.90 11.13 | 10.09 10.92 10.60 10.06 10.32; bộ có rò: 8.81 9.59 9.55 9.37 10.04 | 9.61 9.70 9.37 10.10 9.65 | 11.02 10.55 9.88 10.38 10.29.
+  - c10 − g20 = −0.080 / −0.101 (tính tay): khi chỉ xét 20 khe của phiên, bộ Gaussian cho điểm ngang phép gán k-means.
+  - L_comp bằng khoảng 54% (tính tay, 10.177 / 18.9) phần ảnh test lớp mới rơi vào khe cũ ở bảng 3 E14.02; phần còn lại, khi bị chặn khỏi khe cũ, rơi vào khe sai của phiên.
+- Luật đọc: L_comp 10.177 > T (0.935) và ≥ ½ L_10 (5.048); bộ có rò 9.860 ≥ 4.879. Vùng 1: đích chính của E09.08 là cạnh tranh cũ/mới lúc dự đoán.
+- Phần B, gộp 5 phiên mỗi chuỗi, trung bình ba FT seed; khe lớp gốc | khe đợt trước:
+  - số ảnh mỗi chuỗi 364.0 | 177.5 (bộ có rò 366.8 | 165.9);
+  - trung vị Δ_det 0.602 | 0.460 (0.622 | 0.445); trung vị Δ_maha 4.347 | 5.609 (4.375 | 6.364);
+  - tỉ lệ ảnh có Δ_det > 0: 0.962 | 0.868 (0.968 | 0.867); tỉ lệ ảnh có |Δ_det| > |Δ_maha|: 0.139 | 0.088 (0.135 | 0.073).
+  - log det trung bình của khe, bộ không rò, S1…S5: khe lớp gốc −10.036 ở mọi phiên; khe của phiên −9.283, −9.005, −8.696, −8.498, −8.146; khe đợt trước từ −9.283 (S2) tới −8.870 (S5).
+- Phần C: M_d theo tâm 53.887 (0.474) / 53.600 (0.659), dưới c14; S5_All 61.170 / 61.620; S5_Old 62.531 / 62.908; S5_S0test 73.292 / 74.109; M_f proxy 10.513 / 10.333; quên đợt 1–4 6.372 / 5.912 (pipeline, E14.02: 3.556 / 3.477).
+- Phần D: mức tăng S<i>_New tại mức giảm S<i>_Old bằng B: +0.874 (0.050) / +0.843 (0.128); tại mức giảm 1 điểm: +2.098 (0.116) / +2.016 (0.219). Lưới b chạm cả hai mức giảm ở 75/75 phiên.
+- Dự đoán đã đăng ký:
+  - L_comp trong 7–11 điểm, hơn nửa L_10: đúng (10.177), nhưng đã thấy số trước khi đọc bảng (xem dưới).
+  - L_base khoảng gấp đôi L_disc: sai cỡ, gấp 3.37 lần (tính tay, 6.026 / 1.788).
+  - Phần B, |Δ_det| > |Δ_maha| ở hơn nửa số ảnh bị giành: sai; chỉ 13.9% và 8.8%. Đúng dấu: Δ_det > 0 ở 96.2% và 86.8%.
+  - Phần C, M_d theo tâm thấp hơn c14: đúng (53.887 so với 56.944).
+  - Phần D, tăng 2–5 điểm tại mức giảm B: sai, +0.874.
+- Lệch so với tiền đăng ký và về quy trình:
+  - G2 dùng sai số 1e-6 + 100 × 1e-4 điểm thay cho 1e-6, vì `new_disc`, `new_base` của run E14.02 lưu làm tròn 4 chữ số. Chặn trên của G2 chỉ đúng khi không ảnh nào vào khe chưa học; điều này đã đo (new_unseen = 0 ở 30/30 chuỗi, E14.02).
+  - Kết quả lộ trước khi đọc bảng: dòng tiến độ của runner in L_comp, L_10, M_d theo tâm và mức tăng tại B của từng chuỗi. Rito thấy chuỗi r0 s0 ở lần kiểm cổng và cả 30 chuỗi trước khi chạy `e1403-summary`. Phần B là phần duy nhất còn mù. Luật đọc phần A không đổi.
+  - Chi phí: run `cub_e14_03_ft` 5.6 phút. Run `cub_e14_03_ft_l25` ghi 117.2 phút, nhưng khoảng giữa hai chuỗi liền nhau thất thường, từ 8 s tới 1248 s (tính tay từ dòng tiến độ) [suy luận: máy ngủ trong đêm]. Runner không dùng RNG hay SVI, nên số không phụ thuộc thời gian chạy.
