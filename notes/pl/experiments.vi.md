@@ -35,7 +35,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
 - E14.01: điểm lớp mới theo bốn quy ước ghép tên P0–P3 trên cùng dự đoán, CUB t5 (2026-11-16; xong, Rito duyệt tạm: P1–P3 cao hơn P0 0.75–0.79 điểm M_d; P3 trùng P2) — mục E14.01 dưới đây
 - E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
-- E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, chờ Rito duyệt: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
+- E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
 - E14.04 (= "E14.01" của đề xuất 2026-11-05; mã cũ trùng với E14.01 ở trên): đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
@@ -978,3 +978,12 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
   - G2 dùng sai số 1e-6 + 100 × 1e-4 điểm thay cho 1e-6, vì `new_disc`, `new_base` của run E14.02 lưu làm tròn 4 chữ số. Chặn trên của G2 chỉ đúng khi không ảnh nào vào khe chưa học; điều này đã đo (new_unseen = 0 ở 30/30 chuỗi, E14.02).
   - Kết quả lộ trước khi đọc bảng: dòng tiến độ của runner in L_comp, L_10, M_d theo tâm và mức tăng tại B của từng chuỗi. Rito thấy chuỗi r0 s0 ở lần kiểm cổng và cả 30 chuỗi trước khi chạy `e1403-summary`. Phần B là phần duy nhất còn mù. Luật đọc phần A không đổi.
   - Chi phí: run `cub_e14_03_ft` 5.6 phút. Run `cub_e14_03_ft_l25` ghi 117.2 phút, nhưng khoảng giữa hai chuỗi liền nhau thất thường, từ 8 s tới 1248 s (tính tay từ dòng tiến độ) [suy luận: máy ngủ trong đêm]. Runner không dùng RNG hay SVI, nên số không phụ thuộc thời gian chạy.
+
+### Kết luận (Rito duyệt tạm 2026-11-17)
+
+- Trên CUB t5 không rò, gần như toàn bộ L_10 (khoảng 10 điểm M_d) nằm ở ranh giới cũ/mới lúc dự đoán: khi chỉ xét 20 khe của phiên, bộ Gaussian của bước 11–13 cho điểm ngang phép gán k-means (c10 − g20 = −0.08, tính tay). Hai bộ đặc trưng cho cùng hình dạng.
+- Kết luận E14.02 "E09.08 có đích trên CUB: bước 11–13" sửa thành: đích là cạnh tranh cũ/mới lúc dự đoán; bước 11–13 chỉ liên quan qua chỗ đặt khe mới so với khe cũ. 10.2 điểm là lợi ích của bộ định tuyến cũ/mới hoàn hảo lúc test, không phải mức kỳ vọng.
+- Khe cũ thắng nhờ số hạng Mahalanobis, không nhờ định thức: định thức của các khe gần như cùng cỡ (khe của phiên S5 hơn khe lớp gốc 1.89 nat trên 384 chiều, tính tay). Phép tách chưa phân biệt vị trí mean với hình dạng Σ, vì d² chứa cả Σ⁻¹.
+- Phần chú thích của vùng 1 trong luật đọc ("cân thành phần mới với thành phần cũ cố định") không được ủng hộ: một độ lệch đều cho khe của phiên chỉ lấy lại +0.874 điểm lớp mới tại mức giảm lớp cũ bằng B, +2.098 tại mức giảm 1 điểm. [suy luận] Tính theo số ảnh, độ lệch đều đổi nhiều ảnh cũ lấy ít ảnh mới, vì lớp cũ đông hơn lớp mới 5 lần trở lên.
+- Câu hỏi mở cho bước kế: ảnh lớp mới gần khe cũ hơn khe đúng vì mean khe mới đặt lệch (ước lượng, ví dụ ảnh cũ lẫn vào pool) hay vì lớp mới và lớp cũ chồng lấn thật trong không gian đặc trưng (biểu diễn)? Phép đo kế, làm trước thang oracle: L_comp khi thay mean khe mới bằng mean thật của lớp từ ảnh pool có nhãn, và khi tính d² với một Σ chung. Thiết kế E09.08 chờ phép đo này.
+- Giới hạn thêm sau khi có số: phần A, C, D lộ trước khi đọc bảng (chỉ phần B còn mù); phần B chỉ xét ảnh đã bị giành; r0–r2 không phải kiểm định xác nhận.
