@@ -2399,12 +2399,15 @@ def _loo_t_1202(z, y, off):
 
 def _gslot_1202(x):
     """A1 slot from rows x (n >= 3; at n = 2 Ledoit-Wolf gives shrinkage 0 and a singular covariance): sample mean and
-    Ledoit-Wolf covariance (closed_form_params, branch n >= 2).
+    Ledoit-Wolf covariance (closed_form_params, branch n >= 2). Calls sklearn.covariance.ledoit_wolf as
+    LedoitWolf.fit does, but skips the precision matrix (a full eigendecomposition per call; G4 checks equality).
     Returns (mean, cholesky, log det)."""
-    from sklearn.covariance import LedoitWolf
-    lw = LedoitWolf().fit(np.asarray(x, np.float64))
-    L = np.linalg.cholesky(lw.covariance_)
-    return lw.location_, L, 2.0 * float(np.log(np.diag(L)).sum())
+    from sklearn.covariance import ledoit_wolf
+    x = np.asarray(x, np.float64)
+    m = x.mean(0)
+    cov, _ = ledoit_wolf(x - m, assume_centered=True)        # = LedoitWolf().fit, without its precision (pinvh)
+    L = np.linalg.cholesky(cov)
+    return m, L, 2.0 * float(np.log(np.diag(L)).sum())
 
 
 def _logd_1202(kind, slots, x):
@@ -2506,7 +2509,7 @@ def _branch_1202(ctx, rule):
             sessN.append(_post_1406(zp[sel], ctx["priorN"]))
             if sel.sum() >= (3 if kind == "A1" else 2):              # Ledoit-Wolf at n = 2: shrinkage 0, singular
                 sessF.append(_gslot_1202(zp[sel]) if kind == "A1" else _post_1406(zp[sel], ctx["priorF"]))
-        lt, _ = _logd_1406(discN + sessN, sv["zt"], ctx["d"])
+        lt = _logd_1202("A3", discN + sessN, sv["zt"])          # N slots: Student-t as _logd_1406, triangular solves
         r = _score_1406(np.concatenate([sv["lbN"], lt], 1), sv["y"], sv["tgt"], off, inc, base)
         old_b, old_d, nov = yp < base, (yp >= base) & (yp < off), yp >= off
         r.update(empty=empty, oldbase_kept=float(keep[old_b].mean()), new_dropped=float(1.0 - keep[nov].mean()))
@@ -2587,6 +2590,10 @@ def tier2_e1202(prefix, checks_only=False):
         zt0 = np.asarray(st["z_test0"], np.float64)
         lab_pipe = np.asarray(clf._predict(jnp.asarray(st["z_test0"]), p1)[1])[:, :base].argmax(1)
         g["G4"] &= bool(np.array_equal(_logd_1202("A1", cands["A1"][2], zt0).argmax(1), lab_pipe))
+        from sklearn.covariance import LedoitWolf
+        lw0 = LedoitWolf().fit(z0[y0 == 0])
+        g["G4"] &= bool(np.array_equal(cands["A1"][2][0][0], lw0.location_)
+                        and np.array_equal(cands["A1"][2][0][1], np.linalg.cholesky(lw0.covariance_)))
         kind, priorF, slotsF = cands[sel][0], cands[sel][1], cands[sel][2]
         cal = cals[sel]
         n_cal = len(cal)
@@ -2617,7 +2624,7 @@ def tier2_e1202(prefix, checks_only=False):
             zp = np.asarray(v["z_pool"], np.float64)
             yp = np.asarray(v["true_pool_y"]).astype(int)
             sess.append(dict(zp=zp, ids=np.asarray(v["ids"]).astype(int), yp=yp, keep_pipe=np.asarray(v["keep"]).astype(bool),
-                             zt=zt, y=y, tgt=tgt, lbN=_logd_1406(baseN, zt, d)[0]))
+                             zt=zt, y=y, tgt=tgt, lbN=_logd_1202("A3", baseN, zt)))
         ctx = dict(kind=kind, base=base, inc=inc, d=d, priorN=priorN, priorF=priorF, cal=cal, sess=sess,
                    fpool=[_logd_1202(kind, slotsF, sv["zp"]) for sv in sess])
         pipe = [sv["keep_pipe"] for sv in sess]
