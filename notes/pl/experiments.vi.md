@@ -827,6 +827,17 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Chi phí thật: 181.6 phút (không rò) và 398.0 phút (có rò), cột `min` của `runs/INDEX.txt`, không phải 45–90 phút như Sửa đổi.
 - Dự đoán đã đăng ký: AUROC pool trong 0.70–0.82: đúng (0.798). Tỉ lệ ảnh cũ bị giữ ở α 0.10 trong 0.15–0.30: sai, và sai chiều: 0.018 (cũ gốc), 0.063 (cũ đã khám phá), dưới α. ρ trong 0.25–0.55: đúng (0.465). New của NF thấp hơn N 0–2 điểm: sai, thấp hơn 29.840. L_comp của NF trong 6–7.5: sai, 23.200.
 
+### Kết luận (Rito duyệt 2026-11-18)
+
+- Theo luật đọc chốt trước: vùng giữa, ở cả hai bộ đặc trưng. Trên CUB t5, bộ lọc cứng dựa trên mô hình lớp cũ không phải cải tiến độc lập; NF là nhánh đối chứng của E09.08, trách nhiệm mềm giữ vai trò cơ chế chính.
+- Biết đúng số ảnh mới cũng không đủ: NF-count thua pipeline 2.351 điểm New (> T), còn Nc (nhãn oracle) không mất New so với N (−0.101) mà vẫn tăng Old 6.774. Khoảng New giữa NF-count và Nc là 6.339 điểm (tính tay, 60.932 − 54.593): phần thua này đến từ thứ hạng của s (chọn sai ảnh nào bị bỏ), không chỉ từ ngưỡng.
+- [suy luận] Bộ lọc chặt hơn α danh định vì điểm hiệu chuẩn là max trên 100 khe lớp gốc, còn điểm pool từ phiên 2 là max trên cả khe lớp gốc và khe đã khám phá; max trên nhiều khe hơn chỉ làm điểm tăng, nên p tăng và ít ảnh được giữ. Khớp với tỉ lệ giữ ảnh cũ gốc theo phiên (0.086 ở phiên 1, từ 0.003 trở xuống từ phiên 2). E12.02 không kiểm trực tiếp cơ chế này; muốn kiểm thì hiệu chuẩn trên đúng tập khe mà điểm pool dùng.
+- [suy luận] Không chạy bản E12.02 sửa hiệu chuẩn: kể cả khi tỉ lệ giữ về đúng α, điểm hoạt động hợp lý nhất dự kiến cỡ NF-α 0.50 hoặc NF-count (ΔNew so với pipeline −3.224, −2.351), vẫn thua pipeline quá T. Đây là ngoại suy từ các nhánh chưa sửa hiệu chuẩn, độ tin vừa.
+- L_comp: làm sạch tập khớp không giảm cạnh tranh lúc dự đoán (Nc 6.993, N 6.502). Khi lọc quá chặt, L_comp không đơn điệu theo α vì chính g20 sụp (NF-α 0.02: g20 21.438, L_comp 13.640; NF: g20 54.393, L_comp 23.200), nên L_comp của các nhánh lọc chặt không đọc như số đo thuần của cạnh tranh.
+- Hệ quả cho thiết kế E09.08 [suy luận]: (a) trọng số mềm tránh khe rỗng của quyết định 0/1 (NF: 55 khe N rỗng trên 1500); (b) nếu dùng s làm trọng số thì hiệu chuẩn trên cùng tập khe với điểm pool; (c) cạnh tranh lúc dự đoán cần cơ chế riêng, làm sạch tập khớp không thay được.
+- Bước kế (Rito duyệt): sang thiết kế E09.08, mang theo ý (b); không chạy E12.02b.
+- Giới hạn: như phần tiền đăng ký; r0–r2 đã dùng ở E14.01–E14.06, nên đây không phải kiểm định xác nhận; quét α và NF-count là báo kèm, không dùng để chọn α. Chi phí thật gấp 2–4 lần ước lượng; từ nay ước lượng chi phí từ một lần chạy checks-only.
+
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
 ### Tiền đăng ký (2026-11-16; viết trước khi có code và trước mọi số)
