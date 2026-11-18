@@ -30,6 +30,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e1202-summary                                  E12.02: tables from the two runs
   python lab/score.py e1407 --prefix cub_chain_ft[_l25] [--checks-only]   E14.07: ceilings under NIW: Nlab, S5_S0test, bias on N (exp.py)
   python lab/score.py e1407-summary                                  E14.07: tables from the two runs
+  python lab/score.py e0908 --prefix cub_chain_ft[_l25] [--checks-only]   E09.08: VB-GMM arms V, Vnew, KW, Vhard, Vpifix (exp.py)
+  python lab/score.py e0908-summary                                  E09.08: tables and decision from the two runs
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -2871,9 +2873,337 @@ def e1407_summary(T=0.935, B=0.376):
     print("\nE14.07: the reading rules are read on cub_e14_07_ft_l25; cub_e14_07_ft is reported alongside")
 
 
+# ---- E09.08: VB-GMM for the unlabeled sessions of CUB t5 (pre-registered at c17e53c) ----
+ARMS_0908 = ("PIPE", "N", "Nc", "Nlab", "KW", "Vnew", "V", "Vhard", "Vpifix")
+CAVI_0908 = ("Vnew", "V", "Vhard", "Vpifix")
+
+
+def _postw_0908(x, w, prior):
+    """NIW posterior of one slot from rows x with weights w (soft counts; lab/niw.py formulas with N_k = sum w).
+    With 0/1 weights it equals _post_1406 on the selected rows (G4). Returns (mn, kn, vn, chol of Psi_n, log det)."""
+    m0, k0, nu0, psi0 = prior
+    nk = float(w.sum())
+    if nk <= 0:
+        mn, kn, vn, psi = m0, k0, nu0, psi0
+    else:
+        xb = (w @ x) / nk
+        xc = x - xb
+        S = (xc * w[:, None]).T @ xc
+        kn, vn = k0 + nk, nu0 + nk
+        mn = (k0 * m0 + nk * xb) / kn
+        psi = psi0 + S + (k0 * nk / kn) * np.outer(xb - m0, xb - m0)
+    L = np.linalg.cholesky(psi)
+    return mn, kn, vn, L, 2.0 * float(np.log(np.diag(L)).sum())
+
+
+def _elogn_0908(slots, x):
+    """(len(x), len(slots)) expected log-likelihood E_q[ln N(x | mu_k, Sigma_k)] under the NIW posterior of each slot
+    (Bishop 2006 Eq. 10.64-10.66 with W = Psi_n^-1): 1/2 E ln|Lambda| - d/(2 kn) - vn/2 q - d/2 ln(2 pi)."""
+    from scipy.linalg import solve_triangular
+    from scipy.special import digamma
+    x = np.asarray(x, np.float64)
+    d, out = x.shape[1], np.empty((len(x), len(slots)))
+    for k, (mn, kn, vn, L, ld) in enumerate(slots):
+        q = (solve_triangular(L, (x - mn).T, lower=True) ** 2).sum(0)
+        eld = float(digamma((vn + 1 - np.arange(1, d + 1)) / 2).sum()) + d * np.log(2) - ld
+        out[:, k] = 0.5 * eld - d / (2 * kn) - 0.5 * vn * q - d / 2 * np.log(2 * np.pi)
+    return out
+
+
+def _kl_niw_0908(s, prior):
+    """KL(q || p) between the NIW posterior s = (mn, kn, vn, L, ld) and the prior (m0, k0, nu0, psi0), written as a
+    Normal-Wishart on Lambda = Sigma^-1 with W = Psi^-1: KL of the Wisharts plus E_q of the KL of the Gaussians."""
+    from scipy.linalg import cho_solve
+    from scipy.special import digamma, multigammaln
+    mn, kn, vn, L, ld = s
+    m0, k0, nu0, psi0 = prior
+    d = len(mn)
+    ld0 = float(np.linalg.slogdet(psi0)[1])
+    tr = float(np.trace(cho_solve((L, True), psi0)))                 # tr(Psi0 Psi_q^-1) = tr(W_p^-1 W_q)
+    psid = float(digamma((vn + 1 - np.arange(1, d + 1)) / 2).sum())
+    kl_w = (-nu0 / 2 * (ld0 - ld) + vn / 2 * (tr - d) + multigammaln(nu0 / 2, d) - multigammaln(vn / 2, d)
+            + (vn - nu0) / 2 * psid)
+    dm = mn - m0
+    q = float(dm @ cho_solve((L, True), dm))                          # dm' W_q dm
+    kl_n = 0.5 * (d * k0 / kn - d + d * np.log(kn / k0) + k0 * vn * q)
+    return kl_w + kl_n
+
+
+def _cavi_0908(z, W0, E_old, prior, alpha0=1.0, hard=False, pifix=False, iters=200, tol=1e-8):
+    """CAVI of the pre-registration of E09.08 on rows z. W0 (n, K_new): initial weights of the new components (one-hot
+    k-means ids, or any fixed weights). E_old (n, K_old) or None: expected log-likelihoods of the fixed old components.
+    Each iteration: M step of the new components (soft counts), Dirichlet alpha_k = alpha0 + N_k over every component,
+    E step over old and new components (argmax if hard; equal E[ln pi] if pifix). iters = 0: the M step from W0 only.
+    Returns (new slots, responsibilities (n, K_old + K_new), ELBO per iteration, number of iterations)."""
+    from scipy.special import digamma, gammaln, logsumexp
+    n, kn_ = W0.shape
+    ko = 0 if E_old is None else E_old.shape[1]
+    R = np.zeros((n, ko + kn_))
+    R[:, ko:] = W0
+    elbos, slots = [], [_postw_0908(z, W0[:, k], prior) for k in range(kn_)]
+    E_new = _elogn_0908(slots, z) if iters else None
+    for it in range(iters):
+        E = E_new if E_old is None else np.concatenate([E_old, E_new], 1)
+        if pifix:
+            elp = np.zeros(ko + kn_)
+        else:
+            alpha = alpha0 + R.sum(0)
+            elp = digamma(alpha) - digamma(alpha.sum())
+        logits = E + elp
+        if hard:
+            R = np.zeros_like(R)
+            R[np.arange(n), logits.argmax(1)] = 1.0
+        else:
+            R = np.exp(logits - logsumexp(logits, axis=1, keepdims=True))
+        slots = [_postw_0908(z, R[:, ko + k], prior) for k in range(kn_)]
+        # ELBO after the M step (Bishop 2006 Eq. 10.70-10.77; old components fixed: their KL is a constant, left out);
+        # E_new of the new slots is reused by the next E step
+        E_new = _elogn_0908(slots, z)
+        E = E_new if E_old is None else np.concatenate([E_old, E_new], 1)
+        Nk = R.sum(0)
+        ent = float((R * np.log(np.where(R > 0, R, 1.0))).sum())
+        if pifix:
+            lp = float((R * E).sum()) + float(Nk.sum() * np.log(1.0 / (ko + kn_)))
+        else:
+            alpha = alpha0 + Nk
+            elp = digamma(alpha) - digamma(alpha.sum())
+            K = ko + kn_
+            lnC = lambda v: float(gammaln(v.sum()) - gammaln(v).sum())
+            lp = float((R * E).sum()) + float((R * elp).sum()) + lnC(np.full(K, alpha0)) + (alpha0 - 1) * float(elp.sum()) \
+                - (float(((alpha - 1) * elp).sum()) + lnC(alpha))
+        elbos.append(lp - ent - sum(_kl_niw_0908(s, prior) for s in slots))
+        if it and abs(elbos[-1] - elbos[-2]) <= tol * abs(elbos[-2]):
+            break
+    return slots, R, elbos, len(elbos)
+
+
+def _p1_0908(pred, y, lut1, off, seen):
+    """P1 naming of E14.01 for one session: the block of the session matched on the predictions (_best_map_1401),
+    earlier blocks frozen. Returns the new cumulative lut."""
+    lut1 = lut1.copy()
+    for c, s in _best_map_1401(pred, y, np.arange(off, seen), np.arange(off, seen)).items():
+        lut1[c] = s
+    return lut1
+
+
+def _scores_0908(L, y, lut, off, inc, base):
+    """New, Old, All, g20, S0test (percent) of a log-density matrix over the seen slots, true slot = lut[y]."""
+    tgt, new, b0 = lut[y], y >= off, y < base
+    pr = L.argmax(1)
+    ok = pr == tgt
+    g20 = (off + L[:, off:off + inc].argmax(1) == tgt)[new]
+    pc = lambda a: 100.0 * float(np.mean(a))
+    return {"New": pc(ok[new]), "Old": pc(ok[~new]), "All": pc(ok), "g20": pc(g20), "S0test": pc(ok[b0])}
+
+
+def tier2_e0908(prefix, checks_only=False):
+    """E09.08 (pre-registration c17e53c) on the 15 default chains <prefix>_r<r>_s<N> (r0-r2). Model N of E14.06 for
+    every slot (one NIW prior, off by leave-one-out on S0, Student-t prediction, equal priors); arms ARMS_0908:
+    PIPE (params1), N, Nc, Nlab (as E14.07), KW (k-means on the P-whitened PCA pool, K = 20, n_init 10,
+    RandomState(908000 + 1000 r + 100 N + i), then N on the kept images by KW id), Vnew (CAVI over the 20 new
+    components on the kept images), V (CAVI over the fixed old components and the 20 new ones on every pool image),
+    Vhard (V with argmax E step), Vpifix (V with equal E[ln pi]). Slots of earlier sessions come from the arm itself.
+    Every arm is named by P1 (E14.01); P0 is also kept for PIPE, N, Nc, Nlab (G1). Pool labels for Nc, Nlab and
+    scoring only; test labels for scoring and naming only. No SVI; the only RNG is the k-means of KW.
+    Gates: G1 PIPE = acc1 (1e-6); N, Nc, Nlab under P0 = the E14.07 run (New, Old, g20, S0test; 1e-4). G2 the CAVI path
+    with the weights frozen at the k-means ids of the kept images (no E step) gives N, frozen at the Nc rows gives Nc
+    (1e-6). G3 the ELBO does not fall over the iterations of Vnew, V, Vpifix (1e-6 relative). G4 weighted posterior
+    with 0/1 weights = _post_1406 (1e-8 relative); cached old expected log-likelihoods = direct recomputation (1e-8).
+    G5 M_d of PIPE under P1 = Md_P1 of the E14.01 run (1e-4). Keys: r<r>_s<N>_<key>; G1_ok ... G5_ok, checks_ok.
+    The progress line prints the gates and the time only. checks_only: chain r0 s0 only, no keys."""
+    import niw
+    from sklearn.cluster import KMeans
+    from replay import _clf, _git
+    from sessions import load as load_sessions, _device
+    assert prefix in ("cub_chain_ft", "cub_chain_ft_l25"), "E09.08 is pre-registered on the two sets of CUB chains"
+    t0 = time.time()
+    if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
+        raise SystemExit("e0908: commit the code first (same dirty rule as scripts/exp.py)")
+    suf = prefix[len("cub_chain_"):]
+    e07, e01 = _ref_metrics("cub_e14_07_" + suf), _ref_metrics("cub_e14_01_" + suf)
+    assert e07.get("checks_ok") == 1 and e01.get("checks_ok") == 1, "E14.07 or E14.01 run of this feature set: checks failed"
+    out, gates = {}, {f"G{k}": True for k in range(1, 6)}
+    for r, N in ((0, 0),) if checks_only else [(r, N) for r in range(3) for N in range(5)]:
+        tag, pre = f"{prefix}_r{r}_s{N}", f"r{r}_s{N}_"
+        st, views = load_sessions(tag)                  # the workbench first: torch, main, then jax, as the chains
+        import jax.numpy as jnp
+        _device()
+        a = st["args"]
+        assert a.dataset == "cub200" and a.load_mode == "t5" and len(views) == 5 and a.seed == N, f"{tag}: not a CUB t5 chain of seed {N}"
+        base, inc, res, g = a.base, a.increment, {}, {f"G{k}": True for k in range(1, 6)}
+        z0, y0 = np.asarray(st["z_s0"], np.float64), np.asarray(st["s0_y"]).astype(int)
+        d = z0.shape[1]
+        off0 = niw.choose(niw.loo_curve(z0, y0))
+        sts = niw.class_stats(z0, y0)
+        P = niw.prior_cov(sts, 0)
+        prior = (sts["m0"], niw.K0, d + 1 + off0, off0 * P)
+        LP = np.linalg.cholesky(P)
+        base_slots = [_post_1406(z0[y0 == k], prior) for k in range(base)]
+        res["off"] = off0
+        disc = {b: [] for b in ARMS_0908 if b != "PIPE"}          # frozen slots of earlier sessions, per arm
+        lut1 = {b: np.arange(a.num_classes) for b in ARMS_0908}   # cumulative P1 luts
+        md_p1 = []
+        for i, v in enumerate(views, 1):
+            off = v["offset"]
+            n = off + inc
+            zp = np.asarray(v["z_pool"], np.float64)
+            ids, keep = np.asarray(v["ids"]).astype(int), np.asarray(v["keep"]).astype(bool)
+            yp, lut0 = np.asarray(v["true_pool_y"]).astype(int), np.asarray(v["lut"])
+            inv = {int(lut0[c]): int(c) for c in range(off, n)}
+            clf = _clf(v)
+            _component(v["predict"])(clf)
+            clf.label_offset, clf.n_seen = off, n
+            xt = clf.pca.transform(v["test_all_x"])
+            zt = np.asarray(xt, np.float64)
+            y = np.asarray(v["true_test_all_y"]).astype(int)
+            # PIPE
+            _, lp = clf._predict(jnp.array(xt), _jnp(v["params1"]))
+            Lp = np.asarray(lp, np.float64)                       # every slot, as _predict (no unseen-slot prediction on CUB, E14.01)
+            sc0 = _scores_0908(Lp, y, lut0, off, inc, base)
+            g["G1"] &= abs(sc0["New"] - float(v["acc1"]["Novel"])) <= 1e-6 and abs(sc0["Old"] - float(v["acc1"]["Old"])) <= 1e-6
+            lut1["PIPE"] = _p1_0908(Lp.argmax(1), y, lut1["PIPE"], off, n)
+            res.update({f"S{i}_PIPE_{q}": val for q, val in _scores_0908(Lp, y, lut1["PIPE"], off, inc, base).items()})
+            res.update({f"S{i}_PIPE_P0_{q}": val for q, val in sc0.items()})
+            md_p1.append(res[f"S{i}_PIPE_New"])
+            # rows of the new slots: hard arms
+            onehot = lambda sel, lab: np.eye(inc)[lab] * sel[:, None]
+            W = {"N": onehot(keep, ids), "Nc": onehot(keep & (yp >= off), ids),
+                 "Nlab": np.stack([(yp == inv[off + c]).astype(float) for c in range(inc)], 1)}
+            wz = np.linalg.solve(LP, (zp - prior[0]).T).T
+            km = KMeans(n_clusters=inc, n_init=10, random_state=np.random.RandomState(908000 + 1000 * r + 100 * N + i)).fit(wz)
+            W["KW"] = onehot(keep, km.labels_.astype(int))
+            sess = {b: [_postw_0908(zp, W[b][:, c], prior) for c in range(inc)] for b in W}
+            if i == 1:                                           # G4: weighted posterior with 0/1 weights = _post_1406
+                for c in range(inc):
+                    s1, s2 = sess["N"][c], _post_1406(zp[keep & (ids == c)], prior)
+                    g["G4"] &= _relok_0908(s1, s2)
+            # CAVI arms
+            E_base = _elogn_0908(base_slots, zp)
+            cav = {}
+            for b in CAVI_0908:
+                if b == "Vnew":
+                    zz, E_old, W0 = zp[keep], None, np.eye(inc)[ids[keep]]
+                else:
+                    E_old = np.concatenate([E_base, _elogn_0908(disc[b], zp)], 1) if disc[b] else E_base
+                    zz, W0 = zp, np.eye(inc)[ids]
+                slots, R, elbos, nit = _cavi_0908(zz, W0, E_old, prior, hard=b == "Vhard", pifix=b == "Vpifix")
+                if b != "Vhard":
+                    e = np.asarray(elbos)
+                    g["G3"] &= bool(np.all(np.diff(e) >= -1e-6 * np.abs(e[:-1])))
+                sess[b], cav[b] = slots, (R, nit, zz)
+            if i == 1:                                           # G4: cached old expected log-likelihoods
+                g["G4"] &= bool(np.allclose(_elogn_0908(base_slots[:3], zp), E_base[:, :3], rtol=1e-8, atol=0))
+            # G2: CAVI path with frozen weights (no E step) gives N and Nc
+            for b, Wf in (("N", np.eye(inc)[ids[keep]]), ("Nc", np.eye(inc)[ids] * (keep & (yp >= off))[:, None])):
+                zz = zp[keep] if b == "N" else zp
+                sl, _, _, _ = _cavi_0908(zz, Wf, None, prior, iters=0)
+                La = _logd_1202("A3", base_slots + disc[b] + sl, zt)
+                Lb = _logd_1202("A3", base_slots + disc[b] + sess[b], zt)
+                sa, sb = _scores_0908(La, y, lut0, off, inc, base), _scores_0908(Lb, y, lut0, off, inc, base)
+                g["G2"] &= all(abs(sa[q] - sb[q]) <= 1e-6 for q in sa)
+            # score every arm
+            lb = _logd_1202("A3", base_slots, zt)
+            for b in ARMS_0908[1:]:
+                L = np.concatenate([lb, _logd_1202("A3", disc[b] + sess[b], zt)], 1)
+                assert L.shape[1] == n, f"{tag} S{i} {b}: {L.shape[1]} slots"
+                if b in ("N", "Nc", "Nlab"):
+                    s0_ = _scores_0908(L, y, lut0, off, inc, base)
+                    res.update({f"S{i}_{b}_P0_{q}": val for q, val in s0_.items()})
+                    g["G1"] &= all(abs(s0_[q] - float(e07[f"{pre}S{i}_{b}_{q}"])) <= 1e-4 for q in ("New", "Old", "g20", "S0test"))
+                lut1[b] = _p1_0908(L.argmax(1), y, lut1[b], off, n)
+                res.update({f"S{i}_{b}_{q}": val for q, val in _scores_0908(L, y, lut1[b], off, inc, base).items()})
+                disc[b] = disc[b] + sess[b]
+            # report: partitions, old mass, sizes, iterations
+            pn = yp >= off
+            res[f"S{i}_KW_c09"] = 100.0 * _hung_correct_1402(km.labels_[pn], yp[pn] - off, inc) / int(pn.sum())
+            res[f"S{i}_N_c09"] = 100.0 * _hung_correct_1402(ids[pn], yp[pn] - off, inc) / int(pn.sum())
+            for b, (R, nit, zz) in cav.items():
+                Rn = R[:, R.shape[1] - inc:]
+                yy = yp[keep] if b == "Vnew" else yp
+                nv = yy >= off
+                res[f"S{i}_{b}_c09"] = 100.0 * _hung_correct_1402(Rn.argmax(1)[nv], yy[nv] - off, inc) / int(nv.sum())
+                res[f"S{i}_{b}_oldmass"] = float(Rn[~nv].sum() / max(1, int((~nv).sum())))
+                nk = Rn.sum(0)
+                res.update({f"S{i}_{b}_nkmin": float(nk.min()), f"S{i}_{b}_nsmall": int((nk < 2).sum()), f"S{i}_{b}_iters": nit})
+        g["G5"] &= abs(float(np.mean(md_p1)) - float(e01[f"{pre}Md_P1"])) <= 1e-4
+        for kk in gates:
+            gates[kk] = gates[kk] and g[kk]
+        out.update({pre + kk: round(val, 4) if isinstance(val, float) else val for kk, val in res.items()})
+        print(f"e0908 {tag}: " + " ".join(f"{kk} {'OK' if g[kk] else 'DIFF'}" for kk in g) + f" ({time.time() - t0:.0f} s)", flush=True)
+    chk = {f"{kk}_ok": int(v) for kk, v in gates.items()}
+    chk["checks_ok"] = int(all(gates.values()))
+    print(f"e0908 {prefix}: checks {'OK' if chk['checks_ok'] else 'FAILED'} ({time.time() - t0:.0f} s)")
+    return chk if checks_only else {**chk, **out}
+
+
+def _relok_0908(s1, s2, tol=1e-8):
+    """Two NIW posteriors (mn, kn, vn, chol, logdet) equal within tol relative (G4 of E09.08)."""
+    r = lambda u, w: float(np.max(np.abs(np.asarray(u, np.float64) - np.asarray(w, np.float64))) / max(1e-300, float(np.max(np.abs(w)))))
+    return all(r(u, w) <= tol for u, w in zip(s1, s2))
+
+
+def e0908_summary(T=0.935, B=0.376):
+    """Tables of E09.08 from the runs cub_e09_08_ft_l25 and cub_e09_08_ft: per arm (P1 naming) New, Old, All, S5_S0test,
+    g20, L_comp, the differences to PIPE (M_d = mean New of the 5 sessions), rho, the share of the Nlab ceiling, c09,
+    old mass, smallest N_k, CAVI iterations. Decision rule, diagnostic rules and drop condition of the pre-registration
+    on the leak-free set. Every number is first the mean of the 5 chains of an FT seed; "mean" and "sd" are over the 3
+    FT seeds (sd with ddof 1). Refuses to read a run without checks_ok = 1."""
+    for tag in ("cub_e09_08_ft_l25", "cub_e09_08_ft"):
+        if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+            print(f"\n{tag}: no run yet")
+            continue
+        m = _ref_metrics(tag)
+        assert m.get("checks_ok") == 1, f"{tag}: checks failed, results are not read"
+        per = lambda key: np.array([[m[f"r{r}_s{N}_{key}"] for N in range(5)] for r in range(3)], float)
+        ft = lambda k: np.mean([per(f"S{i}_{k}") for i in range(1, 6)], axis=0).mean(1)
+        s5 = lambda k: per(f"S5_{k}").mean(1)
+        line = lambda name, x: f"  {name:<30}" + "".join(f"{val:9.3f}" for val in x) + f"{x.mean():9.3f}{x.std(ddof=1):9.3f}"
+        head = f"  {'':<30}" + "".join(f"{x:>9}" for x in ("r0", "r1", "r2", "mean", "sd"))
+        print(f"\n{tag}: G1-G5 OK; off chosen: {sorted(set(int(x) for x in per('off').ravel()))}; naming P1 for every arm")
+        print(head)
+        for b in ARMS_0908:
+            for q in ("New", "Old", "All", "g20"):
+                print(line(f"{b} {q}", ft(f"{b}_{q}")))
+            print(line(f"{b} L_comp = g20 - New", ft(f"{b}_g20") - ft(f"{b}_New")))
+            print(line(f"{b} S5_S0test", s5(f"{b}_S0test")))
+            if b != "PIPE":
+                print(line(f"{b} dM_d vs PIPE", ft(f"{b}_New") - ft("PIPE_New")))
+                print(line(f"{b} dS5_S0test vs PIPE", s5(f"{b}_S0test") - s5("PIPE_S0test")))
+                print(line(f"{b} rho", (ft(f"{b}_Old") - ft("N_Old")) / (ft("Nc_Old") - ft("N_Old"))))
+                print(line(f"{b} share of the Nlab ceiling", (ft(f"{b}_New") - ft("N_New")) / (ft("Nlab_New") - ft("N_New"))))
+            if b in ("N", "KW") + CAVI_0908:
+                print(line(f"{b} c09 (pool)", ft(f"{b}_c09")))
+            if b in CAVI_0908:
+                print(line(f"{b} old mass in new components", ft(f"{b}_oldmass")))
+                print(line(f"{b} smallest N_k", ft(f"{b}_nkmin")))
+                print(line(f"{b} CAVI iterations", ft(f"{b}_iters")))
+                print(f"  {b}: components with N_k < 2: {int(sum(per(f'S{i}_{b}_nsmall').sum() for i in range(1, 6)))} (of 1500)")
+        for b in ("PIPE", "N", "Nc"):
+            print(line(f"{b} New under P0", ft(f"{b}_P0_New")))
+        dmd = ft("V_New") - ft("PIPE_New")
+        ds5 = (s5("V_S0test") - s5("PIPE_S0test")).mean()
+        if dmd.mean() <= 0 or ds5 < -B:
+            dec = "REJECT"
+        elif dmd.mean() >= T and (dmd > 0).sum() == 3:
+            dec = "ACCEPT -> run the confirmation rule on r3, r4"
+        else:
+            dec = "NOT LARGE ENOUGH"
+        print(f"  decision: dM_d(V - PIPE) {dmd.mean():+.3f} (T {T}), positive in {int((dmd > 0).sum())}/3 FT seeds; "
+              f"dS5_S0test {ds5:+.3f} (-B {-B}) -> {dec}")
+        dvn, dkw = (ft("Vnew_New") - ft("N_New")).mean(), (ft("KW_New") - ft("N_New")).mean()
+        dmh = abs((ft("V_New") - ft("Vhard_New")).mean())
+        dsh = abs((s5("V_S0test") - s5("Vhard_S0test")).mean())
+        print(f"  diagnostic: New(Vnew) - New(N) {dvn:+.3f} -> {'E-M fixes the partition' if dvn >= T else 'below T'}; "
+              f"New(KW) - New(N) {dkw:+.3f} -> {'the whitened metric alone is enough' if dkw >= T else 'below T'}; "
+              f"|V - Vhard| M_d {dmh:.3f}, S5_S0test {dsh:.3f} -> {'soft adds nothing' if dmh < T / 2 and dsh < B else 'soft matters'}")
+        if dec == "REJECT" and dvn < T and dkw < T:
+            print("  drop condition met: no Gaussian partition repair on this representation; Nc -> Nlab needs another representation or labels")
+    print("\nE09.08: the decision rule is read on cub_e09_08_ft_l25; cub_e09_08_ft is reported alongside")
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -2887,7 +3217,7 @@ def main(argv):
     p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25"], help="e1401, e1402: tag prefix of the 15 chains")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -2931,9 +3261,12 @@ def main(argv):
     if o.step == "e1407-summary":
         e1407_summary()
         return
-    if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406", "e1202", "e1407"):
+    if o.step == "e0908-summary":
+        e0908_summary()
+        return
+    if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406", "e1202", "e1407", "e0908"):
         assert o.prefix, f"{o.step} needs --prefix"
-        out = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406, "e1202": tier2_e1202, "e1407": tier2_e1407}[o.step](o.prefix, o.checks_only)
+        out = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406, "e1202": tier2_e1202, "e1407": tier2_e1407, "e0908": tier2_e0908}[o.step](o.prefix, o.checks_only)
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
