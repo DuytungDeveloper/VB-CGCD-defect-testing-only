@@ -1286,3 +1286,25 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
   - Nlab dùng nhãn pool: là trần, không phải phương pháp.
   - Kết luận "giới hạn của biểu diễn" chỉ đúng dưới hậu nghiệm NIW với off chọn như E14.06 (250 ở 30/30 chuỗi); bộ ước lượng khác có thể cho số khác.
   - r0–r2 đã dùng ở E14.01–E14.06 và E12.02; không phải kiểm định xác nhận.
+
+### Kết quả (2026-11-18; run `cub_e14_07_ft_l25`, `cub_e14_07_ft`, code `5fbce01`, commit run `7271ffc`, tiền đăng ký `d1ac606`; số in bằng `python lab/score.py e1407-summary`; 30/30 chuỗi qua G1–G4)
+
+- off = 250 ở 30/30 chuỗi.
+- Bộ không rò, trung bình 5 phiên, 5 chuỗi, 3 FT seed; S5_S0test là của phiên 5; c10 = 67.041.
+
+| Nhánh | New | Old | g20 | L_comp | S5_S0test | ΔS5_S0test so với pipeline |
+|---|---|---|---|---|---|---|
+| Pipeline | 56.944 | 74.046 | – | – | 78.398 | – |
+| N | 61.033 | 69.161 | 67.535 | 6.502 | 69.102 | −9.296 |
+| Nc | 60.932 | 75.935 | 67.925 | 6.993 | 78.200 | −0.198 |
+| Nlab (oracle) | 86.149 | 82.946 | 94.956 | 8.807 | 79.340 | +0.942 |
+
+- Bộ có rò, cùng cột (New / Old / L_comp / S5_S0test / ΔS5_S0test): pipeline 57.142 / 74.427 / – / 78.939 / –; N 61.032 / 69.329 / 6.402 / 69.459 / −9.480; Nc 60.959 / 76.277 / 6.786 / 78.732 / −0.207; Nlab 86.249 / 83.361 / 8.671 / 79.713 / +0.774.
+- Phần D, mức tăng New tại mức giảm Old bằng B / bằng 1 điểm, bộ không rò: N 0.466 / 1.237; Nlab 0.665 / 1.717. Bộ có rò: N 0.469 / 1.242; Nlab 0.630 / 1.644. Lưới b chạm cả hai mức giảm ở 75/75 phiên, cả hai nhánh, cả hai bộ.
+- Luật đọc chốt trước, bộ không rò:
+  - (a) L_comp_Nlab 8.807 > T (0.935); L_comp_Nlab / L_comp_N = 1.355: giới hạn của biểu diễn dưới bộ ước lượng NIW này; E09.08 không nhắm ý (c), chỉ báo cáo.
+  - (b) New_Nlab − New_Nc = +25.216 ≥ T: E-M trong nhóm mới có chỗ để tăng; nhánh V-new của E09.08 giữ vai trò chẩn đoán chính.
+  - (c) S5_S0test của Nc trừ của pipeline = −0.198 ≥ −B (−0.376): ràng buộc của QD28 đạt được với bộ lọc hoàn hảo.
+  - Bộ có rò cho cùng ba kết luận (8.671; +25.289; −0.207).
+- Dự đoán đã đăng ký: L_comp_Nlab trong 3–6: sai, 8.807, lớn hơn cả L_comp_N. New_Nlab trong 70–80: sai, 86.149. S5_S0test của Nc trừ của pipeline trong −0.5 tới +1.5: đúng (−0.198). Phần D trên N tăng New 1–2 điểm tại mức giảm Old bằng B: sai, 0.466.
+- Chi phí thật: 2491 s (`cub_e14_07_ft_l25`) và 541 s (`cub_e14_07_ft`), theo dòng tiến độ; checks-only trước đó 43 s và 41 s một chuỗi. Run `cub_e14_07_ft_l25` có một khoảng 1929 s giữa hai dòng tiến độ r2_s2 và r2_s3 (tính tay; các khoảng khác 31–51 s; note trong LOG). Runner không dùng RNG hay SVI, nên số không phụ thuộc thời gian chạy.
