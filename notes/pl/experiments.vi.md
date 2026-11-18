@@ -800,6 +800,33 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Lý do: Ledoit–Wolf của scikit-learn ở n = 2 cho hệ số co bằng 0 và hiệp phương sai hạng 1, nên Cholesky báo lỗi. Phát hiện khi thử runner trên chuỗi giả ngoài repo (code `e680c16`), trước mọi số trên dữ liệu thật. Với n = 1, nhánh của `closed_form_params` dùng Σ đẳng hướng gộp, nhưng tiền đăng ký đã bỏ khe khi n < 2, nên không dùng nhánh đó.
 - Không đổi gì khác.
 
+### Kết quả (2026-11-18; run `cub_e12_02_ft_l25`, `cub_e12_02_ft`, code `2e66ccb`, commit run `a110103`; số in bằng `python lab/score.py e1202-summary`; 30/30 chuỗi qua G1–G5)
+
+- Luật đọc, bộ không rò: ρ(NF) 0.465, ΔNew(NF) so với pipeline −25.751 (T 0.935): vùng giữa, "bộ lọc cứng chỉ lấy lại một phần; E09.08 giữ trách nhiệm mềm làm cơ chế chính". Bộ có rò: ρ 0.486, ΔNew −24.291. L_comp(NF) 23.200 (không rò) / 23.183 (có rò).
+- Mô hình điểm được chọn: A1 ở 15/15 chuỗi mỗi bộ. AUROC bỏ-một-lớp trên S0, không rò / có rò: A1 0.822 / 0.830; A3 off 25: 0.686 / 0.693; off 100: 0.684 / 0.690; off 250: 0.681 / 0.687; off 1000: 0.674 / 0.680.
+- Bộ không rò, trung bình 5 phiên, 5 chuỗi, 3 FT seed. Pipeline: New 56.944, Old 74.046. Cột "giữ cũ gốc" và "bỏ mới" là tỉ lệ trên pool; "khe rỗng" là số khe N rỗng trên 1500.
+
+| Nhánh | New | Old | ρ | L_comp | ΔNew so với pipeline | giữ cũ gốc | giữ cũ đã khám phá (S2–S5) | bỏ mới | AUROC pool của s | khe rỗng |
+|---|---|---|---|---|---|---|---|---|---|---|
+| N | 61.033 | 69.161 | 0 | 6.502 | +4.089 | 0.417 | 0.651 | 0.001 | – | 0 |
+| Nc | 60.932 | 75.935 | 1 | 6.993 | +3.988 | 0.000 | 0.000 | 0.001 | – | 70 |
+| NF (α 0.10) | 31.193 | 72.327 | 0.465 | 23.200 | −25.751 | 0.018 | 0.063 | 0.704 | 0.798 | 55 |
+| NF∧ | 31.163 | 72.367 | 0.471 | 23.225 | −25.781 | 0.018 | 0.060 | 0.703 | 0.796 | 57 |
+| NF-α 0.02 | 7.797 | 67.071 | −0.312 | 13.640 | −49.147 | 0.003 | 0.017 | 0.937 | 0.722 | 599 |
+| NF-α 0.05 | 19.681 | 69.892 | 0.107 | 20.556 | −37.264 | 0.009 | 0.043 | 0.837 | 0.754 | 169 |
+| NF-α 0.20 | 42.577 | 73.913 | 0.700 | 20.715 | −14.367 | 0.037 | 0.092 | 0.493 | 0.844 | 28 |
+| NF-α 0.30 | 47.827 | 74.239 | 0.749 | 18.006 | −9.117 | 0.056 | 0.147 | 0.359 | 0.871 | 25 |
+| NF-α 0.50 | 53.720 | 73.859 | 0.693 | 13.139 | −3.224 | 0.092 | 0.251 | 0.191 | 0.902 | 14 |
+| NF-count (oracle) | 54.593 | 73.905 | 0.700 | 12.339 | −2.351 | 0.104 | 0.280 | 0.195 | 0.896 | 13 |
+
+- Bộ có rò, cùng cột (New / Old / ρ / L_comp / ΔNew so với pipeline / giữ cũ gốc / bỏ mới / AUROC pool / khe rỗng): pipeline New 57.142, Old 74.427; N 61.032 / 69.329 / 0 / 6.402 / +3.890; Nc 60.959 / 76.277 / 1 / 6.786 / +3.817; NF 32.851 / 72.710 / 0.486 / 23.183 / −24.291 / 0.014 / 0.687 / 0.813 / 76; NF-α 0.20: ρ 0.715, New 43.707; NF-α 0.30: ρ 0.736, New 48.475; NF-α 0.50: ρ 0.697, New 54.042, ΔNew −3.100; NF-count 54.732 / 74.202 / 0.701 / 11.990 / −2.410 / 0.097 / 0.186 / 0.903 / 9.
+- Ở cả hai bộ, mọi nhánh lọc có ΔNew so với pipeline âm, nên không nhánh nào đồng thời có ρ ≥ 0.67 và ΔNew > T, kể cả NF-count.
+- NF theo phiên, bộ không rò (giữ cũ gốc / giữ cũ đã khám phá / bỏ mới / AUROC pool): S1 0.086 / – / 0.569 / 0.824; S2 0.003 / 0.099 / 0.713 / 0.838; S3 0.002 / 0.062 / 0.767 / 0.745; S4 0.001 / 0.043 / 0.765 / 0.799; S5 0.000 / 0.050 / 0.704 / 0.782. Bộ có rò: S1 0.065 / – / 0.543 / 0.853; S5 0.000 / 0.049 / 0.691 / 0.794.
+- Kiểm giả định "điểm hiệu chuẩn của lớp gốc dùng chung cho khe đã khám phá" (Giới hạn của tiền đăng ký), bằng tỉ lệ giữ tách theo đợt: ở phiên 1, khi mô hình điểm chỉ có khe lớp gốc, ảnh cũ gốc bị giữ 0.086 (α 0.10); từ phiên 2 tỉ lệ này còn 0.003 trở xuống. Cài đặt: điểm hiệu chuẩn là max trên 100 khe lớp gốc (`_select_1202`); điểm pool từ phiên 2 là max trên khe lớp gốc và khe đã khám phá của nhánh (`_branch_1202`).
+- Cách đọc các cột báo kèm: từ phiên 2, mỗi nhánh có mô hình điểm riêng (khe đã khám phá khớp trên tập giữ của chính nhánh), nên AUROC pool và tỉ lệ giữ khác nhau giữa các nhánh; chúng không phải thuộc tính riêng của s. Quét α và NF-count là báo kèm; luật đọc chỉ dùng NF.
+- Chi phí thật: 181.6 phút (không rò) và 398.0 phút (có rò), cột `min` của `runs/INDEX.txt`, không phải 45–90 phút như Sửa đổi.
+- Dự đoán đã đăng ký: AUROC pool trong 0.70–0.82: đúng (0.798). Tỉ lệ ảnh cũ bị giữ ở α 0.10 trong 0.15–0.30: sai, và sai chiều: 0.018 (cũ gốc), 0.063 (cũ đã khám phá), dưới α. ρ trong 0.25–0.55: đúng (0.465). New của NF thấp hơn N 0–2 điểm: sai, thấp hơn 29.840. L_comp của NF trong 6–7.5: sai, 23.200.
+
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
 ### Tiền đăng ký (2026-11-16; viết trước khi có code và trước mọi số)
