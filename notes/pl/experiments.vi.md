@@ -40,6 +40,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E14.04 (= "E14.01" của đề xuất 2026-11-05; mã cũ trùng với E14.01 ở trên): đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
 - E14.05: CUB t5, khe cũ giành ảnh test lớp mới vì mean khe mới đặt lệch (bộ ước lượng, ảnh cũ lẫn vào cụm, cụm sai lớp) hay vì chồng lấn trong biểu diễn: thang Mk, Mc, M1 và Σ chung (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm, có Sửa cùng ngày: R(Mk) 0.98 nhưng Old giảm 52 điểm, là đánh đổi; mean gần 0 ở mọi khe, như D23 và E06.04; E09.08 phải dùng một bộ ước lượng cho mọi khe) — mục E14.05 dưới đây
 - E14.06: CUB t5, L_10 và L_comp khi mọi khe dùng hậu nghiệm NIW với dự đoán Student-t (A3 của E06.04 cho lớp gốc, cùng tiên nghiệm cho khe của các phiên); phụ: mô hình đó có hơn pipeline không (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp_N = 6.50, cạnh tranh vẫn là đích; N không hơn pipeline vì Old giảm 4.9; N sạch hơn pipeline ở cả New và Old) — mục E14.06 dưới đây
+- E14.07: CUB t5, trần dưới bộ ước lượng nhất quán: L_comp và lớp mới khi khe mới khớp đúng lớp (Nlab); S5_S0test của N, Nc, Nlab; đường cong độ lệch b trên N (tiền đăng ký 2026-11-18) — mục E14.07 dưới đây
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
 
@@ -1249,3 +1250,39 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
 - Hệ quả cho E09.08: cần cả bộ ước lượng nhất quán lẫn cách giữ ảnh cũ khỏi tập khớp khe mới. Trách nhiệm mềm với thành phần cũ A3 (thiết kế VB-GMM của QD27) là một cách; một bộ lọc không nhãn dựa trên mô hình lớp cũ (A3, hoặc A1 có AUROC tách cũ/mới 0.85 trên pool phiên 1 theo E06.04) là bước nhỏ hơn đi trước.
 - A2 và A3 cho kết quả như nhau (chênh dưới 0.06 điểm ở lớp mới); E09.08 có thể dùng A2.
 - Giới hạn: bộ lọc (bước 12) vẫn là của pipeline; N sạch dùng nhãn pool; r0–r2 không phải kiểm định xác nhận.
+
+## E14.07 — CUB t5: dưới hậu nghiệm NIW, cạnh tranh lúc dự đoán còn bao nhiêu khi khe mới đúng lớp và sạch? (QD28)
+
+### Tiền đăng ký (2026-11-18; viết trước khi có code và trước mọi số)
+
+- Câu hỏi: (a) khi khe của mỗi lớp mới khớp trên đúng ảnh pool của lớp đó (Nlab), L_comp còn bao nhiêu? (b) lớp mới lên tới đâu khi phân hoạch đúng? (c) S5_S0test của N, Nc, Nlab so với pipeline; (d) một độ lệch đều trên khe mới của N lấy lại được bao nhiêu lớp mới tại mức giảm lớp cũ bằng B?
+- Vì sao: thiết kế E09.08 (bàn giao 2026-11-18 mục 4, ngoài repo) cần ba trần trước khi tiền đăng ký.
+  - L_comp của N là 6.502, của Nc là 6.993 (E14.06): làm sạch tập khớp không giảm cạnh tranh, nên ý (c) của Kết luận E12.02 có thể là giới hạn của biểu diễn.
+  - Chưa có trần cho phần sửa phân hoạch: chỉ có c10 = 67.041; M1 của E14.05 dùng Σ của pipeline, không nhất quán.
+  - QD28 đặt ràng buộc lớp cũ là S5_S0test, nhưng N và Nc chưa có số này.
+- Đã tra trước khi viết: D16, D23, D24, D25 (`notes/paper-code-discrepancies.md`); Kết quả và Kết luận của E14.02 (cả Sửa đổi), E14.03, E14.05 (cả Sửa), E14.06, E12.02; `_post_1406`, `_score_1406`, `_parts_1403` của `lab/score.py`; `lab/niw.py`; QD28 Sửa 2026-11-18.
+- Loại: phép đo mô tả có can thiệp oracle; hai luật đọc chốt trước.
+- Dữ liệu: 15 chuỗi `cub_chain_ft_l25_r<r>_s<N>` (bộ đọc chính) và 15 chuỗi `cub_chain_ft_r<r>_s<N>` (báo kèm); không gian PCA của S0; `ids`, `keep`, `lut` (P0, QD15) lấy từ ảnh chụp. Không SVI, không rút RNG. Nhãn pool chỉ dùng cho nhánh oracle; nhãn test chỉ để chấm.
+- Nhánh: mô hình N đúng như E14.06 (tiên nghiệm m0 = mean của `z_s0`, κ0 = `niw.K0`, Ψ0 = off × P, off = `niw.choose(niw.loo_curve(z_s0, s0_y))`; dự đoán Student-t, argmax trên các khe đã gặp); chỉ đổi tập hàng của khe mới.
+  - N, Nc: như E14.06, tính lại.
+  - Nlab (oracle): khe `lut[y]` của mỗi lớp mới y khớp trên mọi ảnh pool có nhãn y (25 ảnh, kể cả ảnh bộ lọc bỏ); khe của các đợt trước là khe Nlab của chính nhánh. Khác Nc ở cả phân hoạch lẫn tập giữ; bộ lọc giữ 24–25 trong 25 ảnh của mỗi lớp mới (E14.05), nên phần do tập giữ nhỏ.
+- Đại lượng, mỗi nhánh, trung bình 5 phiên, 5 chuỗi mỗi FT seed, rồi trung bình và SD của ba FT seed: New, Old, All, g20, nobase, nodisc, L_comp = g20 − New; S5_S0test của mỗi nhánh và của pipeline.
+- Phần D, trên N: cộng b vào log-mật độ của 20 khe của phiên rồi lấy argmax trên mọi khe đã gặp; lưới b như E14.03 (b = 0 và b = −Q_q(m), m = log-mật độ lớn nhất trên 20 khe của phiên trừ lớn nhất trên các khe cũ, không dùng nhãn). In mức tăng New tại mức giảm Old bằng B (0.376) và bằng 1 điểm; báo kèm cùng đường cong trên Nlab.
+- Cách đọc, chốt trước (bộ không rò; bộ có rò báo kèm):
+  - (a) L_comp_Nlab ≤ T (0.935): cạnh tranh của N là do khe mới bẩn hoặc sai; E09.08 giữ ý (c) trong mục tiêu. L_comp_Nlab > T: phần đó là giới hạn của biểu diễn dưới bộ ước lượng NIW này; E09.08 không nhắm ý (c), chỉ báo cáo. In kèm L_comp_Nlab / L_comp_N.
+  - (b) New_Nlab − New_Nc ≥ T: E-M trong nhóm mới có chỗ để tăng; nhánh V-new của E09.08 giữ vai trò chẩn đoán chính. Dưới T: phân hoạch k-means gần trần dưới N; V-new chỉ báo cáo.
+  - (c) S5_S0test của Nc trừ của pipeline < −B: ràng buộc của QD28 không đạt được kể cả với bộ lọc hoàn hảo; rà lại ràng buộc hoặc mục tiêu trước khi tiền đăng ký E09.08.
+  - (d) chỉ báo cáo.
+- Cổng kiểm:
+  - G1: cột pipeline trùng `acc1` của `S<i>_14` (1e-6); N, Nc, c10 trùng run E14.06 cùng bộ (1e-4).
+  - G2: Nlab có đúng 25 ảnh mỗi lớp mới; `lut` là song ánh từ 20 lớp mới lên 20 khe của phiên; tập ảnh của Nc là tập con của các ảnh được giữ.
+  - G3: phần D tại b = 0 cho lại New, Old của N (1e-6); New không giảm và Old không tăng khi b tăng.
+  - G4: S5_S0test của pipeline trùng dòng S0 của `acc1` ở `S5_14` (1e-6) và `metrics.json` (0.006).
+  - Runner chỉ in trạng thái cổng và thời gian, không in số của từng chuỗi.
+- Code (viết sau tiền đăng ký): runner `tier2_e1407` trong `lab/score.py`, lệnh `e1407` qua `exp.py` (`--prefix`, `--checks-only`), một run mỗi bộ (tag `cub_e14_07_ft_l25`, `cub_e14_07_ft`); lệnh `e1407-summary` chỉ đọc. Dùng lại `_post_1406`, `_score_1406` và phần giải tam giác của `_logd_1202`; không sửa `lab/niw.py`, `lab/sessions.py`, `lab/replay.py`.
+- Chi phí: đo bằng một lần checks-only trên mỗi bộ đặc trưng trước run thật, không ước lượng tay (E14.06: 10.8 phút trên bộ không rò, chỉ để tham khảo).
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp: L_comp_Nlab trong 3–6 (vẫn trên T); New_Nlab trong 70–80; S5_S0test của Nc trừ của pipeline trong −0.5 tới +1.5; phần D trên N tăng New 1–2 điểm tại mức giảm Old bằng B.
+- Giới hạn:
+  - Nlab dùng nhãn pool: là trần, không phải phương pháp.
+  - Kết luận "giới hạn của biểu diễn" chỉ đúng dưới hậu nghiệm NIW với off chọn như E14.06 (250 ở 30/30 chuỗi); bộ ước lượng khác có thể cho số khác.
+  - r0–r2 đã dùng ở E14.01–E14.06 và E12.02; không phải kiểm định xác nhận.
