@@ -3874,3 +3874,8 @@ note:
 why: E09.08 luật xác nhận (tiền đăng ký c17e53c): chuỗi CUB t5 của lab/sessions.py trên đặc trưng không rò cub_ft_l25_r4, seed 4
 result: S0_All 85.97 | S1_New 57.04 | final_All 65.50 | M_d 54.98 | M_f 7.68
 note:
+
+## 20261118_234738__cub_km_evhung_det_ft_l25_r3_s0
+why: QD28 (C1 cho r3, r4, lệnh c16): mốc main.py tất định trên cub_ft_l25_r3, seed 0
+result: FAILED exit=1
+note: FAILED do môi trường: chạy trong conda base (không có jax; env id 84148cbea262, pip freeze runs/envs/84148cbea262.txt), dừng ở kiểm tra GPU trước main.py; không có số; chạy lại trong env vbcgcd

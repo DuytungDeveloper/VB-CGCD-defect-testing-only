@@ -435,3 +435,4 @@ started           tag                                             exit    min  d
 2026-11-18 18:54  cub_chain_ft_l25_r4_s2                             0   18.7     no  893900  ac6585   85.69   60.21      66.78   57.62   6.93  20261118_185451__cub_chain_ft_l25_r4_s2
 2026-11-18 19:13  cub_chain_ft_l25_r4_s3                             0   18.5     no  893900  ac6585   86.28   57.39      66.83   57.39   7.61  20261118_191334__cub_chain_ft_l25_r4_s3
 2026-11-18 19:32  cub_chain_ft_l25_r4_s4                             0   18.4     no  893900  ac6585   85.97   57.04      65.50   54.98   7.68  20261118_193204__cub_chain_ft_l25_r4_s4
+2026-11-18 23:47  cub_km_evhung_det_ft_l25_r3_s0                     1    0.0     no  84148c  c50ada       -       -          -       -      -  20261118_234738__cub_km_evhung_det_ft_l25_r3_s0
