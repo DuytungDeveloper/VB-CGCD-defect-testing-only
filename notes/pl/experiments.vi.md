@@ -40,7 +40,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E14.04 (= "E14.01" của đề xuất 2026-11-05; mã cũ trùng với E14.01 ở trên): đường cong δ và phép so ở cùng mức ảnh cũ (cánh sườn S–P / PMB), chỉ đọc pickle (đề xuất 2026-11-05; chưa tiền đăng ký) — tài liệu chiến lược 2026-11-05 §3 (ngoài repo)
 - E14.05: CUB t5, khe cũ giành ảnh test lớp mới vì mean khe mới đặt lệch (bộ ước lượng, ảnh cũ lẫn vào cụm, cụm sai lớp) hay vì chồng lấn trong biểu diễn: thang Mk, Mc, M1 và Σ chung (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm, có Sửa cùng ngày: R(Mk) 0.98 nhưng Old giảm 52 điểm, là đánh đổi; mean gần 0 ở mọi khe, như D23 và E06.04; E09.08 phải dùng một bộ ước lượng cho mọi khe) — mục E14.05 dưới đây
 - E14.06: CUB t5, L_10 và L_comp khi mọi khe dùng hậu nghiệm NIW với dự đoán Student-t (A3 của E06.04 cho lớp gốc, cùng tiên nghiệm cho khe của các phiên); phụ: mô hình đó có hơn pipeline không (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp_N = 6.50, cạnh tranh vẫn là đích; N không hơn pipeline vì Old giảm 4.9; N sạch hơn pipeline ở cả New và Old) — mục E14.06 dưới đây
-- E14.07: CUB t5, trần dưới bộ ước lượng nhất quán: L_comp và lớp mới khi khe mới khớp đúng lớp (Nlab); S5_S0test của N, Nc, Nlab; đường cong độ lệch b trên N (tiền đăng ký 2026-11-18) — mục E14.07 dưới đây
+- E14.07: CUB t5, trần dưới bộ ước lượng nhất quán: L_comp và lớp mới khi khe mới khớp đúng lớp (Nlab); S5_S0test của N, Nc, Nlab; đường cong độ lệch b trên N (tiền đăng ký 2026-11-18; xong, Rito duyệt tạm: L_comp_Nlab = 8.81 > T, cạnh tranh là giới hạn của biểu diễn dưới NIW, bỏ ý (c); Nlab hơn Nc 25.2 điểm New: đích của E09.08 là phân hoạch trong nhóm mới; ràng buộc S5_S0test đạt được với bộ lọc hoàn hảo) — mục E14.07 dưới đây
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
 
@@ -1308,3 +1308,15 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
   - Bộ có rò cho cùng ba kết luận (8.671; +25.289; −0.207).
 - Dự đoán đã đăng ký: L_comp_Nlab trong 3–6: sai, 8.807, lớn hơn cả L_comp_N. New_Nlab trong 70–80: sai, 86.149. S5_S0test của Nc trừ của pipeline trong −0.5 tới +1.5: đúng (−0.198). Phần D trên N tăng New 1–2 điểm tại mức giảm Old bằng B: sai, 0.466.
 - Chi phí thật: 2491 s (`cub_e14_07_ft_l25`) và 541 s (`cub_e14_07_ft`), theo dòng tiến độ; checks-only trước đó 43 s và 41 s một chuỗi. Run `cub_e14_07_ft_l25` có một khoảng 1929 s giữa hai dòng tiến độ r2_s2 và r2_s3 (tính tay; các khoảng khác 31–51 s; note trong LOG). Runner không dùng RNG hay SVI, nên số không phụ thuộc thời gian chạy.
+
+### Kết luận (Rito duyệt tạm 2026-11-18)
+
+- Luật (a): dưới hậu nghiệm NIW, kể cả khi khe mới đúng lớp và sạch (Nlab), khe cũ vẫn giành 8.807 điểm New lúc dự đoán. Cạnh tranh không do khe mới bẩn; E09.08 bỏ ý (c) khỏi mục tiêu, chỉ báo cáo L_comp.
+  - [suy luận] Tính theo tỉ lệ trên g20, khe cũ giành 9.3% số ảnh mà bộ định tuyến hoàn hảo cho đúng ở Nlab (8.807 / 94.956) và 9.6% ở N (6.502 / 67.535) (tính tay): cạnh tranh gần như tỉ lệ thuận với phần đúng trong phiên.
+  - Kết luận chỉ đúng dưới hậu nghiệm NIW với off = 250; A1 tách cũ/mới tốt hơn A3 (E12.02), nên một bộ ước lượng khác có thể cho số khác.
+- Một độ lệch đều không phải lối ra: trên N chỉ +0.466 New tại mức giảm Old bằng B, thấp hơn trên pipeline (0.874, E14.03).
+- Luật (b): đòn bẩy lớn nhất là phân hoạch trong nhóm mới. Nlab hơn Nc 25.216 điểm New và 7.011 điểm Old (tính tay, 82.946 − 75.935): lỗi phân cụm làm mất cả lớp mới lẫn lớp cũ, vì cụm sai lớp tạo khe giành ảnh cũ. Nlab dùng nhãn pool, nên chỉ là trần: số này cho biết khoảng cách tới trần, không cho biết phần lấy được khi không có nhãn.
+- Luật (c): N mất 9.296 điểm S5_S0test so với pipeline, gần gấp đôi mức giảm Old trung bình của N ở E14.06 (4.885); bỏ ảnh cũ khỏi tập khớp lấy lại 9.098 điểm (tính tay, 78.200 − 69.102). Bộ lọc cũ/mới là điều kiện cần cho ràng buộc S5_S0test của QD28; phân hoạch là đòn bẩy cho M_d.
+- Hệ quả cho thiết kế E09.08: mục tiêu có hai vế, M_d tăng nhờ sửa phân hoạch trong nhóm mới (V-new là nhánh chính, so với Nc), và S5_S0test giữ được nhờ trách nhiệm hai phía với thành phần cũ; ý (c) bỏ khỏi mục tiêu; dự đoán của E09.08 viết lại theo các số này.
+- Khoảng 1929 s trong run `cub_e14_07_ft_l25`: Rito xác nhận máy không ngủ; nguyên nhân chưa rõ. Runner không dùng RNG hay SVI, nên số không bị ảnh hưởng.
+- Giới hạn: Nlab dùng nhãn pool; r0–r2 đã dùng ở E14.01–E14.06 và E12.02, nên đây không phải kiểm định xác nhận; kết luận về biểu diễn chỉ đúng dưới NIW với off = 250.
