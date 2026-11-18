@@ -28,7 +28,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.05: phân cụm thừa trên cấu hình paper (`ft`) (2026-10-07; xong, SỐNG) — mục E09.05 dưới đây
 - E09.06: phân cụm thừa K' = 20 rồi gộp về 5 cụm bằng Bayes factor NIW, biến thể `09a` + `09b`, GC10 (2026-11-12 → 13; xong: CHẤP NHẬN, Δ = 0.064, Δ_Old = −0.53 điểm; rolled_pit vẫn mất cụm) — mục E09.06 dưới đây
 - E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04 → 11; xong: không đủ lớn, Δ = 0.0148 < T = 0.0273; giữ `n_init` 10) — mục E09.07 dưới đây
-- E09.08: VB-GMM cho phiên không nhãn, biến thể `09e-vbgmm` (trải 09–13): trách nhiệm mềm thay lượt F, bộ lọc (D12), lượt S và luật dừng (D14); khởi tạo từ `09a` + `09b`, A3 của E06.04 là mô hình lớp cũ (đề xuất 2026-11-05; chưa tiền đăng ký) — QD27, QD28; Kết quả của E06.04, E09.06
+- E09.08: CUB t5, VB-GMM cho phiên không nhãn, biến thể `09e-vbgmm` (thay bước 11–13): trách nhiệm hai phía với thành phần cũ cố định, mọi khe dùng hậu nghiệm NIW, khởi tạo từ k-means của bước 09; nhánh chẩn đoán KW (k-means làm trắng theo P) và V-new (E-M trong nhóm mới); luật xác nhận trên r3, r4 (đề xuất 2026-11-05; tiền đăng ký 2026-11-18) — mục E09.08 dưới đây
 - E09.09: dừng phép gộp của `09b` khi log Bayes factor lớn nhất không còn dương (k tự do, không dưới 5), biến thể `09f-merge-stop`, tầng 1, GC10 (2026-11-14; xong: KHÔNG RÕ, Δ ≈ 0; rolled_pit giữ được cụm con ở 98% số lần; rất nhạy với off) — Q09.14; mục E09.09 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
@@ -614,6 +614,73 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Không đủ lớn theo quy tắc: giữ `n_init` 10; E09.06 chạy trên k-means mặc định; bỏ hướng "thêm khởi tạo" ở bước 09 (điều kiện bỏ ý tưởng).
 - Câu hỏi kèm theo của Q09.12: trong cùng ảnh chụp, phân hoạch có inertia thấp hơn thường cho balanced novel cao hơn (Spearman âm ở 14/15 ảnh chụp), nhưng tối ưu sâu hơn không vượt được dao động của một lần chạy.
 - Hạ tầng nhiều lần rút (`multi_init`, `tier2_e0907`) dùng lại được cho E09.06.
+
+## E09.08 — CUB t5: VB-GMM cho phiên không nhãn, sửa phân hoạch trong nhóm mới và trách nhiệm hai phía với thành phần cũ (QD27, QD28)
+
+### Tiền đăng ký (2026-11-18; viết trước khi có code và trước mọi số của thí nghiệm)
+
+- Câu hỏi: trên CUB t5, thay bước 11–13 bằng VB-GMM (Bishop 2006 §10.2; Corduneanu & Bishop 2001) với thành phần cũ cố định, mọi khe dùng hậu nghiệm NIW, trách nhiệm mềm hai phía giữa thành phần cũ và thành phần mới, có tăng M_d so với pipeline mà giữ S5_S0test trong biên B không? Phụ: phần lợi đến từ sửa phân hoạch trong nhóm mới, từ thước đo làm trắng theo hiệp phương sai trong lớp, hay từ trách nhiệm mềm?
+- Vì sao (Kết luận E14.07, bộ không rò):
+  - Vế M_d: Nlab hơn Nc 25.216 điểm New, còn Nc ngang N (60.932 so với 61.033): phần còn lấy lại được nằm ở phân hoạch trong nhóm mới.
+  - Vế S5_S0test: N mất 9.296 điểm so với pipeline, Nc chỉ mất 0.198: ảnh cũ lẫn vào tập khớp khe mới là nguồn mất của lớp cũ.
+  - Ý (c) của Kết luận E12.02 (cạnh tranh lúc dự đoán) bỏ khỏi mục tiêu: L_comp_Nlab = 8.807 > T; L_comp chỉ báo cáo.
+  - Bộ lọc cứng dựa trên điểm một phía bỏ đúng các ảnh mới sát ranh giới cũ/mới: NF-count thua Nc 6.339 điểm New và có L_comp 12.339 (E12.02). Trách nhiệm ở đây là tỉ số hai phía π_k p(x | k) chuẩn hoá trên cả thành phần cũ lẫn mới, không là một hàm của điểm giống lớp cũ.
+- Đã tra trước khi viết: D11, D12, D14, D16, D23, D24, D25 (`notes/paper-code-discrepancies.md`); Kết quả và Kết luận của E06.04, E09.06, E11.01, E12.02, E14.01, E14.02 (cả Sửa đổi), E14.03, E14.05 (cả Sửa), E14.06, E14.07; QD27, QD28 (cả Sửa 2026-11-18); `lab/niw.py`; `_post_1406`, `_score_1406`, `_logd_1202`, `_best_map_1401`, `_rules_1401`, `tier2_e1407` của `lab/score.py`.
+- Đã thấy trước tiền đăng ký này: mọi số của E14.01–E14.07 và E12.02 trên `cub_chain_ft_l25` và `cub_chain_ft` (r0–r2). Chưa thấy: mọi số của V, V-new, KW, V-hard, V-πfix trên dữ liệu thật.
+- Loại: thí nghiệm cải tiến có luật quyết định (dò hướng trên r0–r2) và luật xác nhận (trên FT seed mới r3, r4), chốt cùng lúc.
+- Dữ liệu: 15 chuỗi `cub_chain_ft_l25_r<r>_s<N>` (bộ quyết định, QD28 Sửa 2026-11-16) và 15 chuỗi `cub_chain_ft_r<r>_s<N>` (báo kèm); xác nhận trên 10 chuỗi `cub_chain_ft_l25_r<r>_s<N>`, r = 3, 4, N = 0–4, tạo sau tiền đăng ký này bằng đúng lệnh phase 1 và lệnh chuỗi của r0–r2 (`FT_SEED` 3, 4). Không gian PCA của S0; `ids` (bước 09), `keep` (bước 12), `pi_test`, `lut` lấy từ ảnh chụp. Bước 09 giữ nguyên (k-means mặc định, QD28 Sửa 2026-11-18); các nhánh thay bước 11–13 và cách dự đoán ở bước 14. Phân hoạch ở bước 09 của mọi phiên không phụ thuộc biến thể ở bước 11–14 (QD28, RNG chung; C2 của 3b-1), nên runner chỉ đọc ảnh chụp, như E14.06 và E14.07. Nhãn pool chỉ dùng cho nhánh oracle và để chấm; nhãn test chỉ để chấm.
+- Mô hình V:
+  - Tiên nghiệm, một cho mọi khe, như N của E14.06: m0 = mean của `z_s0`, κ0 = `niw.K0` (0.01), ν0 = d + 1 + off, Ψ0 = off × P, P = `niw.prior_cov` (hiệp phương sai trong lớp gộp của S0), off = `niw.choose(niw.loo_curve(z_s0, s0_y))`, chọn một lần mỗi chuỗi.
+  - Thành phần cũ, cố định trong phiên (không cập nhật từ pool, vì D16): khe 0…99 là hậu nghiệm NIW từ S0 có nhãn (A3 của E06.04); khe của các đợt đã khám phá là hậu nghiệm của chính nhánh ở phiên của đợt đó, đóng băng.
+  - Thành phần mới k = 1…20 của phiên: q(μ_k, Σ_k) dạng NIW, cùng tiên nghiệm.
+  - Hệ số trộn π ~ Dirichlet(α0 · 1) trên mọi thành phần của phiên (cũ và mới), α0 = 1, chốt trước.
+  - q(Z) q(π) ∏ q(μ_k, Σ_k), cập nhật CAVI (Bishop 2006 Eq. 10.46–10.67, viết theo tham số NIW): bước E, ln ρ_ik = E[ln π_k] + ½ E[ln |Σ_k⁻¹|] − d / (2 κ_k) − (ν_k / 2) (x_i − m_k)ᵀ Ψ_k⁻¹ (x_i − m_k) + hằng, với E[ln |Σ_k⁻¹|] = Σ_{j=1..d} ψ((ν_k + 1 − j)/2) + d ln 2 − ln |Ψ_k| và E[ln π_k] = ψ(α_k) − ψ(Σ_j α_j); r_ik = ρ_ik / Σ_j ρ_ij. Bước M, chỉ cho thành phần mới: N_k = Σ_i r_ik, x̄_k và tán xạ S_k có trọng số r_ik, κ_k = κ0 + N_k, ν_k = ν0 + N_k, m_k = (κ0 m0 + N_k x̄_k)/κ_k, Ψ_k = Ψ0 + S_k + (κ0 N_k / κ_k)(x̄_k − m0)(x̄_k − m0)ᵀ; α_k = α0 + N_k cho mọi thành phần.
+  - Khởi tạo: r_ik = 1 ở thành phần mới mang id k-means của ảnh i, 0 ở mọi thành phần khác; bước M đầu tiên, rồi lặp E, M.
+  - Dừng: thay đổi tương đối của ELBO dưới 1e-8, hoặc 200 vòng; ghi số vòng.
+  - Dự đoán (bước 14): argmax log-mật độ dự đoán Student-t của hậu nghiệm NIW (như N) trên các khe đã gặp, prior lớp đều; π không dùng lúc dự đoán.
+  - Sang phiên sau: hậu nghiệm của 20 thành phần mới đóng băng, thành thành phần cũ.
+- Nhánh, cùng chuỗi, cùng ảnh chụp:
+  - PIPE: pipeline (`acc1`).
+  - N, Nc, Nlab: như E14.07, tính lại.
+  - KW: k-means cứng (`KMeans`, K = 20, `n_init` 10, k-means++) trên mọi ảnh pool trong không gian PCA làm trắng theo P, w = L⁻¹ (z − m0) với P = L Lᵀ; RNG `np.random.RandomState(908000 + 1000 r + 100 N + i)` ở phiên i; rồi khớp N trên các ảnh có `keep` của pipeline theo id KW. Tách phần lợi của thước đo.
+  - V-new: CAVI chỉ trên 20 thành phần mới, trên các ảnh có `keep` của pipeline (cố định), khởi tạo từ id k-means; π trên 20 thành phần. Tách phần lợi của sửa phân hoạch trong nhóm mới.
+  - V: như mục Mô hình V, trên mọi ảnh pool, không dùng `keep`. Nhánh chính.
+  - V-hard: như V, bước E lấy argmax (r_ik ∈ {0, 1}). Tách mềm so với cứng.
+  - V-πfix: như V, E[ln π_k] cố định bằng nhau. Tách vai trò của Dirichlet.
+  - Khe của các đợt trước ở mỗi nhánh là khe của chính nhánh đó.
+- Đặt tên khi chấm: P1 (E14.01) cho mọi nhánh, kể cả PIPE: ở phiên i, khối 20 khe của phiên ghép với 20 lớp mới bằng Hungarian trên dự đoán của bộ phân lớp của nhánh (ô lớp mới thật × khe mới), bảng tên của các phiên trước đóng băng; khe 0…99 giữ nghĩa. P0 báo kèm cho PIPE, N, Nc.
+- Đại lượng chính: ΔM_d = M_d(V) − M_d(PIPE), cả hai chấm bằng P1; hiệu trong từng chuỗi, trung bình 5 chuỗi mỗi FT seed, rồi trung bình 3 FT seed.
+- Ràng buộc (QD28): ΔS5_S0test = S5_S0test(V) − S5_S0test(PIPE) ≥ −B (0.376). S5_S0test không phụ thuộc cách đặt tên (khe 0…99 giữ nghĩa).
+- Quy tắc quyết định (dò hướng, bộ không rò):
+  - Chấp nhận: ΔM_d ≥ T (0.935), ΔM_d > 0 ở 3/3 FT seed, và ràng buộc đạt → chạy luật xác nhận.
+  - Bác: ΔM_d ≤ 0, hoặc ràng buộc trượt.
+  - Không đủ lớn: các trường hợp còn lại.
+- Luật xác nhận, chốt cùng lúc, trên r3, r4 (bộ không rò, 5 chuỗi mỗi FT seed): XÁC NHẬN nếu ΔM_d > 0 ở cả r3 và r4, trung bình hai FT seed ≥ T, và trung bình ΔS5_S0test ≥ −B; KHÔNG XÁC NHẬN nếu trung bình ΔM_d ≤ 0 hoặc trung bình ΔS5_S0test < −B; KHÔNG RÕ trong các trường hợp còn lại. Chỉ chạy khi dò hướng ra Chấp nhận; chỉ khi XÁC NHẬN mới báo V như cải tiến (số laptop, QD27: server chạy lại).
+- Luật đọc phụ, chẩn đoán, chốt trước (bộ không rò, New dưới P1):
+  - New(V-new) − New(N) ≥ T: E-M sửa được phân hoạch trong nhóm mới.
+  - New(KW) − New(N) ≥ T: thước đo làm trắng một mình đã đủ; phần lợi của trách nhiệm mềm đọc bằng V − KW.
+  - |M_d(V) − M_d(V-hard)| < T/2 và |S5_S0test(V) − S5_S0test(V-hard)| < B: trách nhiệm mềm không thêm gì so với gán cứng.
+- Điều kiện bỏ cơ chế: dò hướng ra Bác, và New(V-new) − New(N) < T, và New(KW) − New(N) < T → bỏ hướng sửa phân hoạch bằng mô hình Gaussian trên biểu diễn hiện tại; ghi rằng khoảng Nc → Nlab cần biểu diễn khác hoặc nhãn.
+- Báo kèm (không dùng để quyết định): New, Old, All, S5_S0test, g20, L_comp của mọi nhánh; ρ = (Old − Old_N)/(Old_Nc − Old_N); tỉ lệ phần trần lấy được (New − New_N)/(New_Nlab − New_N); c09 của phân hoạch của KW, V-new, V trên pool (nhãn pool chỉ để chấm; với V và V-new là argmax trách nhiệm trên thành phần mới); khối trách nhiệm của ảnh cũ nằm trong thành phần mới; N_k nhỏ nhất và số thành phần có N_k < 2; số vòng CAVI; P0 của PIPE, N, Nc.
+- Cổng kiểm:
+  - G1: cột PIPE trùng `acc1` của `S<i>_14` (1e-6); N, Nc, Nlab (New, Old, g20, S0test, dưới P0) trùng run E14.07 cùng bộ (1e-4).
+  - G2: đường tính của V-new với trách nhiệm khoá ở id k-means (không bước E) cho lại N; đường tính của V với trách nhiệm khoá bằng tập của Nc cho lại Nc (1e-6).
+  - G3: ELBO không giảm qua các vòng của V, V-new, V-πfix (sai số 1e-6 tương đối).
+  - G4: cập nhật NIW với trọng số 0/1 trùng `_post_1406` (1e-8 tương đối); log-mật độ của thành phần cũ lấy từ cache trùng tính trực tiếp.
+  - G5: M_d dưới P1 của PIPE trùng E14.01 (`Md_P1` của run `cub_e14_01_*` cùng chuỗi, 1e-4).
+  - Runner chỉ in trạng thái cổng và thời gian, không in số của từng chuỗi. Trước run thật: thử trên chuỗi giả ngoài repo, có đối chứng âm cho từng cổng.
+- Code (viết sau tiền đăng ký): runner `tier2_e0908` trong `lab/score.py`, lệnh `e0908` qua `exp.py` (`--prefix`, `--checks-only`), một run mỗi bộ (tag `cub_e09_08_ft_l25`, `cub_e09_08_ft`; xác nhận: `cub_e09_08x_ft_l25`); lệnh `e0908-summary` chỉ đọc. Dùng lại `_post_1406`, `_score_1406`, `_logd_1202`, `_best_map_1401`; không sửa `lab/niw.py`, `lab/sessions.py`, `lab/replay.py`. Runner xác nhận đọc chuỗi r3, r4 bằng cùng hàm với tham số danh sách FT seed.
+- Chi phí: đo bằng một lần checks-only có profile trên mỗi bộ đặc trưng trước run thật, không ước lượng tay.
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp: New(V-new) − New(N) từ +2 đến +8; New(KW) − New(N) từ −2 đến +6; ΔM_d(V − PIPE) từ +3 đến +9; ΔS5_S0test(V − PIPE) từ −4 đến 0; dò hướng ra Chấp nhận với xác suất khoảng 30%, rủi ro chính là ràng buộc lớp cũ.
+- Giới hạn:
+  - r0–r2 đã dùng ở E14.01–E14.07 và E12.02: phần dò hướng không phải kiểm định xác nhận; xác nhận dựa vào r3, r4 (n = 2 FT seed).
+  - Thành phần cũ cố định: không xử lý việc cùng ảnh cũ lặp lại giữa các phiên (D16).
+  - K = 20 biết trước (giao thức); không ước lượng số lớp.
+  - Một tiên nghiệm cho mọi khe; off chọn trên S0 (250 ở 30/30 chuỗi, E14.07); với off lớn, Σ của khe mới gần P, nên V gần một k-means mềm theo Mahalanobis với Σ chung.
+  - CAVI chỉ đạt cực trị địa phương quanh khởi tạo k-means.
+  - Kết luận "giới hạn của biểu diễn" về L_comp (E14.07) chỉ đúng dưới NIW với off = 250.
+  - GC10 không thuộc thí nghiệm này (QD28 Sửa 2026-11-18).
+- Tag: `cub_e09_08_ft_l25`, `cub_e09_08_ft`; xác nhận `cub_e09_08x_ft_l25`.
 
 ## E09.09 — Dừng gộp theo dấu của log Bayes factor (Q09.14, Q09.02)
 
