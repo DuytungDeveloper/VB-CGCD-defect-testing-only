@@ -30,10 +30,12 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04 → 11; xong: không đủ lớn, Δ = 0.0148 < T = 0.0273; giữ `n_init` 10) — mục E09.07 dưới đây
 - E09.08: CUB t5, VB-GMM cho phiên không nhãn, biến thể `09e-vbgmm` (thay bước 11–13): trách nhiệm hai phía với thành phần cũ cố định, mọi khe dùng hậu nghiệm NIW, khởi tạo từ k-means của bước 09; nhánh chẩn đoán KW (k-means làm trắng theo P) và V-new (E-M trong nhóm mới); luật xác nhận trên r3, r4 (đề xuất 2026-11-05; tiền đăng ký 2026-11-18; xong, Rito duyệt 2026-11-19: Bác, ΔS5_S0test −8.522; CAVI khoá ở khởi tạo k-means, KW −0.140; điều kiện bỏ cơ chế đạt; VB thật: hỏng nhãn mềm và Dirichlet, NIW còn mất lớp cũ, prior phân cấp chưa thử) — mục E09.08 dưới đây
 - E09.09: dừng phép gộp của `09b` khi log Bayes factor lớn nhất không còn dương (k tự do, không dưới 5), biến thể `09f-merge-stop`, tầng 1, GC10 (2026-11-14; xong: KHÔNG RÕ, Δ ≈ 0; rolled_pit giữ được cụm con ở 98% số lần; rất nhạy với off) — Q09.14; mục E09.09 dưới đây
+- E09.10: CUB t5, phân hoạch trong nhóm mới trên đặc trưng hiện có: SSKM (semi-supervised k-means) và OCM (gom thừa K' = 60 rồi gộp bằng Bayes factor NIW), luật Δc09 ≥ 5 điểm (tiền đăng ký 2026-11-19) — mục E09.10 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
 - E12.02: CUB t5, bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ (A3 hoặc A1, chọn bằng mô phỏng bỏ-một-lớp trên S0; ngưỡng p-value conformal α = 0.10) thay `keep` của bước 12, rồi khớp mô hình N của E14.06: lấy lại bao nhiêu phần khoảng lớp cũ giữa N và N sạch (tiền đăng ký 2026-11-17) — mục E12.02 dưới đây
+- E12.03: CUB t5, lọc cũ/mới bằng lề LOO (ngoài mẫu ở cả hai phía), nhánh NL, D1–D4, đọc dưới ràng buộc hai vế của QD28 (tiền đăng ký 2026-11-19) — mục E12.03 dưới đây
 - E14.01: điểm lớp mới theo bốn quy ước ghép tên P0–P3 trên cùng dự đoán, CUB t5 (2026-11-16; xong, Rito duyệt tạm: P1–P3 cao hơn P0 0.75–0.79 điểm M_d; P3 trùng P2) — mục E14.01 dưới đây
 - E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
@@ -870,6 +872,36 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Không chạy mở rộng (1) và (2): điều kiện của chúng (CẢ HAI; BỘ LỌC VÀ LƯỢT S) không xảy ra.
 - Giới hạn: phép đo mô tả trên r0–r4 (đã dùng để chọn phương pháp), 4 lần rút mỗi chuỗi; cột 11 là phản thực tế, không phải đầu ra của pipeline.
 
+## E09.10 — CUB t5: có cách gom nhóm nào trên đặc trưng hiện có cho phân hoạch ảnh mới đúng hơn k-means mặc định không? (QD27, QD28)
+
+### Tiền đăng ký (2026-11-19; viết trước khi có code và trước mọi số của thí nghiệm)
+
+- Câu hỏi: trên đặc trưng hiện có, có cách gom nhóm nào cho c09 (độ đúng phân hoạch ảnh mới của pool, Hungarian) cao hơn rõ rệt k-means mặc định không?
+- Vì sao: Kết luận E14.09 và E09.08: khoảng New giữa Nc và Nlab là 25.216 điểm, đòn bẩy lớn nhất còn lại; E09.08 cho thấy CAVI khởi tạo từ k-means và KW không đổi được phân hoạch. Đây là hướng (2) của kế hoạch sau E14.09 (Rito chọn làm song song với hướng (1), E12.03). Nhánh (a), đặc trưng chưa fine-tune, để sau khi kiểm có sẵn đặc trưng.
+- Đã tra trước khi viết: Kết quả và Kết luận của E09.06, E09.08, E09.09, E14.02 (c09), E14.09; `_hung_correct_1402` của `lab/score.py`; `clustering/kmeans.py`; `lab/niw.py`; Vaze et al. 2022 (GCD, semi-supervised k-means).
+- Đã thấy trước tiền đăng ký này: mọi số của E09.06–E09.09, E12.02, E14.01–E14.09 trên CUB r0–r2 và GC10. Chưa thấy: mọi số của SSKM, OCM.
+- Loại: phép đo có luật quyết định "đáng làm tiếp hay không"; không phải phương pháp hoàn chỉnh.
+- Dữ liệu: 15 chuỗi `cub_chain_ft_l25_r<r>_s<N>` (bộ quyết định) và 15 chuỗi `cub_chain_ft_r<r>_s<N>` (báo kèm); không gian PCA của S0; ảnh chụp như E14.09. Nhãn pool chỉ để chấm c09 và độ tách; nhãn test chỉ để chấm. Chạy với 1 luồng BLAS (như E14.09).
+- Nhánh, theo từng phiên i (tuần tự):
+  - KM: id k-means của pipeline (mốc; c09 = 66.547 ở E09.08).
+  - SSKM, semi-supervised k-means (Vaze et al. 2022): K = số lớp cũ đã gặp + 20. Tâm lớp gốc khởi tạo bằng mean ảnh S0 của lớp, ảnh S0 bị buộc vào cụm của lớp mình ở mọi vòng; tâm lớp đã khám phá khởi tạo bằng mean hàng của khe SSKM ở phiên trước; tâm mới khởi tạo bằng k-means++ trên pool (`sklearn.cluster.kmeans_plusplus`, `random_state=0`). Lloyd theo khoảng cách Euclid, tối đa 100 vòng, dừng khi phép gán không đổi. Tâm lớp gốc = mean của ảnh S0 và ảnh pool được gán. Ảnh mới rơi vào cụm cũ tính là sai trong c09.
+  - OCM, gom thừa rồi gộp: k-means trên pool với K' = 60 (`n_init=10`, `random_state=0`), rồi gộp tham lam về 20 cụm: mỗi bước gộp cặp có log Bayes factor lớn nhất, log BF = ev(A ∪ B) − ev(A) − ev(B), ev = `niw.log_evidence` với tiên nghiệm của N (m0, κ0, off0 của S0).
+- Đại lượng: c09 của mỗi nhánh, trung bình 5 phiên và 5 chuỗi của một FT seed, rồi trung bình và SD (ddof 1) qua 3 FT seed. SSKM thêm độ tách cũ/mới: tỉ lệ ảnh cũ của pool vào cụm cũ, tỉ lệ ảnh mới vào cụm mới. Báo kèm: N khớp trên phân hoạch của từng nhánh (SSKM: hàng của mỗi cụm mới, không dùng `keep`; OCM: `keep` của pipeline với id mới), chấm M_d, Old, S5_S0test, S5_All theo ràng buộc hai vế của QD28 (Sửa 2026-11-19).
+- Cách đọc, chốt trước (bộ không rò; bộ có rò báo kèm):
+  - Đáng làm tiếp: có nhánh X ∈ {SSKM, OCM} với Δc09(X − KM) ≥ 5 điểm, dương ở 3/3 FT seed → viết tiền đăng ký thí nghiệm đầy đủ cho X.
+  - Không: còn lại → biểu diễn hiện tại không cho gom đúng hơn bằng hai cách này; hướng (2) chuyển sang nhánh (a), đặc trưng chưa fine-tune.
+  - Báo kèm N trên phân hoạch của X không dùng để quyết định; nếu nó qua ràng buộc hai vế với ΔM_d ≥ T thì ghi lại để thiết kế bước sau.
+- Cổng kiểm:
+  - G1: c09 của KM trùng E14.02 hoặc E09.08 cùng bộ (1e-4).
+  - G2: SSKM chạy không có ảnh pool cho tâm lớp gốc đúng bằng mean ảnh S0 của lớp (1e-9).
+  - G3: sau mỗi phép gộp của OCM, log-evidence của cụm mới tính lại từ đầu trùng giá trị cập nhật (tương đối 1e-8); kết thúc đúng 20 cụm.
+  - G4: phép gán của SSKM hội tụ (không đổi giữa hai vòng cuối) ở mọi phiên, hoặc ghi số phiên chạm 100 vòng.
+  - Runner chỉ in trạng thái cổng và thời gian.
+- Code (viết sau tiền đăng ký, sau code và run của E12.03): runner `tier2_e0910` và `e0910-summary` trong `lab/score.py`, lệnh `e0910` qua `exp.py`, một run mỗi bộ (tag `cub_e09_10_ft_l25`, `cub_e09_10_ft`). Không sửa `lab/niw.py`, `lab/sessions.py`, `lab/replay.py`, `lab/variants.py`.
+- Chi phí: đo bằng một lần checks-only có profile trước run thật.
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp: SSKM tăng c09 khoảng 2–8 điểm, nhờ tâm cũ hút ảnh cũ; OCM đổi c09 dưới 3 điểm (E09.06 và E09.09 trên GC10 cho Δ gần 0).
+- Giới hạn: hai cách gom trên đặc trưng PCA-384 đã fine-tune; r0–r2 đã dùng ở E14.01–E14.09, E12.02, E09.08; c09 là độ đúng của phân hoạch, chưa phải New của mô hình cuối.
+
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
 ### Tiền đăng ký (2026-11-17; viết trước khi có code và trước mọi số của thí nghiệm)
@@ -967,6 +999,50 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Hệ quả cho thiết kế E09.08 [suy luận]: (a) trọng số mềm tránh khe rỗng của quyết định 0/1 (NF: 55 khe N rỗng trên 1500); (b) nếu dùng s làm trọng số thì hiệu chuẩn trên cùng tập khe với điểm pool; (c) cạnh tranh lúc dự đoán cần cơ chế riêng, làm sạch tập khớp không thay được.
 - Bước kế (Rito duyệt): sang thiết kế E09.08, mang theo ý (b); không chạy E12.02b.
 - Giới hạn: như phần tiền đăng ký; r0–r2 đã dùng ở E14.01–E14.06, nên đây không phải kiểm định xác nhận; quét α và NF-count là báo kèm, không dùng để chọn α. Chi phí thật gấp 2–4 lần ước lượng; từ nay ước lượng chi phí từ một lần chạy checks-only.
+
+## E12.03 — CUB t5: lọc cũ/mới bằng lề LOO (so sánh ngoài mẫu ở cả hai phía) có tách tốt hơn E12.02 và đưa N qua ràng buộc hai vế không? (QD27, QD28)
+
+### Tiền đăng ký (2026-11-19; viết trước khi có code và trước mọi số của thí nghiệm)
+
+- Câu hỏi: nếu mỗi ảnh trong tập khớp của khe mới được chấm bằng mật độ dự đoán của khe đó khi bỏ chính ảnh ấy ra (LOO), so với khe cũ tốt nhất, thì phép tách cũ/mới có tốt hơn E12.02 không, và bỏ ảnh có lề LOO âm có đưa N qua được ràng buộc hai vế của QD28 không?
+- Vì sao:
+  - Kết luận E14.09: mọi cách làm yếu khe mới không nhãn nằm trên cùng một đường đánh đổi; chỉ Nc (tách bằng nhãn) vượt pipeline, ΔS5_All +2.004, ΔOld +1.889. Hướng (1) của kế hoạch sau E14.09.
+  - Chẩn đoán [suy luận, chưa đo]: ảnh cũ trong tập khớp của khe mới được khe đó giải thích tốt vì khe đã khớp trên chính ảnh ấy (trong mẫu), còn khe gốc chưa thấy ảnh này (ngoài mẫu). Bất đối xứng này giải thích việc CAVI của E09.08 bị khoá (0.406 khối trách nhiệm của ảnh cũ ở lại thành phần mới) và việc điểm một phía của E12.02 chỉ có AUROC pool 0.798.
+  - E12.02: bộ lọc `keep` của pipeline giữ 0.417 ảnh cũ thuộc lớp gốc và 0.651 ảnh cũ thuộc các đợt đã khám phá.
+- Đã tra trước khi viết: Kết quả và Kết luận của E12.02, E09.08, E14.07, E14.08, E14.09; `lab/niw.py` (`loo_curve`, `log_sequential`); `_post_1406`, `_logd_1202` của `lab/score.py`; D16.
+- Đã thấy trước tiền đăng ký này: mọi số của E12.02, E09.08, E14.01–E14.09 trên CUB r0–r2. Chưa thấy: mọi số của m_in, m_loo, NL, NL3.
+- Loại: thí nghiệm cải tiến có luật quyết định, kèm phép đo cơ chế D1–D4.
+- Dữ liệu: 15 chuỗi `cub_chain_ft_l25_r<r>_s<N>` (bộ quyết định) và 15 chuỗi `cub_chain_ft_r<r>_s<N>` (báo kèm); không gian PCA của S0; `ids`, `keep`, `lut` (P0) từ ảnh chụp. Không SVI, không rút RNG. Nhãn pool chỉ cho Nc và D1–D4; nhãn test chỉ để chấm. Chạy với 1 luồng BLAS (như E14.09).
+- Mô hình: N của E14.06–E14.09 (một tiên nghiệm NIW, off0 bằng LOO trên S0, Student-t, argmax trên mọi khe đã gặp).
+- Cách tính, theo từng phiên i (tuần tự):
+  - Khe cũ: khe gốc và khe của nhánh NL ở các phiên trước.
+  - Với mỗi ảnh x trong `keep` thuộc khe mới k: L_in = log mật độ dự đoán của khe k khớp trên mọi hàng của nó (khe của N); L_loo = của khe k khớp lại không có x; L_old = max trên các khe cũ, trong đó khe cũ nào có một hàng trùng x từng giá trị (ảnh lặp lại, D16) thì dùng LOO của khe đó. m_in = L_in − L_old, m_loo = L_loo − L_old.
+- Nhánh:
+  - NL: bỏ các hàng có m_loo < 0, khớp lại khe mới một lần (khe không còn hàng là tiên nghiệm); các khe này là khe cũ của phiên sau.
+  - NL3 (báo kèm): lặp bỏ hàng và khớp lại 3 vòng trong mỗi phiên (lề tính lại với khe đã khớp lại).
+  - N, Nc: mốc và trần (như E14.07).
+- Đại lượng:
+  - D1: tỉ lệ ảnh cũ trong `keep` có m_in > 0 mà m_loo < 0.
+  - D2: tỉ lệ ảnh mới trong `keep` có m_loo < 0.
+  - D3: AUROC của m_loo cho phân biệt mới (dương) với cũ trong `keep`, và AUROC của m_in để so.
+  - D4: tỉ lệ ảnh cũ bị bỏ và tỉ lệ ảnh mới bị bỏ của NL.
+  - Mỗi nhánh: M_d, Old, S5_S0test, S5_All; trung bình 5 phiên và 5 chuỗi của một FT seed (S5_* chỉ phiên 5), rồi trung bình và SD (ddof 1) qua 3 FT seed. D1–D4 gộp mọi ảnh của một FT seed.
+- Cách đọc, chốt trước (bộ không rò; bộ có rò báo kèm):
+  - Đạt: ΔM_d(NL − PIPE) ≥ T, dương ở 3/3 FT seed, ΔS5_S0test(NL − PIPE) ≥ −B và ΔOld(NL − PIPE) ≥ −B → viết tiền đăng ký riêng để xác nhận trên r3, r4.
+  - Tách tốt nhưng chưa đủ: NL không đạt, nhưng D3(m_loo) ≥ 0.90 và D2 ≤ 0.10 → thiết kế bước sau dựa trên lề LOO.
+  - Không đạt: D3(m_loo) < 0.85 → LOO không cải thiện đáng kể thứ hạng so với E12.02 (0.798); dừng ý này.
+  - Còn lại: vùng giữa; ghi lại và chuyển hướng.
+  - Báo kèm NL3, không dùng để quyết định.
+- Cổng kiểm:
+  - G1: PIPE, N, Nc (New, Old, S0test mọi phiên) trùng run E14.09 cùng bộ (1e-4).
+  - G2: L_in trùng `_logd_1202("A3", ·)` của khe N tại ảnh đó (1e-6).
+  - G3: trên khe đầu tiên có ít nhất 3 hàng của mỗi phiên, L_loo của hàng cuối trùng `niw.log_sequential(X) − niw.log_sequential(X[:-1])` (tương đối 1e-8).
+  - G4: NL với ngưỡng −∞ (giữ mọi hàng) cho lại New, Old, S0test của N (1e-6).
+  - Runner chỉ in trạng thái cổng và thời gian.
+- Code (viết sau tiền đăng ký): runner `tier2_e1203` và `e1203-summary` trong `lab/score.py`, lệnh `e1203` qua `exp.py`, một run mỗi bộ (tag `cub_e12_03_ft_l25`, `cub_e12_03_ft`). Không sửa `lab/niw.py`, `lab/sessions.py`, `lab/replay.py`.
+- Chi phí: đo bằng một lần checks-only có profile trước run thật.
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp: D3(m_loo) trong 0.85–0.92 và cao hơn D3(m_in); D1 trong 0.3–0.6; NL không đạt (Old tăng nhưng New giảm quá T).
+- Giới hạn: chỉ dưới NIW trên PCA-384 của CUB t5; r0–r2 đã dùng ở E14.01–E14.09, E12.02, E09.08; phát hiện ảnh lặp lại bằng so khớp đặc trưng dựa vào D16, một đặc điểm của protocol (chỉ dùng để so sánh công bằng, không dùng để lọc).
 
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
