@@ -35,7 +35,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
 - E12.02: CUB t5, bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ (A3 hoặc A1, chọn bằng mô phỏng bỏ-một-lớp trên S0; ngưỡng p-value conformal α = 0.10) thay `keep` của bước 12, rồi khớp mô hình N của E14.06: lấy lại bao nhiêu phần khoảng lớp cũ giữa N và N sạch (tiền đăng ký 2026-11-17) — mục E12.02 dưới đây
-- E12.03: CUB t5, lọc cũ/mới bằng lề LOO (ngoài mẫu ở cả hai phía), nhánh NL, D1–D4, đọc dưới ràng buộc hai vế của QD28 (tiền đăng ký 2026-11-19; xong, Rito duyệt 2026-11-19: Đạt trên r0–r2, NL ΔM_d +2.726, ΔOld +1.334, ΔS5_S0test −0.162, ΔS5_All +1.611; AUROC lề LOO 0.956 so với 0.800 trong mẫu; phải xác nhận trên r3, r4) — mục E12.03 dưới đây
+- E12.03: CUB t5, lọc cũ/mới bằng lề LOO (ngoài mẫu ở cả hai phía), nhánh NL, D1–D4, đọc dưới ràng buộc hai vế của QD28 (tiền đăng ký 2026-11-19; xong, Rito duyệt 2026-11-19: Đạt trên r0–r2, NL ΔM_d +2.726, ΔOld +1.334, ΔS5_S0test −0.162, ΔS5_All +1.611; AUROC lề LOO 0.956 so với 0.800 trong mẫu; XÁC NHẬN trên r3, r4: NL ΔM_d +2.741, ΔOld +1.310, ΔS5_S0test −0.137) — mục E12.03 dưới đây
 - E14.01: điểm lớp mới theo bốn quy ước ghép tên P0–P3 trên cùng dự đoán, CUB t5 (2026-11-16; xong, Rito duyệt tạm: P1–P3 cao hơn P0 0.75–0.79 điểm M_d; P3 trùng P2) — mục E14.01 dưới đây
 - E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
@@ -1096,6 +1096,36 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Đã thấy trước Sửa đổi này: các cột độ chính xác của pipeline trên 5 chuỗi r3 trong `runs/INDEX.txt` (thấy lúc kiểm dữ liệu). Chưa thấy số nào của NL, N, Nc trên r3, r4.
 - Dự đoán của Claude [SUY LUẬN]: XÁC NHẬN; ở dò hướng, ΔM_d của 3 FT seed nằm trong 2.5–3.2, ΔOld và ΔS5_S0test có biên rộng hơn SD. Rủi ro chính: ΔS5_S0test (−0.162 so với biên −0.376) có thể trượt ở FT seed mới.
 - Code (viết sau Sửa đổi này): tham số `fts` của `tier2_e1203`, cờ `--fts` của `main`, nhánh đọc run xác nhận của `e1203_summary`; thử trên chuỗi giả: run dò hướng cho lại đúng từng khoá như trước khi sửa; run xác nhận qua cổng; bộ có rò bị từ chối.
+
+### Kết quả xác nhận (2026-11-19; run `20261119_192737__cub_e12_03x_ft_l25`, code `0cfc943`, Sửa đổi `e807190`, commit run `e98f74e`; số in bằng `python lab/score.py e1203-summary`; 10/10 chuỗi qua G1 (PIPE = `acc1`), G2–G4)
+
+- off0 = 250 ở 10/10 chuỗi; một luồng BLAS.
+- Hiệu so với pipeline theo FT seed (pipeline, trung bình r3, r4: M_d 57.515, Old 74.185, S5_S0test 78.464, S5_All 66.762):
+
+| Nhánh | ΔM_d r3 | ΔM_d r4 | ΔM_d TB | ΔOld TB | ΔS5_S0test TB | ΔS5_All TB |
+|---|---|---|---|---|---|---|
+| N | +4.164 | +4.125 | +4.145 | −5.179 | −9.860 | −3.747 |
+| NL | +2.903 | +2.579 | +2.741 | +1.310 | −0.137 | +1.636 |
+| NL3 (báo kèm) | +1.310 | +1.119 | +1.214 | +1.935 | +1.492 | +1.852 |
+| Nc (oracle) | +3.831 | +4.233 | +4.032 | +1.827 | −0.290 | +2.097 |
+
+  - ΔS5_S0test của NL theo FT seed r3, r4: +0.027, −0.300; biên còn lại so với −B ở r4 là 0.076 (tính tay).
+  - NL so với Nc: New thấp hơn 1.291, S5_All thấp hơn 0.461 (tính tay). NL so với N: New thấp hơn 1.403, Old cao hơn 6.489 (tính tay).
+  - ΔM_d của NL trên 5 FT seed r0–r4: trung bình 2.732 (tính tay; r0–r2 từ run dò hướng, không gộp trong luật).
+- D1–D3 của luồng NL: D1 = 0.850; D2 = 0.113; D3 (AUROC) của m_loo = 0.957, của m_in = 0.803; cùng mức với run dò hướng (0.849, 0.114, 0.956, 0.800).
+- Luật xác nhận (Sửa đổi): ΔM_d(NL − PIPE) dương ở r3 (+2.903) và r4 (+2.579); trung bình +2.741 ≥ T; trung bình ΔS5_S0test −0.137 ≥ −B; trung bình ΔOld +1.310 ≥ −B → **XÁC NHẬN**.
+- Dự đoán đã đăng ký: XÁC NHẬN: đúng. ΔM_d trong khoảng 2.5–3.2 của run dò hướng: đúng ở cả hai FT seed. Rủi ro ΔS5_S0test trượt: không trượt, nhưng r4 sát biên.
+
+### Kết luận xác nhận (Rito duyệt 2026-11-19)
+
+- Bộ lọc lề LOO (NL) tái lập trên hai FT seed chưa dùng, cùng độ lớn và cùng cơ chế với r0–r2 (ΔM_d +2.741 so với +2.726; AUROC m_loo 0.957 so với 0.956). Từ đây NL được báo như cải tiến (số laptop; QD27: server chạy lại).
+- Phạm vi khẳng định: CUB t5, PCA-384, FT l25, 5 FT seed. Hậu nghiệm NIW cho mọi khe cộng lọc lề LOO vượt pipeline MLE tái lập khoảng 2.7 điểm M_d, không mất Old, và giữ lớp gốc ngang pipeline; không phải hơn pipeline ở lớp gốc, và biên so với −B mỏng ở r4.
+- Giới hạn:
+  - NL còn dưới trần Nc (New thấp hơn 1.291, tính tay).
+  - r3, r4 không có bộ có rò; bộ `cub_chain_ft` chỉ có trên r0–r2; chưa thử GC10 hay NEU-DET.
+  - Tên gọi khi báo cáo: "VB thật (NIW) + lọc lề LOO vượt pipeline MLE tái lập"; không viết "VB thật vượt bản gốc", vì phần lọc không thuộc VB-CGCD và pipeline là bản tái lập.
+  - NL3 cân bằng hơn ở lớp gốc nhưng là báo kèm; muốn dùng NL3 phải tiền đăng ký riêng.
+- Bước kế (Rito duyệt): Sửa đổi E09.10 đổi nền từ N sang NL, tiền đăng ký trước code; sau đó viết tài liệu bàn giao.
 
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
