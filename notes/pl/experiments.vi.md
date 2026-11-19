@@ -42,6 +42,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E14.06: CUB t5, L_10 và L_comp khi mọi khe dùng hậu nghiệm NIW với dự đoán Student-t (A3 của E06.04 cho lớp gốc, cùng tiên nghiệm cho khe của các phiên); phụ: mô hình đó có hơn pipeline không (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp_N = 6.50, cạnh tranh vẫn là đích; N không hơn pipeline vì Old giảm 4.9; N sạch hơn pipeline ở cả New và Old) — mục E14.06 dưới đây
 - E14.07: CUB t5, trần dưới bộ ước lượng nhất quán: L_comp và lớp mới khi khe mới khớp đúng lớp (Nlab); S5_S0test của N, Nc, Nlab; đường cong độ lệch b trên N (tiền đăng ký 2026-11-18; xong, Rito duyệt tạm: L_comp_Nlab = 8.81 > T, cạnh tranh là giới hạn của biểu diễn dưới NIW, bỏ ý (c); Nlab hơn Nc 25.2 điểm New: đích của E09.08 là phân hoạch trong nhóm mới; ràng buộc S5_S0test đạt được với bộ lọc hoàn hảo) — mục E14.07 dưới đây
 - E14.08: CUB t5, vì sao N mất lớp cũ: bốn phép làm yếu khe mới của N (O1 tempering likelihood, O2 co mean về m0, O3 tempering lúc dự đoán so với p_ref, O4 lệch cộng b ≤ 0) đọc tại ΔS5_S0test = −B; ảnh cũ gây hại qua mean hay hiệp phương sai (Mb, Ψb); phân bổ ảnh test gốc bị chiếm (tiền đăng ký 2026-11-19; xong, Rito duyệt 2026-11-19: R1, G_O4 +3.087 ở 3/3 FT seed nhưng ΔOld −3.488 và b chọn bằng nhãn test; ảnh cũ hại qua khe bản sao, tỉ số H8 15.278, qua cả hiệp phương sai lẫn mean; bước kế E14.09: chọn b không nhãn, thêm ràng buộc Old) — mục E14.08 dưới đây
+- E14.09: CUB t5, prior phân cấp cho khe mới của N (HB-off: off chọn bằng LOO trên hàng được giữ; HB-full: m0, P, off của nhóm mới; HB-slot: off theo evidence từng khe; HB-near: mượn lớp gốc gần nhất, kiểm phản biện), đọc dưới ràng buộc hai vế của QD28 (tiền đăng ký 2026-11-19) — mục E14.09 dưới đây
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
 
@@ -1621,3 +1622,43 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
   - Xác nhận trên r3, r4.
   - Biến thể chỉ trừ b khi khe mới tranh với khe gốc là ý viết sau khi thấy kết quả, nên phải đăng ký riêng.
 - Giới hạn: b chọn bằng nhãn test; r0–r2 đã dùng ở E14.01–E14.07, E12.02, E09.08; A1 đã thấy một phần trước run; lưới O4 thô giữa O4[6] và O4[7], nên vị trí tốt nhất của b chưa rõ.
+
+## E14.09 — CUB t5: prior phân cấp cho khe mới của N có qua được ràng buộc hai vế không? (QD27, QD28)
+
+### Tiền đăng ký (2026-11-19; viết trước khi có code và trước mọi số của thí nghiệm)
+
+- Câu hỏi: một prior phân cấp cho khe mới có đưa N qua được ràng buộc hai vế của QD28 (Sửa 2026-11-19: ΔS5_S0test ≥ −B và ΔOld ≥ −B) mà vẫn giữ New hơn pipeline ít nhất T không?
+- Vì sao:
+  - Bàn giao 2026-11-19 (ngoài repo): prior phân cấp là thành phần VB thật duy nhất chưa thử. Kết luận E14.08: ảnh cũ trong `keep` hại qua khe bản sao, qua cả hiệp phương sai (R_cov/R 0.584) lẫn mean (R_mean/R 0.366).
+  - Rito chọn làm E14.09 trước, sau đó (1) tách cũ/mới không nhãn và (2) phân hoạch trong nhóm mới, song song.
+- Phản biện trước khi đo [suy luận]:
+  - Trần: prior trên hiệp phương sai chỉ chạm phần R_cov của khoảng N mất; phần qua mean không chạm.
+  - Đoán trước một phần: tăng off cho khe mới gần giống O1 ở η nhỏ (cùng kéo Ψ_n về prior); O1 trả lại lớp gốc nhưng mất New (G_O1 −2.356). Hai phép không trùng nhau: O1 còn giảm κ_n, ν_n; tăng off giữ n.
+  - Mượn từ lớp gần nhất (distribution calibration, Yang et al. 2021) làm khe mới giống lớp cũ hơn, tức tăng khe bản sao; đưa vào làm nhánh bác bỏ được.
+- Đã tra trước khi viết: Kết quả và Kết luận của E14.06, E14.07, E14.08, E12.02, E09.08; QD28 (cả Sửa 2026-11-19); `lab/niw.py` (`loo_curve`, `choose`, `prior_cov`, `log_evidence`, `log_sequential`); `tier2_e1408` của `lab/score.py`.
+- Đã thấy trước tiền đăng ký này: mọi số của E14.01–E14.08, E12.02, E09.08 trên `cub_chain_ft_l25` và `cub_chain_ft` (r0–r2). Chưa thấy: mọi số của HB-off, HB-full, HB-slot, HB-near.
+- Loại: thí nghiệm cải tiến có luật quyết định, chốt trước; nhánh HB-near là kiểm phản biện.
+- Dữ liệu: 15 chuỗi `cub_chain_ft_l25_r<r>_s<N>` (bộ quyết định) và 15 chuỗi `cub_chain_ft_r<r>_s<N>` (báo kèm); không gian PCA của S0; `ids`, `keep`, `lut` (P0) từ ảnh chụp. Không SVI, không rút RNG. Nhãn pool chỉ dùng cho Nc; nhãn test chỉ để chấm. T = 0.935, B = 0.376.
+- Nhánh: khe gốc như N (m0 = mean của `z_s0`, κ0 = `niw.K0`, Ψ0 = off0 × P, P = `niw.prior_cov(·, 0)` trên S0, off0 = `niw.choose(niw.loo_curve(z_s0, s0_y))`); hàng của khe mới như N (ảnh được giữ theo id cụm); chỉ tiên nghiệm của khe mới đổi. Dự đoán Student-t, argmax trên mọi khe đã gặp.
+  - N: tiên nghiệm của khe mới như khe gốc (mốc).
+  - HB-off: m0, P từ S0; off_new của các khe của phiên i = `niw.choose(niw.loo_curve(z_keep, ids_keep))` trên các hàng được giữ của phiên, nhãn là id cụm; cụm có dưới 2 hàng được giữ bị bỏ khỏi phép LOO (không bỏ khỏi mô hình).
+  - HB-full: m0_new, P_new, off_new của phiên i đều ước lượng từ các hàng được giữ của phiên bằng cùng luật LOO (`niw.class_stats`, `niw.prior_cov(·, 0)`, `niw.loo_curve` trên `z_keep`, `ids_keep`, cụm dưới 2 hàng bị bỏ).
+  - HB-slot: m0, P từ S0; off của từng khe chọn trên lưới `niw.OFFS` bằng `niw.log_evidence` của các hàng của khe đó (ν0 = d + 1 + off, Ψ0 = off × P); hoà thì lấy off lớn hơn; khe dưới 2 hàng dùng off0.
+  - HB-near (kiểm phản biện): với khe mới k, lớp gốc gần nhất c* = argmin_c Mahalanobis theo P giữa tâm hàng của khe k và tâm lớp c ở S0; tiên nghiệm m0_k = tâm lớp c*, Ψ0_k = off0 × Σ̂_c*, Σ̂_c* = Ψ_n của khe gốc c* chia (ν_n − d − 1); κ0, ν0 như N. Khe không có hàng dùng tiên nghiệm của N.
+  - Nc (oracle, trần): như E14.07.
+- Đại lượng, mỗi nhánh: New (M_d), Old, S5_S0test, S5_All. Mỗi số là trung bình 5 phiên và 5 chuỗi của một FT seed (S5_* chỉ của phiên 5), rồi trung bình và SD (ddof 1) qua 3 FT seed. Báo kèm: off chọn được ở mỗi phiên (HB-off, HB-full), phân bố off của HB-slot, SD giữa các seed của Old trên pipeline (QD28 Sửa 2026-11-19).
+- Cách đọc, chốt trước (bộ không rò; bộ có rò báo kèm):
+  - Đạt: có X ∈ {HB-off, HB-full, HB-slot} với ΔM_d(X − PIPE) ≥ T, dương ở 3/3 FT seed, ΔS5_S0test(X − PIPE) ≥ −B và ΔOld(X − PIPE) ≥ −B → viết tiền đăng ký riêng để xác nhận trên r3, r4.
+  - Không đạt nhưng có ích: không X nào đạt, nhưng có X với ΔS5_S0test(X − N) ≥ T và ΔM_d(X − N) > −T → prior phân cấp giảm được một phần mất lớp cũ; chuyển sang (1) và (2).
+  - Không đạt: còn lại → prior phân cấp trên hiệp phương sai không gỡ được khe bản sao; chuyển sang (1) và (2).
+  - HB-near, chỉ kiểm phản biện: ΔS5_S0test(HB-near − N) < 0 → phản biện "mượn từ lớp gần nhất làm khe giống lớp cũ hơn" được ủng hộ.
+- Cổng kiểm:
+  - G1: PIPE (New, Old, S0test mọi phiên), N, Nc (New, Old, S0test mọi phiên) trùng run E14.08 cùng bộ (1e-4).
+  - G2: HB-off và HB-slot với off ép bằng off0 cho lại New, Old, S0test của N (1e-6).
+  - G3: `niw.log_evidence` trùng `niw.log_sequential` trên khe đầu tiên có ít nhất 2 hàng của mỗi phiên (tương đối 1e-8).
+  - G4: mọi off chọn được nằm trong `niw.OFFS`; P_new của HB-full xác định dương (Cholesky không lỗi).
+  - Runner chỉ in trạng thái cổng và thời gian.
+- Code (viết sau tiền đăng ký): runner `tier2_e1409` và `e1409-summary` trong `lab/score.py`, lệnh `e1409` qua `exp.py`, một run mỗi bộ (tag `cub_e14_09_ft_l25`, `cub_e14_09_ft`); S5_All tính trong runner. Không sửa `lab/niw.py`, `lab/sessions.py`, `lab/replay.py`.
+- Chi phí: đo bằng một lần checks-only có profile trước run thật.
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp: không nhánh nào đạt; HB-off chọn off ≥ 250 và nằm gần đường O1 của E14.08; HB-full xấu hơn N ở S5_S0test vì P_new bị ảnh cũ làm rộng; HB-near xấu hơn N ở S5_S0test.
+- Giới hạn: chỉ dưới NIW trên PCA-384 của CUB t5; r0–r2 đã dùng ở E14.01–E14.08, E12.02, E09.08; không thử prior phân cấp trên mean, vì O2 của E14.08 cho thấy co mean về m0 làm xấu đi.
