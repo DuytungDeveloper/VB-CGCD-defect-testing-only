@@ -697,6 +697,35 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Code (viết sau Sửa đổi này, chỉ khi dò hướng ra Chấp nhận): thêm tham số FT seed vào `tier2_e0908` và nhánh đọc run xác nhận vào `e0908_summary`; phép thử trên chuỗi giả như runner gốc, có đối chứng âm cho từng cổng giữ lại; checks-only trên `cub_chain_ft_l25_r3_s0` trước run thật.
 - Chi phí [tính tay]: khoảng 10 × 15.5 phút ≈ 2.6 giờ, từ thời gian mỗi chuỗi của run dò hướng (13995 s cho 15 chuỗi).
 
+### Kết quả (2026-11-19; run `cub_e09_08_ft_l25`, `cub_e09_08_ft`, code `c162858`, commit run `260a4a0`, tiền đăng ký `c17e53c`, Sửa đổi `c8e5f09`; số in bằng `python lab/score.py e0908-summary`; 30/30 chuỗi qua G1–G5)
+
+- off = 250 ở 30/30 chuỗi. Đặt tên P1 cho mọi nhánh. C1 của chuỗi r3, r4 (seed 0) OK 48/48 so với mốc `main.py` tất định.
+- Bộ không rò (bộ quyết định), trung bình 5 phiên, 5 chuỗi, 3 FT seed; S5_S0test là của phiên 5; Δ so với PIPE; c09 là độ đúng của phân hoạch trên ảnh mới của pool (Hungarian).
+
+| Nhánh | New | Old | S5_S0test | ΔM_d | ΔS5_S0test | c09 |
+|---|---|---|---|---|---|---|
+| PIPE | 57.707 | 74.168 | 78.398 | – | – | – |
+| N | 61.511 | 69.257 | 69.102 | +3.803 | −9.296 | 66.547 |
+| Nc | 61.516 | 76.060 | 78.200 | +3.808 | −0.198 | – |
+| Nlab (oracle) | 86.149 | 82.946 | 79.340 | +28.441 | +0.942 | – |
+| KW | 61.370 | 70.061 | 70.117 | +3.663 | −8.280 | 67.245 |
+| V-new | 61.511 | 69.257 | 69.102 | +3.803 | −9.296 | 66.560 |
+| V | 61.245 | 69.402 | 69.876 | +3.538 | −8.522 | 66.547 |
+| V-hard | 61.477 | 68.546 | 68.144 | +3.770 | −10.254 | 66.547 |
+| V-πfix | 61.196 | 69.625 | 70.436 | +3.489 | −7.962 | 66.547 |
+
+- V theo FT seed r0, r1, r2: ΔM_d +3.519, +3.482, +3.613; ΔS5_S0test −8.727, −8.453, −8.385.
+- CAVI, trung bình theo phiên (bộ không rò): số vòng V-new 2.000, V 14.747, V-hard 6.453, V-πfix 11.067; khối trách nhiệm của ảnh cũ nằm trong thành phần mới: V 0.406, V-hard 0.537, V-πfix 0.377; N_k nhỏ nhất của V 8.626; số thành phần có N_k < 2: V 13, V-hard 10, V-πfix 15 (trên 1500).
+- L_comp: PIPE 9.133, N 5.847, V 6.072, Nlab 8.807.
+- P0 (đối chiếu với E14.07): PIPE 56.944, N 61.033, Nc 60.932.
+- Quy tắc quyết định, bộ không rò: ΔM_d(V − PIPE) = +3.538 ≥ T (0.935) và dương ở 3/3 FT seed, nhưng ΔS5_S0test = −8.522 < −B (−0.376): ràng buộc trượt → **Bác**. Luật xác nhận trên r3, r4 không chạy (Sửa đổi `c8e5f09`).
+- Luật đọc phụ, bộ không rò: New(V-new) − New(N) = +0.000 < T; New(KW) − New(N) = −0.140 < T; |M_d(V) − M_d(V-hard)| = 0.232 < T/2, nhưng |S5_S0test(V) − S5_S0test(V-hard)| = 1.732 ≥ B → trách nhiệm mềm có tác dụng (lên phía lớp cũ).
+- Điều kiện bỏ cơ chế: Bác, V-new dưới T, KW dưới T → **đạt**.
+- Bộ có rò cho cùng kết luận: ΔM_d(V − PIPE) +3.447 dương ở 3/3 FT seed, ΔS5_S0test −8.617 → Bác; New(V-new) − New(N) +0.000; New(KW) − New(N) +0.266; |V − V-hard| M_d 0.213, S5_S0test 1.957; điều kiện bỏ cơ chế đạt.
+- Dự đoán đã đăng ký: New(V-new) − New(N) trong +2 tới +8: sai, +0.000. New(KW) − New(N) trong −2 tới +6: đúng, −0.140. ΔM_d(V − PIPE) trong +3 tới +9: đúng, +3.538. ΔS5_S0test(V − PIPE) trong −4 tới 0: sai, −8.522. Chấp nhận với xác suất khoảng 30%: kết quả là Bác.
+- Số tính tay (kiểm bằng code trong lệnh ghi mục này), bộ không rò: New(V) − New(N) = −0.27 (tính tay); S5_S0test(V) − S5_S0test(N) = +0.77 (tính tay); c09(KW) − c09(N) = +0.70 (tính tay); c09 của V, V-hard, V-πfix trùng c09 của N đến 3 chữ số ở cả 3 FT seed và cả hai bộ (tính tay, so dòng).
+- Chi phí thật: 13995 s (`cub_e09_08_ft_l25`) và 14010 s (`cub_e09_08_ft`), theo dòng tiến độ.
+
 ## E09.09 — Dừng gộp theo dấu của log Bayes factor (Q09.14, Q09.02)
 
 ### Tiền đăng ký (2026-11-14; viết trước khi chạy và trước khi đọc các khoá `t1_k20_*` của r3, r4)
