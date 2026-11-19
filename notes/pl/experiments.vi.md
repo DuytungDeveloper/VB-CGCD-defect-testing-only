@@ -30,7 +30,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04 → 11; xong: không đủ lớn, Δ = 0.0148 < T = 0.0273; giữ `n_init` 10) — mục E09.07 dưới đây
 - E09.08: CUB t5, VB-GMM cho phiên không nhãn, biến thể `09e-vbgmm` (thay bước 11–13): trách nhiệm hai phía với thành phần cũ cố định, mọi khe dùng hậu nghiệm NIW, khởi tạo từ k-means của bước 09; nhánh chẩn đoán KW (k-means làm trắng theo P) và V-new (E-M trong nhóm mới); luật xác nhận trên r3, r4 (đề xuất 2026-11-05; tiền đăng ký 2026-11-18; xong, Rito duyệt 2026-11-19: Bác, ΔS5_S0test −8.522; CAVI khoá ở khởi tạo k-means, KW −0.140; điều kiện bỏ cơ chế đạt; VB thật: hỏng nhãn mềm và Dirichlet, NIW còn mất lớp cũ, prior phân cấp chưa thử) — mục E09.08 dưới đây
 - E09.09: dừng phép gộp của `09b` khi log Bayes factor lớn nhất không còn dương (k tự do, không dưới 5), biến thể `09f-merge-stop`, tầng 1, GC10 (2026-11-14; xong: KHÔNG RÕ, Δ ≈ 0; rolled_pit giữ được cụm con ở 98% số lần; rất nhạy với off) — Q09.14; mục E09.09 dưới đây
-- E09.10: CUB t5, phân hoạch trong nhóm mới trên đặc trưng hiện có: SSKM (semi-supervised k-means) và OCM (gom thừa K' = 60 rồi gộp bằng Bayes factor NIW), luật Δc09 ≥ 5 điểm (tiền đăng ký 2026-11-19) — mục E09.10 dưới đây
+- E09.10: CUB t5, phân hoạch trong nhóm mới trên đặc trưng hiện có: SSKM (semi-supervised k-means) và OCM (gom thừa K' = 60 rồi gộp bằng Bayes factor NIW), luật Δc09 ≥ 5 điểm (tiền đăng ký 2026-11-19; Sửa đổi 2026-11-19: báo kèm trên nền NL của E12.03, luật giữ nguyên) — mục E09.10 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
@@ -901,6 +901,20 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Chi phí: đo bằng một lần checks-only có profile trước run thật.
 - Dự đoán của Claude [SUY LUẬN], độ tin thấp: SSKM tăng c09 khoảng 2–8 điểm, nhờ tâm cũ hút ảnh cũ; OCM đổi c09 dưới 3 điểm (E09.06 và E09.09 trên GC10 cho Δ gần 0).
 - Giới hạn: hai cách gom trên đặc trưng PCA-384 đã fine-tune; r0–r2 đã dùng ở E14.01–E14.09, E12.02, E09.08; c09 là độ đúng của phân hoạch, chưa phải New của mô hình cuối.
+
+### Sửa đổi (2026-11-19; viết sau Kết luận xác nhận của E12.03 `e22079a`, trước code và trước mọi số của SSKM, OCM; tiền đăng ký ở trên, `446cbd0`, giữ nguyên)
+
+- Lý do: E12.03 XÁC NHẬN NL trên r0–r4, nên nền của phần báo kèm đổi từ N sang NL. Luật quyết định (Δc09 ≥ 5 điểm, dương ở 3/3 FT seed), các nhánh KM, SSKM, OCM, đại lượng c09 và độ tách của SSKM giữ nguyên. c09 là độ đúng của phân hoạch, không phụ thuộc mô hình khớp trên phân hoạch, nên Sửa đổi này chỉ đổi phần báo kèm.
+- Báo kèm, thay "N khớp trên phân hoạch của từng nhánh":
+  - NL-X: bộ lọc lề LOO của E12.03 (ngưỡng 0, một vòng) áp lên hàng của các khe mới theo phân hoạch X, rồi khớp lại; khe cũ là khe gốc và khe NL-X của các phiên trước. SSKM: hàng của mỗi cụm mới (không dùng `keep`); hàng pool mà SSKM gán vào cụm cũ không vào khe nào. OCM: `keep` của pipeline với id mới.
+  - N-X (như tiền đăng ký) vẫn báo kèm để so.
+  - Chấm M_d, Old, S5_S0test, S5_All theo ràng buộc hai vế của QD28 (Sửa 2026-11-19); hiệu so với pipeline và so với NL trên phân hoạch KM (NL của E12.03).
+  - D2, D4 của NL-X: tỉ lệ ảnh mới và ảnh cũ trong tập khớp bị bỏ.
+- Báo kèm không dùng để quyết định. Nếu có X với ΔM_d(NL-X − NL) ≥ T, đồng thời ΔOld và ΔS5_S0test so với pipeline ≥ −B, thì ghi lại để thiết kế bước sau. Không nâng NL-X thành luật quyết định thứ hai (tránh hai luật, thắng một).
+- Cổng thêm: G5: NL trên phân hoạch KM cho lại New, Old, S0test của run E12.03 cùng bộ (1e-4).
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp: nếu SSKM tăng c09, thì NL-SSKM tăng New ít hơn mức tăng c09, vì phần ảnh mới bị SSKM hút vào cụm cũ không được bộ lọc chỉnh lại.
+- Giới hạn thêm: ngưỡng 5 điểm của c09 là tuỳ chọn, không suy từ T (T là ngưỡng của M_d); r0–r2 đã dùng ở E14.01–E14.09, E12.02, E12.03, E09.08.
+- Đã thấy trước Sửa đổi này: mọi số của E12.03 trên r0–r4. Chưa thấy số nào của SSKM, OCM, NL-X.
 
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
