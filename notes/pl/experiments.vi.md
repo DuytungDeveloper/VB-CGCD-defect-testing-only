@@ -1564,3 +1564,11 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
   - p_ref của O3 chỉ có một lựa chọn. O1–O3 chỉ xét dưới NIW với off = 250, trên PCA-384 của CUB t5.
   - r0–r2 đã dùng ở E14.01–E14.07, E12.02, E09.08, nên đây không phải kiểm định xác nhận.
   - Tầng C (lượt S của pipeline không dừng sớm trên CUB, Q07.03) không nằm trong thí nghiệm này.
+
+### Sửa (2026-11-19; viết sau code, trước checks-only và trước mọi số của thí nghiệm)
+
+- Ba chỗ cài đặt trong `tier2_e1408` không ghi chữ-theo-chữ ở tiền đăng ký; không đổi đại lượng hay luật đọc:
+  - O4: điểm có b > 0 được cắt về b = 0 (trùng N), để chỉ số q thẳng hàng giữa các chuỗi khi lấy trung bình. Phép đi trên đường cho kết quả như khi chỉ giữ các điểm b ≤ 0, vì điểm trùng N đã được xét ở điểm trung tính.
+  - G3: kiểm từng tham số (mn, κ_n, ν_n, Cholesky của Ψ_n, log det) của mọi khe ở mọi phiên, sai lệch tương đối ≤ 1e-6, thay vì kiểm New, Old, S0test; chặt hơn.
+  - G2 của O1 và O2: điểm trung tính tính lại qua `_postx_1408` (η = 1, κ0), không dùng thẳng ma trận của N, để cổng kiểm code của hai phép.
+- Code đã thử trên 15 chuỗi giả (d = 6, 30 lớp, 5 phiên, mock `sessions`, `replay`, `jax`; mốc là `tier2_e1407` chạy trên cùng dữ liệu giả): G1–G4 OK ở 15/15; đối chứng âm (một số của E14.07 lệch 0.01) cho G1 DIFF. Không có số nào của dữ liệu thật.
