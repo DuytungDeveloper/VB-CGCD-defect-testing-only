@@ -41,6 +41,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E14.05: CUB t5, khe cũ giành ảnh test lớp mới vì mean khe mới đặt lệch (bộ ước lượng, ảnh cũ lẫn vào cụm, cụm sai lớp) hay vì chồng lấn trong biểu diễn: thang Mk, Mc, M1 và Σ chung (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm, có Sửa cùng ngày: R(Mk) 0.98 nhưng Old giảm 52 điểm, là đánh đổi; mean gần 0 ở mọi khe, như D23 và E06.04; E09.08 phải dùng một bộ ước lượng cho mọi khe) — mục E14.05 dưới đây
 - E14.06: CUB t5, L_10 và L_comp khi mọi khe dùng hậu nghiệm NIW với dự đoán Student-t (A3 của E06.04 cho lớp gốc, cùng tiên nghiệm cho khe của các phiên); phụ: mô hình đó có hơn pipeline không (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp_N = 6.50, cạnh tranh vẫn là đích; N không hơn pipeline vì Old giảm 4.9; N sạch hơn pipeline ở cả New và Old) — mục E14.06 dưới đây
 - E14.07: CUB t5, trần dưới bộ ước lượng nhất quán: L_comp và lớp mới khi khe mới khớp đúng lớp (Nlab); S5_S0test của N, Nc, Nlab; đường cong độ lệch b trên N (tiền đăng ký 2026-11-18; xong, Rito duyệt tạm: L_comp_Nlab = 8.81 > T, cạnh tranh là giới hạn của biểu diễn dưới NIW, bỏ ý (c); Nlab hơn Nc 25.2 điểm New: đích của E09.08 là phân hoạch trong nhóm mới; ràng buộc S5_S0test đạt được với bộ lọc hoàn hảo) — mục E14.07 dưới đây
+- E14.08: CUB t5, vì sao N mất lớp cũ: bốn phép làm yếu khe mới của N (O1 tempering likelihood, O2 co mean về m0, O3 tempering lúc dự đoán so với p_ref, O4 lệch cộng b ≤ 0) đọc tại ΔS5_S0test = −B; ảnh cũ gây hại qua mean hay hiệp phương sai (Mb, Ψb); phân bổ ảnh test gốc bị chiếm (tiền đăng ký 2026-11-19) — mục E14.08 dưới đây
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
 
@@ -1447,3 +1448,119 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
 - Hệ quả cho thiết kế E09.08: mục tiêu có hai vế, M_d tăng nhờ sửa phân hoạch trong nhóm mới (V-new là nhánh chính, so với Nc), và S5_S0test giữ được nhờ trách nhiệm hai phía với thành phần cũ; ý (c) bỏ khỏi mục tiêu; dự đoán của E09.08 viết lại theo các số này.
 - Khoảng 1929 s trong run `cub_e14_07_ft_l25`: Rito xác nhận máy không ngủ; nguyên nhân chưa rõ. Runner không dùng RNG hay SVI, nên số không bị ảnh hưởng.
 - Giới hạn: Nlab dùng nhãn pool; r0–r2 đã dùng ở E14.01–E14.06 và E12.02, nên đây không phải kiểm định xác nhận; kết luận về biểu diễn chỉ đúng dưới NIW với off = 250.
+
+## E14.08 — CUB t5: vì sao N mất lớp cũ? Khe mới yếu đi theo bốn phép, và ảnh cũ trong tập khớp gây hại qua mean hay qua hiệp phương sai (QD27, QD28)
+
+### Tiền đăng ký (2026-11-19; viết trước khi có code và trước mọi số của thí nghiệm)
+
+- Câu hỏi:
+  - (B) Có phép làm yếu khe mới nào (không đụng khe gốc) đưa N về ΔS5_S0test ≥ −B so với pipeline mà New vẫn hơn pipeline ít nhất T không?
+  - (A) Phần S5_S0test mà N mất so với Nc đi qua mean hay qua hiệp phương sai của khe mới? Khe chiếm ảnh test gốc có phải khe mà tập khớp chứa ảnh pool cùng lớp với ảnh bị chiếm (D16) không? S0test của PIPE, N, Nc theo từng phiên ra sao?
+- Vì sao:
+  - Kết luận E14.07 (bộ không rò): N mất 9.296 điểm S5_S0test so với pipeline, Nc chỉ mất 0.198; New của Nc ngang N (60.932 so với 61.033). Ảnh cũ trong `keep` là nguồn mất và không giúp lớp mới.
+  - Pipeline khớp trên cùng `keep` mà S5_S0test ngang Nc (78.398 so với 78.200). Câu hỏi là cơ chế nào làm ảnh cũ trong `keep` gần như vô hại ở pipeline. Bàn giao 2026-11-19 (ngoài repo): sửa được thì VB thật còn cơ hội thắng bản gốc; không sửa được thì dừng hướng VB thật.
+  - Ứng viên chính [suy luận] (H2): khe mới của pipeline yếu hơn khe gốc một cách có hệ thống.
+    - Lượt S chỉ dùng 48–64% tổng learning rate và dừng ngay trên ngưỡng S (`lab/13-gauss-s.ipynb` §2.1, GC10).
+    - Ở bộ phân lớp cuối, số hạng log det nghiêng về khe cũ (`lab/14-eval.ipynb` §2.2).
+    - Dừng ở bước 525 thay vì 1000 giữ thêm 9 ảnh test cũ (`lab/13-gauss-s.ipynb` §3.2).
+    - Bảng 5 của paper (CUB, w/o early-stopping): M_f 29.22 so với 6.72, M_d 60.77 so với 56.46. Cùng chiều với N so với pipeline (paper chạy một seed; luật dừng của code khác paper, D14).
+  - Các ứng viên khác [suy luận]:
+    - H11: N gần LDA (off = 250) nên quyết định theo mean, mà mean của khe gần như không được chính quy hoá. Với n = 40, trọng số tiên nghiệm của mean là κ0/(κ0 + n) = 0.01/40.01 ≈ 0.00025 (tính tay), còn của hiệp phương sai là 250/(250 + 40) ≈ 0.86 (tính tay). Ở pipeline, μ ≈ 0 (D23, E06.04).
+    - H8: ảnh cũ của pool lặp lại ở mọi phiên (D16), nên sinh ra khe "bản sao" của lớp cũ.
+    - H4: khe mới rộng hơn khe gốc.
+- Đã tra trước khi viết:
+  - D11, D14, D16, D23, D25.
+  - Kết quả và Kết luận của E06.04, E12.02, E14.02 (cả Sửa đổi), E14.03, E14.05 (cả Sửa), E14.06, E14.07, E09.08.
+  - Summary (EN) của `lab/06`, `07`, `08`, `11`, `12`, `13`, `14`.
+  - `_post_1406`, `_logd_1406`, `_score_1406`, `_logd_1202`, `_parts_1403`, `_gain_1403`, `tier2_e1407` của `lab/score.py`; `lab/niw.py`.
+  - Bảng 5 và Eq. 9–11 của paper.
+  - Miller & Dunson 2019 (posterior coarsened xấp xỉ bằng tempering likelihood); Grünwald & van Ommen 2017 (Safe Bayes, learning rate của likelihood); Ali, Kolter & Tibshirani 2019 (dừng sớm xấp xỉ ridge).
+- Đã thấy trước tiền đăng ký này: mọi số của E14.01–E14.07, E12.02, E09.08 trên `cub_chain_ft_l25` và `cub_chain_ft` (r0–r2). Claude chưa thấy: S0test theo phiên của PIPE, N, Nc (chỉ thấy phiên 5), và mọi số của O1–O4, Mb, Ψb và phần phân bổ.
+- Loại: phép đo mô tả có can thiệp, luật đọc chốt trước.
+  - Tầng B: lưới tham số, điểm đọc chọn bằng nhãn test, nên là trần của mỗi phép, không phải phương pháp.
+  - Tầng A: oracle nhãn pool.
+- Dữ liệu: 15 chuỗi `cub_chain_ft_l25_r<r>_s<N>` (bộ quyết định) và 15 chuỗi `cub_chain_ft_r<r>_s<N>` (báo kèm).
+  - Không gian PCA của S0; `ids`, `keep`, `lut` (P0, QD15) lấy từ ảnh chụp.
+  - Không SVI, không rút RNG.
+  - Nhãn pool chỉ dùng cho Nc, Mb, Ψb và phần phân bổ; nhãn test chỉ để chấm và để chọn điểm đọc.
+  - T = 0.935, B = 0.376 (CUB, như E14.06–E09.08).
+- Mô hình gốc: N đúng như E14.06/E14.07.
+  - Tiên nghiệm: m0 = mean của `z_s0`, κ0 = `niw.K0`, ν0 = d + 1 + off, Ψ0 = off × P, P = `niw.prior_cov(·, 0)`, off = `niw.choose(niw.loo_curve(z_s0, s0_y))`.
+  - Dự đoán Student-t; argmax trên mọi khe đã gặp; prior lớp đều.
+  - Mọi phép dưới đây chỉ đụng khe mới của mọi phiên đã qua (khe base … n − 1). Khe gốc 0 … base − 1 giữ nguyên.
+  - Ở mọi phép, khe không có hàng nào là tiên nghiệm.
+- Tầng B, bốn phép. Điểm đầu của mỗi lưới là điểm trung tính, cho lại N.
+  - O1, tempering likelihood (posterior lũy thừa, Miller & Dunson 2019):
+    - Từ n hàng có mean x̄ và tán xạ S: κ_n = κ0 + ηn, ν_n = ν0 + ηn, m_n = (κ0 m0 + ηn x̄)/κ_n, Ψ_n = Ψ0 + ηS + (κ0 ηn/κ_n)(x̄ − m0)(x̄ − m0)ᵀ.
+    - η ∈ {1, 0.5, 0.25, 0.1, 0.05, 0.02}.
+    - Ghi chú [suy luận]: vì κ0 nhỏ, mean gần như không dịch, nhưng thang dự đoán nhân thêm (κ_n + 1)/κ_n. Với n = 40, η = 0.02 cho κ_n = 0.81 và hệ số 2.23, so với 1.025 ở η = 1 (tính tay). O1 làm khe rộng ra và có thể còn làm tăng việc chiếm ảnh ở rìa.
+  - O2, co mean về m0:
+    - κ riêng cho khe mới, κ = n(1 − w)/w, nên m_n = (1 − w) m0 + w x̄, κ_n = n/w, ν_n = ν0 + n, Ψ_n = Ψ0 + S + n(1 − w)(x̄ − m0)(x̄ − m0)ᵀ.
+    - Lưới: κ0 (trung tính), rồi w ∈ {0.75, 0.5, 0.25, 0.1}.
+  - O3, tempering lúc dự đoán so với một mật độ tham chiếu:
+    - Với khe mới k, điểm s_k(x) = τ (L_k(x) − L_ref(x)) + L_ref(x). L_k là log-mật độ Student-t của N; L_ref là log-mật độ Gaussian N(m0, P), tính bằng float64 qua Cholesky. Khe gốc giữ L_c.
+    - τ ∈ {1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2}.
+    - [suy luận] Đây là đối ứng bậc nhất của "ít bước Adam hơn tính từ điểm khởi tạo": ở pipeline, log N(x | μ, I + E) − log N(x | 0, I) gần tuyến tính theo (μ, E), mà (μ, E) tỉ lệ với số bước (E06.04; `lab/08-classifier.ipynb` §3).
+    - p_ref chốt một lựa chọn; thí nghiệm này không thử lựa chọn khác.
+  - O4, lệch cộng đều b ≤ 0 trên mọi khe mới:
+    - Ở mỗi phiên, m′ = max log-mật độ trên khe base … n − 1 trừ max trên khe 0 … base − 1 (không dùng nhãn).
+    - Lưới: b = 0 và b = −Q_q(m′) với q theo `Q_1403`; chỉ giữ các điểm có b ≤ 0.
+    - Khác phần D của E14.07 ở hai chỗ: chiều b âm, và cộng vào mọi khe mới chứ không chỉ 20 khe của phiên, vì S5_S0test bị khe mới của mọi phiên chiếm.
+- Tầng A:
+  - A1: S0test (các lớp gốc của tập test) của PIPE, N, Nc ở mỗi phiên 1–5.
+  - A2, ghép chéo (oracle nhãn pool):
+    - "Mb": m_n từ hàng của N (bẩn); κ_n, ν_n, Ψ_n từ hàng của Nc (sạch).
+    - "Ψb": m_n từ hàng của Nc; κ_n, ν_n, Ψ_n từ hàng của N.
+    - Phần nào lấy từ một tập hàng rỗng thì nhận giá trị tiên nghiệm (m0; κ0, ν0, Ψ0).
+    - R = S5_S0test(Nc) − S5_S0test(N); R_mean = S5_S0test(Ψb) − S5_S0test(N); R_cov = S5_S0test(Mb) − S5_S0test(N).
+  - A3, phân bổ ở phiên 5 trên N:
+    - Ảnh bị chiếm: ảnh test thuộc lớp gốc y mà argmax trên các khe gốc là y, nhưng argmax trên mọi khe là một khe mới k.
+    - Với mỗi ảnh, ghi:
+      - phiên của k, số hàng n_k, tỉ lệ ảnh cũ trong hàng của k;
+      - chỉ báo H8: hàng của k có ít nhất một ảnh pool nhãn y;
+      - phép tách L_k − L_y = ΔA + ΔB, trong đó A là phần không phụ thuộc x của log-mật độ Student-t (các hàm gamma, log det của thang) và B là phần phụ thuộc x.
+    - Tỉ lệ nền của H8 cho một ảnh lớp y: phần khe mới ở phiên 5 có ít nhất một hàng nhãn y.
+    - Tỉ số H8 = trung bình chỉ báo chia cho trung bình tỉ lệ nền, trên mọi ảnh bị chiếm của một FT seed.
+- Đại lượng, cho mỗi phép X ∈ {O1, O2, O3, O4} và mỗi FT seed:
+  - Ở mỗi điểm lưới j:
+    - New: trung bình 5 phiên và 5 chuỗi;
+    - ΔS5_S0test = S5_S0test(X, j) − S5_S0test(PIPE), trung bình 5 chuỗi;
+    - ΔOld: như ΔS5_S0test nhưng cho Old, trung bình 5 phiên;
+    - với O4, các chuỗi ghép theo chỉ số q.
+  - Đi từ điểm trung tính về phía mạnh, lấy điểm đầu tiên có ΔS5_S0test ≥ −B. Nội suy tuyến tính New theo ΔS5_S0test giữa điểm đó và điểm liền trước, tại ΔS5_S0test = −B.
+  - G_X = New nội suy − New của pipeline (P0). Nếu không điểm nào đạt: "không chạm".
+  - Báo trung bình và SD (ddof 1) của G_X qua 3 FT seed, kèm số FT seed chạm.
+- Cách đọc, chốt trước (bộ không rò; bộ có rò báo kèm):
+  - R1: có X với trung bình G_X ≥ T và chạm ở 3/3 FT seed → VB thật còn đường.
+    - Bước kế: chọn tham số của X không dùng nhãn (Safe Bayes hoặc prequential trên pool) và xác nhận trên r3, r4 bằng một tiền đăng ký riêng.
+    - Nhiều X cùng đạt thì ghi cả; X có G_X lớn nhất đi trước.
+    - Nếu bộ có rò cho G_X ≤ 0 ở X đó, ghi "không vững"; phải xác nhận trước khi dùng.
+  - R2: không X nào đạt R1, nhưng ít nhất một X chạm ở 3/3 FT seed → làm yếu khe mới chỉ trả lại lớp cũ bằng phần lớp mới. H2 giải thích được cơ chế, nhưng hậu nghiệm NIW không hơn pipeline → dừng hướng VB thật (tiêu chí của bàn giao 2026-11-19).
+  - R3: không X nào chạm ở 3/3 FT seed → làm yếu khe mới không đủ; cơ chế nằm ở chỗ khác (H11, H8). Đọc A2, A3 trước khi quyết.
+  - Đọc phụ A2, chỉ để định hướng, không đè R1–R3:
+    - R_mean/R ≥ 0.75 → nhiễm bẩn đi qua mean;
+    - R_cov/R ≥ 0.75 → đi qua hiệp phương sai;
+    - còn lại → cả hai.
+  - Báo kèm, không dùng để quyết: ΔOld tại điểm đọc; mọi đường của các phép; A1 theo phiên; tỉ số H8; phân bố ΔA, ΔB và phiên của khe chiếm.
+- Cổng kiểm:
+  - G1: PIPE (New, Old, S0test mọi phiên) và N, Nc (New, Old, S0test mọi phiên) trùng run E14.07 cùng bộ (1e-4).
+  - G2: mỗi phép tại điểm trung tính cho lại New, Old, S0test của N (1e-6); O3 với τ = 1 và O4 với b = 0 cho lại đúng argmax của N.
+  - G3: Mb và Ψb cho lại N khi cả hai nguồn là hàng của N, và cho lại Nc khi cả hai nguồn là hàng của Nc (1e-6).
+  - G4: số ảnh bị chiếm ở A3 bằng một phép đếm độc lập (argmax trên khe gốc đúng, argmax trên mọi khe ≥ base); ΔA + ΔB = L_k − L_y (tương đối 1e-6).
+  - Runner chỉ in trạng thái cổng và thời gian, không in số của từng chuỗi.
+- Code (viết sau tiền đăng ký):
+  - Runner `tier2_e1408` trong `lab/score.py`; lệnh `e1408` qua `exp.py` (`--prefix`, `--checks-only`); một run mỗi bộ (tag `cub_e14_08_ft_l25`, `cub_e14_08_ft`).
+  - Lệnh `e1408-summary` chỉ đọc và áp luật.
+  - Dùng lại `_post_1406`, `_logd_1202("A3")`, `_score_1406`. Không sửa `lab/niw.py`, `lab/sessions.py`, `lab/replay.py`.
+- Chi phí: đo bằng một lần checks-only có profile trên mỗi bộ trước run thật, không ước lượng tay (E14.07: 2491 s và 541 s, chỉ để tham khảo).
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp:
+  - O4 chạm, với G_O4 trong khoảng −4 tới 0 (phần D của E14.07: gần b = 0, mỗi điểm Old đổi được khoảng 1.2 điểm New; tính tay 0.466/0.376).
+  - O3 gần O4; O2 có G lớn nhất trong bốn phép; O1 không chạm hoặc chạm muộn nhất.
+  - Kết cục R2 nhiều khả năng hơn R1.
+  - R_mean/R ≥ 0.75; tỉ số H8 > 1.5; phần S0test N mất so với PIPE tăng theo phiên.
+- Giới hạn:
+  - Điểm đọc chọn bằng nhãn test, nên G_X là trần của phép, không phải số của một phương pháp.
+  - Bốn phép với nhiều điểm lưới: R1 chỉ mở một bước kế, cần xác nhận trên r3, r4.
+  - p_ref của O3 chỉ có một lựa chọn. O1–O3 chỉ xét dưới NIW với off = 250, trên PCA-384 của CUB t5.
+  - r0–r2 đã dùng ở E14.01–E14.07, E12.02, E09.08, nên đây không phải kiểm định xác nhận.
+  - Tầng C (lượt S của pipeline không dừng sớm trên CUB, Q07.03) không nằm trong thí nghiệm này.
