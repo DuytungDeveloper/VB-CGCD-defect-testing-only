@@ -30,7 +30,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04 → 11; xong: không đủ lớn, Δ = 0.0148 < T = 0.0273; giữ `n_init` 10) — mục E09.07 dưới đây
 - E09.08: CUB t5, VB-GMM cho phiên không nhãn, biến thể `09e-vbgmm` (thay bước 11–13): trách nhiệm hai phía với thành phần cũ cố định, mọi khe dùng hậu nghiệm NIW, khởi tạo từ k-means của bước 09; nhánh chẩn đoán KW (k-means làm trắng theo P) và V-new (E-M trong nhóm mới); luật xác nhận trên r3, r4 (đề xuất 2026-11-05; tiền đăng ký 2026-11-18; xong, Rito duyệt 2026-11-19: Bác, ΔS5_S0test −8.522; CAVI khoá ở khởi tạo k-means, KW −0.140; điều kiện bỏ cơ chế đạt; VB thật: hỏng nhãn mềm và Dirichlet, NIW còn mất lớp cũ, prior phân cấp chưa thử) — mục E09.08 dưới đây
 - E09.09: dừng phép gộp của `09b` khi log Bayes factor lớn nhất không còn dương (k tự do, không dưới 5), biến thể `09f-merge-stop`, tầng 1, GC10 (2026-11-14; xong: KHÔNG RÕ, Δ ≈ 0; rolled_pit giữ được cụm con ở 98% số lần; rất nhạy với off) — Q09.14; mục E09.09 dưới đây
-- E09.10: CUB t5, phân hoạch trong nhóm mới trên đặc trưng hiện có: SSKM (semi-supervised k-means) và OCM (gom thừa K' = 60 rồi gộp bằng Bayes factor NIW), luật Δc09 ≥ 5 điểm (tiền đăng ký 2026-11-19; Sửa đổi 2026-11-19: báo kèm trên nền NL của E12.03, luật giữ nguyên) — mục E09.10 dưới đây
+- E09.10: CUB t5, phân hoạch trong nhóm mới trên đặc trưng hiện có: SSKM (semi-supervised k-means) và OCM (gom thừa K' = 60 rồi gộp bằng Bayes factor NIW), luật Δc09 ≥ 5 điểm (tiền đăng ký 2026-11-19; Sửa đổi 2026-11-19: báo kèm trên nền NL của E12.03, luật giữ nguyên; kết quả: Không, Δc09 SSKM −47.459, OCM −2.672; hướng (2) sang nhánh (a)) — mục E09.10 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
@@ -925,6 +925,21 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - G1 thêm: pipeline dưới P0 trùng `acc1` (1e-6). G5 thêm: N-KM dưới P0 trùng N của run E12.03 (1e-4).
   - G4 không chặn việc đọc: `checks_ok` gồm G1, G2, G3, G5; số phiên SSKM chạm 100 vòng in trong `e0910-summary`.
 - Code đã thử trên 15 chuỗi giả (d = 6, 30 lớp, 5 phiên, ảnh cũ lặp lại như D16; mock `sessions`, `replay`, `jax`; mốc E09.08 và E12.03 tính trên cùng dữ liệu giả): G1–G5 OK ở 15/15; bốn đối chứng âm cho DIFF đúng cổng (một số của E12.03 lệch 0.01 → G5; một c09 của E09.08 lệch 0.01 → G1; log-evidence trực tiếp lệch 1e-3 → G3; tâm lớp gốc lệch 1e-6 → G2). Không có số nào của dữ liệu thật.
+
+### Kết quả (2026-11-19; run `20261119_221926__cub_e09_10_ft_l25`, `20261119_225131__cub_e09_10_ft`, commit run `6062624`; số in bằng `python lab/score.py e0910-summary`; G1–G5 qua ở 15/15 chuỗi mỗi bộ, SSKM hội tụ ở 75/75 phiên)
+
+- Bộ không rò: c09 KM 66.547, SSKM 19.088, OCM 63.875. Δc09 SSKM − KM theo FT seed: −47.832, −47.320, −47.224 (TB −47.459). Δc09 OCM − KM: −1.696, −3.472, −2.848 (TB −2.672). Bộ có rò cùng hướng (Δc09 SSKM − KM −46.568, OCM − KM −1.875).
+- SSKM: ảnh cũ của pool vào cụm cũ 0.979; ảnh mới vào cụm mới 0.209.
+- Báo kèm (P1): NL-KM − P: ΔM_d +2.623, ΔOld +1.364, ΔS5_S0test −0.162. NL-OCM − NL-KM: ΔM_d −2.578. NL-SSKM − NL-KM: ΔM_d −40.736. N-SSKM − P: ΔS5_S0test +7.379, vì khe mới gần như không giành ảnh. Quy tắc ghi chú của Sửa đổi không bắn ở nhánh nào.
+- Luật: **Không**.
+- Dự đoán đã đăng ký: SSKM tăng c09 2–8 điểm: sai (−47.459). OCM đổi dưới 3 điểm: đúng (−2.672). Dự đoán của Sửa đổi ("nếu SSKM tăng c09") không được kiểm vì điều kiện không xảy ra.
+
+### Kết luận (Rito duyệt 2026-11-19)
+
+- Trên đặc trưng PCA-384 đã fine-tune, SSKM và OCM đều không gom ảnh mới đúng hơn k-means của pipeline. Hướng (2) chuyển sang nhánh (a): đặc trưng chưa fine-tune.
+- SSKM hỏng vì hút ảnh mới vào cụm cũ (0.209 ảnh mới vào cụm mới), trong khi giữ ảnh cũ tốt (0.979). Chưa tách được nguyên nhân là đặc trưng (backbone fine-tune trên lớp gốc kéo lớp mới về gần tâm gốc) hay cài đặt (100–180 tâm cũ so với 20 tâm mới, gồm tâm lớp đã khám phá; Euclid không chuẩn hoá; khởi tạo k-means++ trên toàn pool); metrics không ghi ảnh mới bị hút vào tâm gốc hay tâm đã khám phá. Kết luận chỉ áp cho bản SSKM đã đăng ký, không cho mọi k-means bán giám sát.
+- NL-KM giữ lợi thế so với pipeline dưới P1, nên NL vẫn là nền cho bước sau.
+- Bước kế (Rito duyệt): kiểm đặc trưng DINO chưa fine-tune của CUB đã có hay chưa; nếu có, tiền đăng ký nhánh (a) đo SSKM, KM trên cả hai loại đặc trưng trong cùng một thí nghiệm, để tách nguyên nhân đặc trưng khỏi cài đặt mà không cần chẩn đoán sau khi đã thấy số; sau đó viết tài liệu bàn giao.
 
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
