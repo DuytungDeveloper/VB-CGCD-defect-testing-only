@@ -38,6 +38,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e1409-summary                                  E14.09: tables and reading rules from the two runs
   python lab/score.py e1203 --prefix cub_chain_ft[_l25] [--checks-only]   E12.03: old/new filter by the LOO margin (exp.py)
   python lab/score.py e1203-summary                                  E12.03: tables, D1-D4 and reading rules from the two runs
+  python lab/score.py e0910 --prefix cub_chain_ft[_l25] [--checks-only]   E09.10: SSKM and OCM partitions, c09, NL-X report (exp.py)
+  python lab/score.py e0910-summary                                  E09.10: c09 table, decision rule and report from the two runs
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -4043,9 +4045,320 @@ def e1203_summary(T=0.935, B=0.376):
           f"mean dS5_S0test {dS.mean():+.3f}; mean dOld {dO.mean():+.3f} -> {verdict}")
 
 
+# ---- E09.10: CUB t5, partitions of the new group on the current features: SSKM and OCM (pre-registration 446cbd0, amendment 3053bea) ----
+ARMS_0910 = ("N_KM", "NL_KM", "N_SSKM", "NL_SSKM", "N_OCM", "NL_OCM")
+
+
+def _sq_0910(X, C):
+    """Squared Euclidean distances of the rows of X to the rows of C."""
+    return (X * X).sum(1)[:, None] - 2.0 * X @ C.T + (C * C).sum(1)[None, :]
+
+
+def _centers_0910(z0, y0, base, zp, a, C):
+    """SSKM centre step: base class k = mean of its S0 images and the pool rows assigned to k; any other centre = mean of
+    its pool rows, unchanged when it has none."""
+    C = C.copy()
+    for k in range(len(C)):
+        P = zp[a == k]
+        if k < base:
+            C[k] = np.concatenate([z0[y0 == k], P]).mean(0)
+        elif len(P):
+            C[k] = P.mean(0)
+    return C
+
+
+def _sskm_0910(z0, y0, base, Cdisc, zp, inc, iters=100):
+    """Semi-supervised k-means (Vaze et al. 2022) for one session. Centres: base classes (mean of S0, S0 images tied to
+    their class at every round), discovered classes (Cdisc), inc new centres by k-means++ on the pool (random_state 0).
+    Lloyd on Euclidean distance; stop when the assignment of the pool does not change, at most iters rounds.
+    Returns the pool assignment, the centres, converged, rounds."""
+    from sklearn.cluster import kmeans_plusplus
+    Cb = np.stack([z0[y0 == k].mean(0) for k in range(base)])
+    Cn, _ = kmeans_plusplus(zp, inc, random_state=0)
+    C = np.concatenate([Cb, np.asarray(Cdisc, np.float64).reshape(-1, zp.shape[1]), Cn])
+    a, conv, it = None, False, 0
+    for it in range(1, iters + 1):
+        an = _sq_0910(zp, C).argmin(1)
+        if a is not None and np.array_equal(an, a):
+            conv = True
+            break
+        a = an
+        C = _centers_0910(z0, y0, base, zp, a, C)
+    return a, C, conv, it
+
+
+def _scat_0910(X):
+    """Sufficient statistics (n, mean, centred scatter) of the rows of X."""
+    m = X.mean(0)
+    D = X - m
+    return len(X), m, D.T @ D
+
+
+def _merge_0910(sa, sb):
+    na, ma, Sa = sa
+    nb, mb, Sb = sb
+    n = na + nb
+    dm = ma - mb
+    return n, (na * ma + nb * mb) / n, Sa + Sb + (na * nb / n) * np.outer(dm, dm)
+
+
+def _ev_0910(st, prior, ld0):
+    """log p(rows) under NIW from the sufficient statistics (same formula as niw.log_evidence)."""
+    from scipy.special import multigammaln
+    n, xb, S = st
+    m0, k0, nu0, psi0 = prior
+    d = len(xb)
+    psin = psi0 + S + (k0 * n / (k0 + n)) * np.outer(xb - m0, xb - m0)
+    return (-n * d / 2 * np.log(np.pi) + multigammaln((nu0 + n) / 2, d) - multigammaln(nu0 / 2, d)
+            + nu0 / 2 * ld0 - (nu0 + n) / 2 * np.linalg.slogdet(psin)[1] + d / 2 * (np.log(k0) - np.log(k0 + n)))
+
+
+def _ocm_0910(zp, inc, prior, Kp):
+    """Over-cluster and merge: k-means on the pool (Kp clusters, n_init 10, random_state 0), then greedy merges down to
+    inc clusters, each step the pair with the largest log Bayes factor ev(A u B) - ev(A) - ev(B) under the prior of N
+    (first pair on ties). Returns the ids 0..inc-1 (merged groups in order of creation) and G3 (after every merge the
+    updated log-evidence of the new group = niw.log_evidence of its rows, relative 1e-8; inc groups at the end)."""
+    import niw
+    from sklearn.cluster import KMeans
+    lab = KMeans(n_clusters=Kp, n_init=10, random_state=0).fit(zp).labels_.astype(int)
+    ld0 = np.linalg.slogdet(prior[3])[1]
+    grp = {c: [c] for c in range(Kp)}
+    st = {c: _scat_0910(zp[lab == c]) for c in range(Kp)}
+    ev = {c: _ev_0910(st[c], prior, ld0) for c in st}
+    bf = {}
+    for a in range(Kp):
+        for b in range(a + 1, Kp):
+            bf[a, b] = _ev_0910(_merge_0910(st[a], st[b]), prior, ld0) - ev[a] - ev[b]
+    g3, nxt = True, Kp
+    while len(st) > inc:
+        a, b = max(bf, key=bf.get)
+        s = _merge_0910(st[a], st[b])
+        e_upd = _ev_0910(s, prior, ld0)
+        new = nxt
+        nxt += 1
+        grp[new] = grp.pop(a) + grp.pop(b)
+        e_dir = niw.log_evidence(zp[np.isin(lab, grp[new])], *prior)
+        g3 &= bool(abs(e_upd - e_dir) <= 1e-8 * max(1.0, abs(e_dir)))
+        for key in [key for key in bf if a in key or b in key]:
+            del bf[key]
+        for c in (a, b):
+            del st[c], ev[c]
+        for c in st:
+            bf[c, new] = _ev_0910(_merge_0910(st[c], s), prior, ld0) - ev[c] - e_upd
+        st[new], ev[new] = s, e_upd
+    g3 &= len(grp) == inc
+    ids = np.full(len(zp), -1)
+    for j, gk in enumerate(sorted(grp)):
+        ids[np.isin(lab, grp[gk])] = j
+    assert (ids >= 0).all()
+    return ids, g3
+
+
+def _nl_keep_0910(X, old_rows, old_slots, prior, idx):
+    """The NL step of E12.03 on the rows X of one new slot: keep the rows with m_loo = L_loo - L_old >= 0."""
+    if len(X) == 0:
+        return np.zeros(0, bool)
+    Lo = _old_max_1203(X, old_rows, old_slots, _logd_1202("A3", old_slots, X), prior, idx)
+    return (_loo_1203(X, prior) - Lo) >= 0
+
+
+def _sc_0910(pred, y, lut, off, base):
+    tgt, new, b0 = lut[y], y >= off, y < base
+    ok = pred == tgt
+    pc = lambda a: 100.0 * float(np.mean(a))
+    return {"New": pc(ok[new]), "Old": pc(ok[~new]), "All": pc(ok), "S0test": pc(ok[b0])}
+
+
+def tier2_e0910(prefix, checks_only=False):
+    """E09.10 (pre-registration 446cbd0, amendment 3053bea) on the 15 default chains <prefix>_r<r>_s<N> (r0-r2).
+    Partitions of the pool per session: KM (ids of the pipeline), SSKM (_sskm_0910; K = seen classes + inc; discovered
+    centres start at the mean of the rows of the new SSKM clusters of their session, the final centre if empty), OCM
+    (_ocm_0910, Kp = 3 inc = 60 on CUB). c09 = Hungarian over the novel pool images (SSKM: over its inc new clusters, a
+    novel image in an old cluster counts wrong). SSKM separation: old pool rows in old clusters, novel in new clusters.
+    Report-only models (amendment): N-X (NIW slot on the rows of each new cluster of X; KM, OCM: kept rows only, SSKM:
+    every row) and NL-X (the NL step of E12.03, threshold 0, one pass, against the base slots and the NL-X slots of
+    earlier sessions); N-KM = N and NL-KM = NL of E12.03. Every model and the pipeline named by P1 (E14.01, as E09.08);
+    P0 kept for P, N_KM, NL_KM. D2, D4 counts of each NL-X. Pool labels for c09, separation and the D counts only; test
+    labels for scoring and naming only. No SVI; RNG only in kmeans_plusplus and KMeans (random_state 0).
+    Gates: G1 c09 of KM = S<i>_N_c09 of the E09.08 run (1e-4) and PIPE (P0) = acc1 (1e-6). G2 the SSKM centre step with
+    no pool rows gives the S0 class means for the base classes (1e-9). G3 OCM: updated log-evidence = niw.log_evidence
+    after every merge (relative 1e-8), inc groups at the end. G4 SSKM converged in every session (not blocking; rounds
+    kept). G5 N_KM and NL_KM under P0 = N and NL of the E12.03 run (New, Old, S0test; 1e-4).
+    Keys: r<r>_s<N>_<key>; G1_ok ... G5_ok, checks_ok (G1, G2, G3, G5). The progress line prints the gates and the time
+    only. checks_only: chain r0 s0 only, no keys."""
+    import niw
+    from replay import _clf, _git
+    from sessions import load as load_sessions, _device
+    assert prefix in ("cub_chain_ft", "cub_chain_ft_l25"), "E09.10 is pre-registered on the two sets of CUB chains"
+    t0 = time.time()
+    if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
+        raise SystemExit("e0910: commit the code first (same dirty rule as scripts/exp.py)")
+    suf = prefix[len("cub_chain_"):]
+    e08, e12 = _ref_metrics("cub_e09_08_" + suf), _ref_metrics("cub_e12_03_" + suf)
+    assert e08.get("checks_ok") == 1 and e12.get("checks_ok") == 1, "E09.08 or E12.03 run of this feature set: checks failed"
+    out, gates = {}, {f"G{k}": True for k in range(1, 6)}
+    for r, N in ((0, 0),) if checks_only else [(r, N) for r in range(3) for N in range(5)]:
+        tag, pre = f"{prefix}_r{r}_s{N}", f"r{r}_s{N}_"
+        st, views = load_sessions(tag)                  # the workbench first: torch, main, then jax, as the chains
+        import jax.numpy as jnp
+        _device()
+        a = st["args"]
+        assert a.dataset == "cub200" and a.load_mode == "t5" and len(views) == 5 and a.seed == N, f"{tag}: not a CUB t5 chain of seed {N}"
+        base, inc, res, g = a.base, a.increment, {}, {f"G{k}": True for k in range(1, 6)}
+        z0, y0 = np.asarray(st["z_s0"], np.float64), np.asarray(st["s0_y"]).astype(int)
+        d = z0.shape[1]
+        off0 = niw.choose(niw.loo_curve(z0, y0))
+        sts = niw.class_stats(z0, y0)
+        prior = (sts["m0"], niw.K0, d + 1 + off0, off0 * niw.prior_cov(sts, 0))
+        base_rows = [z0[y0 == k] for k in range(base)]
+        base_slots = [_post_1406(R, prior) for R in base_rows]
+        res["off"] = off0
+        Cb0 = _centers_0910(z0, y0, base, z0[:0], np.zeros(0, int), np.zeros((base, d)))
+        g["G2"] &= bool(np.max(np.abs(Cb0 - np.stack([R.mean(0) for R in base_rows]))) <= 1e-9)
+        rows = {b: [] for b in ARMS_0910}
+        post = {b: [] for b in ARMS_0910}
+        lut1 = {b: np.arange(a.num_classes) for b in ("P",) + ARMS_0910}
+        Cdisc = np.zeros((0, d))
+        for i, v in enumerate(views, 1):
+            off = v["offset"]
+            n = off + inc
+            zp = np.asarray(v["z_pool"], np.float64)
+            ids, keep = np.asarray(v["ids"]).astype(int), np.asarray(v["keep"]).astype(bool)
+            yp, lut0 = np.asarray(v["true_pool_y"]).astype(int), np.asarray(v["lut"])
+            pn = yp >= off
+            # partitions
+            sa, Csk, conv, it = _sskm_0910(z0, y0, base, Cdisc, zp, inc)
+            K = off + inc
+            assert sa.max() < K and len(Cdisc) == off - base
+            sk_new = sa >= off
+            Kp = 3 * inc
+            oc, g3 = _ocm_0910(zp, inc, prior, Kp)
+            g["G3"] &= g3
+            g["G4"] &= bool(conv)
+            res.update({f"S{i}_SSKM_iters": int(it), f"S{i}_SSKM_conv": int(conv)})
+            res[f"S{i}_KM_c09"] = 100.0 * _hung_correct_1402(ids[pn], yp[pn] - off, inc) / int(pn.sum())
+            res[f"S{i}_OCM_c09"] = 100.0 * _hung_correct_1402(oc[pn], yp[pn] - off, inc) / int(pn.sum())
+            m = pn & sk_new
+            res[f"S{i}_SSKM_c09"] = 100.0 * _hung_correct_1402(sa[m] - off, yp[m] - off, inc) / int(pn.sum())
+            res.update({f"S{i}_SSKM_old_n": int((~pn).sum()), f"S{i}_SSKM_old_in_old": int(((~pn) & ~sk_new).sum()),
+                        f"S{i}_SSKM_new_n": int(pn.sum()), f"S{i}_SSKM_new_in_new": int((pn & sk_new).sum())})
+            g["G1"] &= abs(res[f"S{i}_KM_c09"] - float(e08[f"{pre}S{i}_N_c09"])) <= 1e-4
+            sel = {"KM": [keep & (ids == c) for c in range(inc)], "SSKM": [sa == off + c for c in range(inc)],
+                   "OCM": [keep & (oc == c) for c in range(inc)]}
+            Cdisc = np.concatenate([Cdisc, np.stack([zp[s].mean(0) if s.any() else Csk[off + c] for c, s in enumerate(sel["SSKM"])])])
+            # report-only models N-X and NL-X
+            for X, masks in sel.items():
+                nb, lb_ = f"N_{X}", f"NL_{X}"
+                old_rows, old_slots = base_rows + rows[lb_], base_slots + post[lb_]
+                idx = _index_1203(old_rows)
+                cnt = dict(n_old=0, n_new=0, drop_old=0, drop_new=0)
+                newN, newL = [], []
+                for s in masks:
+                    R, isn = zp[s], pn[s]
+                    kp = _nl_keep_0910(R, old_rows, old_slots, prior, idx)
+                    newN.append(R)
+                    newL.append(R[kp])
+                    cnt["n_old"] += int((~isn).sum())
+                    cnt["n_new"] += int(isn.sum())
+                    cnt["drop_old"] += int(((~isn) & ~kp).sum())
+                    cnt["drop_new"] += int((isn & ~kp).sum())
+                res.update({f"S{i}_{lb_}_{kk}": vv for kk, vv in cnt.items()})
+                for b, nr in ((nb, newN), (lb_, newL)):
+                    rows[b] += nr
+                    post[b] += [_post_1406(R, prior) for R in nr]
+            # scoring
+            clf = _clf(v)
+            _component(v["predict"])(clf)
+            clf.label_offset, clf.n_seen = off, n
+            xt = clf.pca.transform(v["test_all_x"])
+            zt = np.asarray(xt, np.float64)
+            y = np.asarray(v["true_test_all_y"]).astype(int)
+            pr = np.asarray(clf._predict(jnp.array(xt), _jnp(v["params1"]))[0]).astype(int)
+            s0p = _sc_0910(pr, y, lut0, off, base)
+            res.update({f"S{i}_P_P0_{q}": val for q, val in s0p.items()})
+            g["G1"] &= abs(s0p["New"] - float(v["acc1"]["Novel"])) <= 1e-6 and abs(s0p["Old"] - float(v["acc1"]["Old"])) <= 1e-6
+            lut1["P"] = _p1_0908(pr, y, lut1["P"], off, n)
+            res.update({f"S{i}_P_{q}": val for q, val in _sc_0910(pr, y, lut1["P"], off, base).items()})
+            lb = _logd_1202("A3", base_slots, zt)
+            for b in ARMS_0910:
+                L = np.concatenate([lb, _logd_1202("A3", post[b], zt)], 1)
+                assert L.shape[1] == n, f"{tag} S{i} {b}: {L.shape[1]} slots"
+                pb = L.argmax(1)
+                if b in ("N_KM", "NL_KM"):
+                    s0b = _sc_0910(pb, y, lut0, off, base)
+                    res.update({f"S{i}_{b}_P0_{q}": val for q, val in s0b.items()})
+                    ref = "N" if b == "N_KM" else "NL"
+                    g["G5"] &= all(abs(s0b[q] - float(e12[f"{pre}S{i}_{ref}_{q}"])) <= 1e-4 for q in ("New", "Old", "S0test"))
+                lut1[b] = _p1_0908(pb, y, lut1[b], off, n)
+                res.update({f"S{i}_{b}_{q}": val for q, val in _sc_0910(pb, y, lut1[b], off, base).items()})
+        for kk in gates:
+            gates[kk] = gates[kk] and g[kk]
+        out.update({pre + kk: round(val, 4) if isinstance(val, float) else val for kk, val in res.items()})
+        print(f"e0910 {tag}: " + " ".join(f"{kk} {'OK' if g[kk] else 'DIFF'}" for kk in g) + f" ({time.time() - t0:.0f} s)", flush=True)
+    chk = {f"{kk}_ok": int(v) for kk, v in gates.items()}
+    chk["checks_ok"] = int(all(gates[kk] for kk in ("G1", "G2", "G3", "G5")))
+    print(f"e0910 {prefix}: checks {'OK' if chk['checks_ok'] else 'FAILED'} (G4 {'OK' if gates['G4'] else 'not converged somewhere, see SSKM_conv'}; {time.time() - t0:.0f} s)")
+    return chk if checks_only else {**chk, **out}
+
+
+def e0910_summary(T=0.935, B=0.376):
+    """Tables of E09.10 from the runs cub_e09_10_ft_l25 and cub_e09_10_ft: c09 per partition and the differences to KM;
+    SSKM separation (old pool rows in old clusters, novel in new clusters) and the sessions that hit 100 rounds; per
+    report-only model (P1 naming) M_d, Old, S5_S0test, S5_All, the differences to the pipeline (P1) and dM_d to NL_KM;
+    D2, D4 of each NL-X, pooled over the 5 chains and 5 sessions of an FT seed. Decision rule of the pre-registration on
+    the leak-free set; the note rule of the amendment for the report. "mean" and "sd" over the 3 FT seeds (ddof 1).
+    Refuses to read a run without checks_ok = 1."""
+    for tag in ("cub_e09_10_ft_l25", "cub_e09_10_ft"):
+        if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+            print(f"\n{tag}: no run yet")
+            continue
+        m = _ref_metrics(tag)
+        assert m.get("checks_ok") == 1, f"{tag}: checks failed, results are not read"
+        per = lambda key: np.array([[m[f"r{r}_s{N}_{key}"] for N in range(5)] for r in range(3)], float)
+        ft = lambda k: np.mean([per(f"S{i}_{k}") for i in range(1, 6)], axis=0).mean(1)
+        s5 = lambda k: per(f"S5_{k}").mean(1)
+        tot = lambda k: sum(per(f"S{i}_{k}") for i in range(1, 6)).sum(1)
+        line = lambda name, x: f"  {name:<34}" + "".join(f"{val:9.3f}" for val in x) + f"{x.mean():9.3f}{x.std(ddof=1):9.3f}"
+        head = f"  {'':<34}" + "".join(f"{x:>9}" for x in ("r0", "r1", "r2", "mean", "sd"))
+        hit = int(sum((per(f"S{i}_SSKM_conv") == 0).sum() for i in range(1, 6)))
+        print(f"\n{tag}: G1 G2 G3 G5 OK; G4 {'OK' if m.get('G4_ok') == 1 else 'not converged'}; SSKM sessions at 100 rounds: {hit} of 75; "
+              f"off chosen: {sorted(set(int(x) for x in per('off').ravel()))}\n{head}")
+        for X in ("KM", "SSKM", "OCM"):
+            print(line(f"c09 {X}", ft(f"{X}_c09")))
+        for X in ("SSKM", "OCM"):
+            print(line(f"dc09 {X} - KM", ft(f"{X}_c09") - ft("KM_c09")))
+        print(line("SSKM old pool rows in old clusters", tot("SSKM_old_in_old") / tot("SSKM_old_n")))
+        print(line("SSKM novel pool rows in new clusters", tot("SSKM_new_in_new") / tot("SSKM_new_n")))
+        print(line("SSKM rounds (mean per session)", ft("SSKM_iters")))
+        for b in ("P",) + ARMS_0910:
+            print(line(f"{b} New (M_d, P1)", ft(f"{b}_New")))
+            print(line(f"{b} Old", ft(f"{b}_Old")))
+            print(line(f"{b} S5_S0test", s5(f"{b}_S0test")))
+            print(line(f"{b} S5_All", s5(f"{b}_All")))
+            if b != "P":
+                print(line(f"{b} dM_d vs P", ft(f"{b}_New") - ft("P_New")))
+                print(line(f"{b} dOld vs P", ft(f"{b}_Old") - ft("P_Old")))
+                print(line(f"{b} dS5_S0test vs P", s5(f"{b}_S0test") - s5("P_S0test")))
+                print(line(f"{b} dS5_All vs P", s5(f"{b}_All") - s5("P_All")))
+            if b.startswith("NL_"):
+                print(line(f"{b} dM_d vs NL_KM", ft(f"{b}_New") - ft("NL_KM_New")))
+                print(line(f"{b} D2 new dropped", tot(f"{b}_drop_new") / tot(f"{b}_n_new")))
+                print(line(f"{b} D4 old dropped", tot(f"{b}_drop_old") / tot(f"{b}_n_old")))
+        if tag == "cub_e09_10_ft_l25":
+            go = [X for X in ("SSKM", "OCM") if (ft(f"{X}_c09") - ft("KM_c09")).mean() >= 5 and ((ft(f"{X}_c09") - ft("KM_c09")) > 0).sum() == 3]
+            print("  rule: " + (f"worth continuing: {', '.join(go)} -> write a full pre-registration" if go else
+                                "No -> the current features do not give a better partition by these two ways; direction (2) moves to branch (a)"))
+            for X in ("SSKM", "OCM"):
+                b = f"NL_{X}"
+                if ((ft(f"{b}_New") - ft("NL_KM_New")).mean() >= T and (ft(f"{b}_Old") - ft("P_Old")).mean() >= -B
+                        and (s5(f"{b}_S0test") - s5("P_S0test")).mean() >= -B):
+                    print(f"  report (not a decision): {b} has dM_d vs NL_KM >= T with dOld, dS5_S0test vs P >= -B -> note for the next design")
+    print("\nE09.10: the decision rule is read on cub_e09_10_ft_l25; cub_e09_10_ft is reported alongside")
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -4060,7 +4373,7 @@ def main(argv):
     p.add_argument("--fts", default="0,1,2", help="e1203: FT seeds, 0,1,2 (exploration) or 3,4 (confirmation)")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -4116,9 +4429,12 @@ def main(argv):
     if o.step == "e1203-summary":
         e1203_summary()
         return
-    if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406", "e1202", "e1407", "e0908", "e1408", "e1409", "e1203"):
+    if o.step == "e0910-summary":
+        e0910_summary()
+        return
+    if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406", "e1202", "e1407", "e0908", "e1408", "e1409", "e1203", "e0910"):
         assert o.prefix, f"{o.step} needs --prefix"
-        fn = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406, "e1202": tier2_e1202, "e1407": tier2_e1407, "e0908": tier2_e0908, "e1408": tier2_e1408, "e1409": tier2_e1409, "e1203": tier2_e1203}[o.step]
+        fn = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406, "e1202": tier2_e1202, "e1407": tier2_e1407, "e0908": tier2_e0908, "e1408": tier2_e1408, "e1409": tier2_e1409, "e1203": tier2_e1203, "e0910": tier2_e0910}[o.step]
         out = fn(o.prefix, o.checks_only, tuple(int(x) for x in o.fts.split(","))) if o.step == "e1203" else fn(o.prefix, o.checks_only)
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
