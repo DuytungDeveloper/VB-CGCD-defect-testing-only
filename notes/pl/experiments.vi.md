@@ -28,7 +28,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.05: phân cụm thừa trên cấu hình paper (`ft`) (2026-10-07; xong, SỐNG) — mục E09.05 dưới đây
 - E09.06: phân cụm thừa K' = 20 rồi gộp về 5 cụm bằng Bayes factor NIW, biến thể `09a` + `09b`, GC10 (2026-11-12 → 13; xong: CHẤP NHẬN, Δ = 0.064, Δ_Old = −0.53 điểm; rolled_pit vẫn mất cụm) — mục E09.06 dưới đây
 - E09.07: nhiều lần khởi tạo k-means, best-of-1000 so với best-of-10, 11 lần rút lồng nhau trong mỗi ảnh chụp (2026-11-04 → 11; xong: không đủ lớn, Δ = 0.0148 < T = 0.0273; giữ `n_init` 10) — mục E09.07 dưới đây
-- E09.08: CUB t5, VB-GMM cho phiên không nhãn, biến thể `09e-vbgmm` (thay bước 11–13): trách nhiệm hai phía với thành phần cũ cố định, mọi khe dùng hậu nghiệm NIW, khởi tạo từ k-means của bước 09; nhánh chẩn đoán KW (k-means làm trắng theo P) và V-new (E-M trong nhóm mới); luật xác nhận trên r3, r4 (đề xuất 2026-11-05; tiền đăng ký 2026-11-18) — mục E09.08 dưới đây
+- E09.08: CUB t5, VB-GMM cho phiên không nhãn, biến thể `09e-vbgmm` (thay bước 11–13): trách nhiệm hai phía với thành phần cũ cố định, mọi khe dùng hậu nghiệm NIW, khởi tạo từ k-means của bước 09; nhánh chẩn đoán KW (k-means làm trắng theo P) và V-new (E-M trong nhóm mới); luật xác nhận trên r3, r4 (đề xuất 2026-11-05; tiền đăng ký 2026-11-18; xong, Rito duyệt 2026-11-19: Bác, ΔS5_S0test −8.522; CAVI khoá ở khởi tạo k-means, KW −0.140; điều kiện bỏ cơ chế đạt; VB thật: hỏng nhãn mềm và Dirichlet, NIW còn mất lớp cũ, prior phân cấp chưa thử) — mục E09.08 dưới đây
 - E09.09: dừng phép gộp của `09b` khi log Bayes factor lớn nhất không còn dương (k tự do, không dưới 5), biến thể `09f-merge-stop`, tầng 1, GC10 (2026-11-14; xong: KHÔNG RÕ, Δ ≈ 0; rolled_pit giữ được cụm con ở 98% số lần; rất nhạy với off) — Q09.14; mục E09.09 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
@@ -725,6 +725,22 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Dự đoán đã đăng ký: New(V-new) − New(N) trong +2 tới +8: sai, +0.000. New(KW) − New(N) trong −2 tới +6: đúng, −0.140. ΔM_d(V − PIPE) trong +3 tới +9: đúng, +3.538. ΔS5_S0test(V − PIPE) trong −4 tới 0: sai, −8.522. Chấp nhận với xác suất khoảng 30%: kết quả là Bác.
 - Số tính tay (kiểm bằng code trong lệnh ghi mục này), bộ không rò: New(V) − New(N) = −0.27 (tính tay); S5_S0test(V) − S5_S0test(N) = +0.77 (tính tay); c09(KW) − c09(N) = +0.70 (tính tay); c09 của V, V-hard, V-πfix trùng c09 của N đến 3 chữ số ở cả 3 FT seed và cả hai bộ (tính tay, so dòng).
 - Chi phí thật: 13995 s (`cub_e09_08_ft_l25`) và 14010 s (`cub_e09_08_ft`), theo dòng tiến độ.
+
+### Kết luận (Rito duyệt 2026-11-19)
+
+- **Bác.** Cách gom nhóm mới (VB-GMM) nhận ra lớp mới tốt hơn một chút (M_d +3.538), nhưng làm mô hình quên lớp cũ nhiều đến mức không chấp nhận được (S5_S0test −8.522, biên cho phép −0.376). Luật đặt ra từ đầu là không được đổi lớp cũ lấy lớp mới, nên biến thể này bị loại. Hệ quả: không chạy bước xác nhận trên r3, r4 (r3, r4 chưa bị chấm bằng nhánh nào của E09.08, còn dùng được làm FT seed xác nhận), và VB-GMM không được dùng làm cải tiến.
+- Phần tăng lớp mới không đến từ VB-GMM: N một mình đã tăng +3.803, cao hơn V.
+- Cách chia nhóm trong số lớp mới không đổi: CAVI bị khoá ở điểm khởi tạo k-means (V-new dừng sau 2 vòng, New trùng N; c09 của V, V-hard, V-πfix trùng N). KW cho một cách chia khác (c09 +0.70, tính tay) mà lớp mới không tăng (New −0.140). [suy luận] Biểu diễn hiện tại không cho gom nhóm đúng hơn bằng các cách kiểu k-means; trách nhiệm gần one-hot ở 384 chiều là giải thích cho việc CAVI bị khoá, chưa đo trực tiếp.
+- Lớp cũ mất vì thành phần cũ cố định không giành lại được ảnh cũ: 0.406 khối trách nhiệm của ảnh cũ nằm trong thành phần mới (V).
+- Điều kiện bỏ cơ chế đạt. Phạm vi: k-means mặc định, KW, CAVI khởi tạo từ k-means với một tiên nghiệm NIW (off = 250), trên PCA-384 của CUB t5. Khoảng Nc → Nlab (+25.216 New) cần biểu diễn khác hoặc nhãn.
+- **Về VB, ghi lại cho rõ.** Paper mô tả mô hình theo Variational Bayes (ELBO, prior liên hợp), nhưng code chính thức chỉ ước lượng MLE (D23). "VB thật" là đề xuất của nhóm (báo thầy 2026-11-10), gồm 4 thành phần. Trạng thái sau E09.08:
+  - (1) Hậu nghiệm NIW của lớp cũ làm prior, dự đoán Student-t (Bayesian QDA): có kết quả. E06.04 đạt (D = +1.91 GC10, +1.59 CUB). Trên CUB t5, N (NIW cho mọi khe, cùng tập ảnh đã lọc `keep` của pipeline) tăng New +3.803 nhưng mất S5_S0test −9.296 so với pipeline.
+  - (2) Prior phân cấp cho hiệp phương sai lớp mới: chưa thử (E09.08 dùng một prior chung cho mọi khe).
+  - (3) Nhãn mềm thay khâu lọc cũ/mới: thua (E09.08, nhánh V).
+  - (4) Trọng số Dirichlet cân bằng cũ/mới: không giúp (bỏ Dirichlet, V-πfix, giữ lớp cũ hơn V: S5_S0test 70.436 so với 69.876).
+  - VB thật chưa thua hẳn: hỏng (3), (4); (1) có kết quả nhưng còn mất lớp cũ; (2) chưa thử.
+- **Câu hỏi then chốt, việc đầu tiên của phiên sau:** N khớp trên đúng tập ảnh đã lọc của pipeline mà vẫn mất 9.296 điểm S5_S0test, còn pipeline (MLE qua SVI, có dừng sớm) thì không. Vì sao? Sửa được thì VB thật còn cơ hội thắng bản gốc; không sửa được thì dừng hướng VB thật.
+- Giới hạn: r0–r2 đã dùng ở E12.02 và E14.01–E14.07, nên đây không phải kiểm định xác nhận; GC10 không thuộc thí nghiệm này.
 
 ## E09.09 — Dừng gộp theo dấu của log Bayes factor (Q09.14, Q09.02)
 
