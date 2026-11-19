@@ -1044,6 +1044,15 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Dự đoán của Claude [SUY LUẬN], độ tin thấp: D3(m_loo) trong 0.85–0.92 và cao hơn D3(m_in); D1 trong 0.3–0.6; NL không đạt (Old tăng nhưng New giảm quá T).
 - Giới hạn: chỉ dưới NIW trên PCA-384 của CUB t5; r0–r2 đã dùng ở E14.01–E14.09, E12.02, E09.08; phát hiện ảnh lặp lại bằng so khớp đặc trưng dựa vào D16, một đặc điểm của protocol (chỉ dùng để so sánh công bằng, không dùng để lọc).
 
+### Sửa (2026-11-19; viết sau code, trước checks-only và trước mọi số của thí nghiệm)
+
+- Bốn chỗ cài đặt trong `tier2_e1203` không ghi chữ-theo-chữ ở tiền đăng ký; không đổi đại lượng hay luật đọc:
+  - D3: AUROC tính bằng thống kê Mann-Whitney U; cặp (mới, cũ) chỉ lập trong cùng một chuỗi và một phiên, rồi cộng U và số cặp của mọi chuỗi, mọi phiên của một FT seed. Lý do: lề của hai chuỗi hay hai phiên khác nhau đến từ hai mô hình khác nhau, so chéo không có nghĩa.
+  - G4: đi qua đúng bước bỏ hàng của NL với ngưỡng −∞, rồi khớp lại.
+  - Báo kèm thêm, không dùng để quyết định: số hàng trong `keep` trùng từng giá trị với một hàng của khe cũ (đường D16), để biết phần so sánh LOO ở phía khe cũ có được dùng tới không.
+  - LOO tính bằng khớp lại chính xác từng hàng (không dùng cập nhật hạng thấp); G3 kiểm với `niw.log_sequential`.
+- Code đã thử trên 15 chuỗi giả (d = 6, 30 lớp, 5 phiên, ảnh cũ của pool lặp lại qua các phiên như D16; mock `sessions`, `replay`, `jax`; mốc E14.07–E14.09 chạy trên cùng dữ liệu giả): G1–G4 OK ở 15/15; đường D16 có được dùng; đối chứng âm (một số của E14.09 lệch 0.01) cho G1 DIFF. Không có số nào của dữ liệu thật.
+
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
 ### Tiền đăng ký (2026-11-16; viết trước khi có code và trước mọi số)
