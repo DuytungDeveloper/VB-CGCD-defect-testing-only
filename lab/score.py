@@ -3803,7 +3803,7 @@ def _mw_1203(pos, neg):
     return float(rk[:len(pos)].sum() - len(pos) * (len(pos) + 1) / 2), len(pos) * len(neg)
 
 
-def tier2_e1203(prefix, checks_only=False):
+def tier2_e1203(prefix, checks_only=False, fts=(0, 1, 2)):
     """E12.03 (pre-registration 446cbd0) on the 15 default chains <prefix>_r<r>_s<N>. Model N (E14.06-E14.09). Per
     session, in order: old slots = base slots + the slots of the branch from earlier sessions. For each kept pool row x
     of new slot k: L_in (slot of N on all its rows), L_loo (slot refitted without x, _loo_1203), L_old (max over the
@@ -3825,10 +3825,14 @@ def tier2_e1203(prefix, checks_only=False):
     t0 = time.time()
     if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
         raise SystemExit("e1203: commit the code first (same dirty rule as scripts/exp.py)")
-    e09 = _ref_metrics("cub_e14_09_" + prefix[len("cub_chain_"):])
-    assert e09.get("checks_ok") == 1, "E14.09 run of this feature set: checks failed"
+    fts = tuple(fts)
+    assert fts in ((0, 1, 2), (3, 4)), "E12.03: FT seeds 0-2 (exploration) or 3, 4 (confirmation, amendment)"
+    if fts == (3, 4):
+        assert prefix == "cub_chain_ft_l25", "the confirmation runs on the leak-free chains only"
+    e09 = _ref_metrics("cub_e14_09_" + prefix[len("cub_chain_"):]) if fts == (0, 1, 2) else None   # r3, r4: no E14.09 run
+    assert e09 is None or e09.get("checks_ok") == 1, "E14.09 run of this feature set: checks failed"
     out, gates = {}, {f"G{k}": True for k in range(1, 5)}
-    for r, N in ((0, 0),) if checks_only else [(r, N) for r in range(3) for N in range(5)]:
+    for r, N in ((fts[0], 0),) if checks_only else [(r, N) for r in fts for N in range(5)]:
         tag, pre = f"{prefix}_r{r}_s{N}", f"r{r}_s{N}_"
         st, views = load_sessions(tag)                  # the workbench first: torch, main, then jax, as the chains
         import jax.numpy as jnp
@@ -3923,7 +3927,8 @@ def tier2_e1203(prefix, checks_only=False):
             res.update({f"S{i}_P_New": 100.0 * float(okp[new].mean()), f"S{i}_P_Old": 100.0 * float(okp[~new].mean()),
                         f"S{i}_P_All": 100.0 * float(okp.mean()), f"S{i}_P_S0test": 100.0 * float(okp[b0].mean())})
             g["G1"] &= abs(res[f"S{i}_P_New"] - float(v["acc1"]["Novel"])) <= 1e-6 and abs(res[f"S{i}_P_Old"] - float(v["acc1"]["Old"])) <= 1e-6
-            g["G1"] &= all(abs(res[f"S{i}_P_{q}"] - float(e09[f"{pre}S{i}_P_{q}"])) <= 1e-4 for q in ("New", "Old", "S0test"))
+            if e09 is not None:
+                g["G1"] &= all(abs(res[f"S{i}_P_{q}"] - float(e09[f"{pre}S{i}_P_{q}"])) <= 1e-4 for q in ("New", "Old", "S0test"))
             lb = _logd_1202("A3", base_slots, zt)
             for b in rows:
                 L = np.concatenate([lb, _logd_1202("A3", post[b], zt)], 1)
@@ -3931,7 +3936,7 @@ def tier2_e1203(prefix, checks_only=False):
                 ok = L.argmax(1) == tgt
                 res.update({f"S{i}_{b}_New": 100.0 * float(ok[new].mean()), f"S{i}_{b}_Old": 100.0 * float(ok[~new].mean()),
                             f"S{i}_{b}_All": 100.0 * float(ok.mean()), f"S{i}_{b}_S0test": 100.0 * float(ok[b0].mean())})
-            for b in ("N", "Nc"):
+            for b in ("N", "Nc") if e09 is not None else ():
                 g["G1"] &= all(abs(res[f"S{i}_{b}_{q}"] - float(e09[f"{pre}S{i}_{b}_{q}"])) <= 1e-4 for q in ("New", "Old", "S0test"))
             g["G4"] &= all(abs(res[f"S{i}_G4_{q}"] - res[f"S{i}_N_{q}"]) <= 1e-6 for q in ("New", "Old", "S0test"))
             res.update({f"S{i}_U_loo": U_loo, f"S{i}_U_in": U_in, f"S{i}_pairs": P_pairs})
@@ -4000,6 +4005,43 @@ def e1203_summary(T=0.935, B=0.376):
                 print("  rule: middle zone -> record and change direction")
     print("\nE12.03: the reading rules are read on cub_e12_03_ft_l25; cub_e12_03_ft is reported alongside")
 
+    mx = sorted((ROOT / "runs").glob("*__cub_e12_03x_ft_l25/metrics.json"))
+    if not mx:
+        print("\ncub_e12_03x_ft_l25 (confirmation, r3, r4): no run yet")
+        return
+    m = _ref_metrics("cub_e12_03x_ft_l25")
+    assert m.get("checks_ok") == 1, "cub_e12_03x_ft_l25: checks failed, results are not read"
+    per = lambda key: np.array([[m[f"r{r}_s{N}_{key}"] for N in range(5)] for r in (3, 4)], float)
+    ft = lambda k: np.mean([per(f"S{i}_{k}") for i in range(1, 6)], axis=0).mean(1)
+    s5 = lambda k: per(f"S5_{k}").mean(1)
+    tot = lambda k: sum(per(f"S{i}_{k}") for i in range(1, 6)).sum(1)
+    line = lambda name, x: f"  {name:<34}" + "".join(f"{val:9.3f}" for val in x) + f"{x.mean():9.3f}"
+    print(f"\ncub_e12_03x_ft_l25 (confirmation, r3, r4): G1 (PIPE = acc1), G2-G4 OK; off chosen: {sorted(set(int(x) for x in per('off').ravel()))}")
+    print(f"  {'':<34}" + "".join(f"{x:>9}" for x in ("r3", "r4", "mean")))
+    for b in ("P", "N", "Nc", "NL", "NL3"):
+        print(line(f"{b} New (M_d)", ft(f"{b}_New")))
+        print(line(f"{b} Old", ft(f"{b}_Old")))
+        print(line(f"{b} S5_S0test", s5(f"{b}_S0test")))
+        print(line(f"{b} S5_All", s5(f"{b}_All")))
+        if b != "P":
+            print(line(f"{b} dM_d vs P", ft(f"{b}_New") - ft("P_New")))
+            print(line(f"{b} dOld vs P", ft(f"{b}_Old") - ft("P_Old")))
+            print(line(f"{b} dS5_S0test vs P", s5(f"{b}_S0test") - s5("P_S0test")))
+            print(line(f"{b} dS5_All vs P", s5(f"{b}_All") - s5("P_All")))
+    print(line("D1 old flipped (m_in>0, m_loo<0)", tot("d1") / tot("n_old")))
+    print(line("D2 new with m_loo < 0", tot("d2") / tot("n_new")))
+    print(line("D3 AUROC of m_loo", tot("U_loo") / tot("pairs")))
+    print(line("D3 AUROC of m_in", tot("U_in") / tot("pairs")))
+    dmd, dS, dO = ft("NL_New") - ft("P_New"), s5("NL_S0test") - s5("P_S0test"), ft("NL_Old") - ft("P_Old")
+    if (dmd > 0).all() and dmd.mean() >= T and dS.mean() >= -B and dO.mean() >= -B:
+        verdict = "CONFIRMED"
+    elif dmd.mean() <= 0 or dS.mean() < -B or dO.mean() < -B:
+        verdict = "NOT CONFIRMED"
+    else:
+        verdict = "UNCLEAR"
+    print(f"  confirmation rule (amendment of E12.03): dM_d(NL - P) r3 {dmd[0]:+.3f}, r4 {dmd[1]:+.3f}, mean {dmd.mean():+.3f}; "
+          f"mean dS5_S0test {dS.mean():+.3f}; mean dOld {dO.mean():+.3f} -> {verdict}")
+
 
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
@@ -4015,6 +4057,7 @@ def main(argv):
     p.add_argument("--seed", type=int, help="e0604 cub200: seed of the chain")
     p.add_argument("--checks-only", action="store_true", help="e0604: print the checks C1-C3 only, no result; e1401: chain r0 s0 only")
     p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25"], help="e1401, e1402: tag prefix of the 15 chains")
+    p.add_argument("--fts", default="0,1,2", help="e1203: FT seeds, 0,1,2 (exploration) or 3,4 (confirmation)")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
     assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
@@ -4075,7 +4118,8 @@ def main(argv):
         return
     if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406", "e1202", "e1407", "e0908", "e1408", "e1409", "e1203"):
         assert o.prefix, f"{o.step} needs --prefix"
-        out = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406, "e1202": tier2_e1202, "e1407": tier2_e1407, "e0908": tier2_e0908, "e1408": tier2_e1408, "e1409": tier2_e1409, "e1203": tier2_e1203}[o.step](o.prefix, o.checks_only)
+        fn = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406, "e1202": tier2_e1202, "e1407": tier2_e1407, "e0908": tier2_e0908, "e1408": tier2_e1408, "e1409": tier2_e1409, "e1203": tier2_e1203}[o.step]
+        out = fn(o.prefix, o.checks_only, tuple(int(x) for x in o.fts.split(","))) if o.step == "e1203" else fn(o.prefix, o.checks_only)
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
