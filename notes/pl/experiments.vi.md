@@ -35,7 +35,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
 - E12.02: CUB t5, bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ (A3 hoặc A1, chọn bằng mô phỏng bỏ-một-lớp trên S0; ngưỡng p-value conformal α = 0.10) thay `keep` của bước 12, rồi khớp mô hình N của E14.06: lấy lại bao nhiêu phần khoảng lớp cũ giữa N và N sạch (tiền đăng ký 2026-11-17) — mục E12.02 dưới đây
-- E12.03: CUB t5, lọc cũ/mới bằng lề LOO (ngoài mẫu ở cả hai phía), nhánh NL, D1–D4, đọc dưới ràng buộc hai vế của QD28 (tiền đăng ký 2026-11-19) — mục E12.03 dưới đây
+- E12.03: CUB t5, lọc cũ/mới bằng lề LOO (ngoài mẫu ở cả hai phía), nhánh NL, D1–D4, đọc dưới ràng buộc hai vế của QD28 (tiền đăng ký 2026-11-19; xong, Rito duyệt 2026-11-19: Đạt trên r0–r2, NL ΔM_d +2.726, ΔOld +1.334, ΔS5_S0test −0.162, ΔS5_All +1.611; AUROC lề LOO 0.956 so với 0.800 trong mẫu; phải xác nhận trên r3, r4) — mục E12.03 dưới đây
 - E14.01: điểm lớp mới theo bốn quy ước ghép tên P0–P3 trên cùng dự đoán, CUB t5 (2026-11-16; xong, Rito duyệt tạm: P1–P3 cao hơn P0 0.75–0.79 điểm M_d; P3 trùng P2) — mục E14.01 dưới đây
 - E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
@@ -1052,6 +1052,36 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - Báo kèm thêm, không dùng để quyết định: số hàng trong `keep` trùng từng giá trị với một hàng của khe cũ (đường D16), để biết phần so sánh LOO ở phía khe cũ có được dùng tới không.
   - LOO tính bằng khớp lại chính xác từng hàng (không dùng cập nhật hạng thấp); G3 kiểm với `niw.log_sequential`.
 - Code đã thử trên 15 chuỗi giả (d = 6, 30 lớp, 5 phiên, ảnh cũ của pool lặp lại qua các phiên như D16; mock `sessions`, `replay`, `jax`; mốc E14.07–E14.09 chạy trên cùng dữ liệu giả): G1–G4 OK ở 15/15; đường D16 có được dùng; đối chứng âm (một số của E14.09 lệch 0.01) cho G1 DIFF. Không có số nào của dữ liệu thật.
+
+### Kết quả (2026-11-19; run `20261119_170125__cub_e12_03_ft_l25`, `20261119_172338__cub_e12_03_ft`, code `ba94056`, Sửa `4f96678`, commit run `077025e`; số in bằng `python lab/score.py e1203-summary`; 30/30 chuỗi qua G1–G4)
+
+- off0 = 250 ở 30/30 chuỗi. Hai run chạy với một luồng BLAS (như E14.09).
+- Bộ không rò, hiệu so với pipeline (trung bình 3 FT seed; pipeline: M_d 56.944, Old 74.046, S5_S0test 78.398, S5_All 66.381):
+
+| Nhánh | M_d | ΔM_d | ΔOld | ΔS5_S0test | ΔS5_All |
+|---|---|---|---|---|---|
+| N | 61.033 | +4.089 | −4.885 | −9.296 | −3.513 |
+| NL | 59.670 | +2.726 | +1.334 | −0.162 | +1.611 |
+| NL3 (báo kèm) | 57.799 | +0.855 | +1.991 | +1.682 | +1.805 |
+| Nc (oracle) | 60.932 | +3.988 | +1.889 | −0.198 | +2.004 |
+
+  - ΔM_d của NL theo FT seed r0, r1, r2: +2.548, +2.469, +3.160.
+  - NL so với Nc: New thấp hơn 1.262, S5_All thấp hơn 0.394 (tính tay).
+- D1–D4 của luồng NL, bộ không rò: D1 = 0.849; D2 = 0.114; D3 (AUROC) của m_loo = 0.956, của m_in = 0.800; D4: bỏ 0.873 ảnh cũ và 0.114 ảnh mới trong `keep`. Mỗi chuỗi có 1596.200 ảnh cũ và 2498.733 ảnh mới trong `keep` (cộng 5 phiên); 59.600 hàng trùng một hàng của khe cũ (đường D16 có được dùng).
+- Bộ có rò, cùng chiều: NL ΔM_d +2.556, ΔOld +1.480, ΔS5_S0test +0.093, ΔS5_All +1.663; D1 0.875, D2 0.112, D3 0.961 (m_in 0.812).
+- Luật đọc chốt trước, bộ không rò: ΔM_d(NL − PIPE) = +2.726 ≥ T và dương ở 3/3 FT seed; ΔS5_S0test = −0.162 ≥ −B; ΔOld = +1.334 ≥ −B → **Đạt**. NL3 là báo kèm, không dùng để quyết định.
+- Dự đoán đã đăng ký: D3(m_loo) trong 0.85–0.92 và cao hơn D3(m_in): cao hơn đúng, khoảng sai (0.956). D1 trong 0.3–0.6: sai (0.849). NL không đạt: sai (Đạt).
+
+### Kết luận (Rito duyệt 2026-11-19)
+
+- Theo luật chốt trước, E12.03 Đạt trên bộ quyết định. Bỏ các ảnh có lề LOO âm khỏi tập khớp của khe mới cho N hơn pipeline +2.726 điểm lớp mới, +1.334 ở Old và +1.611 ở S5_All, còn lớp gốc giữ trong biên (−0.162); bộ có rò cùng chiều. Đây là lần đầu một biến thể không nhãn của VB thật thắng pipeline mà không đổi lớp cũ lấy lớp mới. Kết quả phải xác nhận trên r3, r4 trước khi dùng.
+- Cơ chế: bất đối xứng trong mẫu/ngoài mẫu được xác nhận. Cùng mô hình, cùng các hàng, AUROC tách mới/cũ tăng từ 0.800 (trong mẫu, ngang 0.798 của E12.02) lên 0.956 (LOO). [suy luận] Điều này giải thích vì sao CAVI của E09.08 bị khoá (thành phần mới luôn giải thích tốt ảnh mà nó đã khớp trên) và vì sao điểm một phía của E12.02 kém.
+- Giới hạn:
+  - r0–r2 đã dùng ở E14.01–E14.09, E12.02, E09.08, và ý LOO nảy ra sau khi phân tích kết quả trên chính các seed này; ngưỡng 0 và nhánh quyết định NL chốt trước, nhưng rủi ro chọn theo dữ liệu vẫn còn. Xác nhận trên r3, r4 là bắt buộc.
+  - NL dưới trần Nc (New thấp hơn 1.262, tính tay), do bỏ nhầm 0.114 ảnh mới.
+  - Chỉ CUB t5, NIW, PCA-384; so với pipeline tái lập từ code chính thức, không với số của paper; GC10 chưa thử.
+  - Tên gọi khi báo cáo: "NIW + lọc bằng mật độ dự đoán LOO"; phần lọc không thuộc 4 thành phần VB thật ban đầu.
+- Bước kế (Rito duyệt): tiền đăng ký xác nhận trên r3, r4 (10 chuỗi, cùng code, cùng luật Đạt; cổng G1 đổi vì r3, r4 chưa có run E14.09); sau đó E09.10, làm trên nền NL thay vì N.
 
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
