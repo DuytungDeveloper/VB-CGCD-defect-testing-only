@@ -32,6 +32,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e1407-summary                                  E14.07: tables from the two runs
   python lab/score.py e0908 --prefix cub_chain_ft[_l25] [--checks-only]   E09.08: VB-GMM arms V, Vnew, KW, Vhard, Vpifix (exp.py)
   python lab/score.py e0908-summary                                  E09.08: tables and decision from the two runs
+  python lab/score.py e1408 --prefix cub_chain_ft[_l25] [--checks-only]   E14.08: weakenings O1-O4 of the new slots of N, A1-A3 (exp.py)
+  python lab/score.py e1408-summary                                  E14.08: tables and rules R1-R3 from the two runs
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -3201,9 +3203,341 @@ def e0908_summary(T=0.935, B=0.376):
     print("\nE09.08: the decision rule is read on cub_e09_08_ft_l25; cub_e09_08_ft is reported alongside")
 
 
+# ---- E14.08: why N loses old classes: four weakenings of the new slots, mean vs covariance, steals (pre-registered 3637509) ----
+ETA_1408 = (1.0, 0.5, 0.25, 0.1, 0.05, 0.02)                 # O1: likelihood power; 1 = N
+W_1408 = (None, 0.75, 0.5, 0.25, 0.1)                       # O2: weight of the data mean; None = kappa0 = N
+TAU_1408 = (1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2)     # O3: score temper against p_ref; 1 = N
+N_O4_1408 = len(Q_1403) + 1                                 # O4: b = 0, then min(0, -Q_q(m')) for q in Q_1403
+GRID_1408 = {"O1": len(ETA_1408), "O2": len(W_1408), "O3": len(TAU_1408), "O4": N_O4_1408}
+
+
+def _postx_1408(x, prior, eta=1.0, w=None):
+    """NIW posterior of one new slot from rows x under O1 (likelihood raised to eta: n -> eta n, S -> eta S, Miller &
+    Dunson 2019) or O2 (w given: own kappa = n (1 - w) / w, so mn = (1 - w) m0 + w xbar, kn = n / w, vn = nu0 + n,
+    Psi_n = Psi0 + S + n (1 - w)(xbar - m0)(xbar - m0)'). No rows: the prior. eta = 1, w = None: _post_1406.
+    Returns (mn, kn, vn, chol of Psi_n, log det Psi_n)."""
+    m0, k0, nu0, psi0 = prior
+    n = len(x)
+    if n == 0:
+        return _post_1406(x, prior)
+    xb = x.mean(0)
+    S = (x - xb).T @ (x - xb)
+    if w is None:
+        ne = eta * n
+        kn, vn = k0 + ne, nu0 + ne
+        mn = (k0 * m0 + ne * xb) / kn
+        psi = psi0 + eta * S + (k0 * ne / kn) * np.outer(xb - m0, xb - m0)
+    else:
+        kn, vn = n / w, nu0 + n
+        mn = (1.0 - w) * m0 + w * xb
+        psi = psi0 + S + n * (1.0 - w) * np.outer(xb - m0, xb - m0)
+    L = np.linalg.cholesky(psi)
+    return mn, kn, vn, L, 2.0 * float(np.log(np.diag(L)).sum())
+
+
+def _mix_1408(xm, xc, prior):
+    """A2 recombination: mn from rows xm, (kn, vn, Psi_n) from rows xc; a part from no rows takes the prior."""
+    a, b = _post_1406(xm, prior), _post_1406(xc, prior)
+    return a[0], b[1], b[2], b[3], b[4]
+
+
+def _tparts_1408(slot, x):
+    """Student-t log density of a _post_1406 slot split as A + B(x): A = the part that does not depend on x (gamma
+    terms, log det of the scale), B = -(v + d)/2 log(1 + q c / v) (niw._t_logpdf). Returns (A, B array)."""
+    from scipy.linalg import solve_triangular
+    from scipy.special import gammaln
+    mn, kn, vn, L, ld = slot
+    x = np.asarray(x, np.float64)
+    d = x.shape[1]
+    q = (solve_triangular(L, (x - mn).T, lower=True) ** 2).sum(0)
+    v = vn - d + 1
+    c = kn * v / (kn + 1)
+    A = gammaln((v + d) / 2) - gammaln(v / 2) - d / 2 * np.log(v * np.pi) - 0.5 * (ld - d * np.log(c))
+    return float(A), -(v + d) / 2 * np.log1p(q * c / v)
+
+
+def _acc_1408(L, tgt, new, b0):
+    """New, Old, S0test (percent) and the argmax of one log-density (or score) matrix over the seen slots."""
+    pr = L.argmax(1)
+    ok = pr == tgt
+    return 100.0 * float(ok[new].mean()), 100.0 * float(ok[~new].mean()), 100.0 * float(ok[b0].mean()), pr
+
+
+def tier2_e1408(prefix, checks_only=False):
+    """E14.08 (pre-registration 3637509) on the 15 default chains <prefix>_r<r>_s<N>. Model N of E14.06/E14.07 (one
+    NIW prior, off by leave-one-out on S0, Student-t, argmax over the seen slots); the operators touch the new slots of
+    every session so far (slots base ... n - 1), the base slots stay as they are; an empty slot is the prior.
+    Part B, grids from the neutral point (= N): O1 eta in ETA_1408 (_postx_1408); O2 w in W_1408 (_postx_1408);
+    O3 score tau (L_k - L_ref) + L_ref on the new slots, L_ref = Gaussian N(m0, P), P = niw.prior_cov(., 0), tau in
+    TAU_1408; O4 b on every new slot, b = 0 then min(0, -Q_q(m')) for q in Q_1403, m' = max over the new slots minus
+    max over the base slots (no labels; points with b > 0 are clipped to 0, i.e. to N, so that the index q lines up
+    across chains). Part A: A1 S0test of PIPE, N, Nc per session; A2 Mb (mn from the rows of N, the rest from the rows
+    of Nc) and Psib (the reverse), pool labels; A3 steals at session 5 on N (base test image right under the base
+    slots, taken by a new slot): session, rows, old share of the rows of the taking slot, H8 indicator (its rows hold a
+    pool image of the victim's class) and base rate, dA and dB of _tparts_1408 against the victim's base slot.
+    Gates: G1 PIPE (New, Old, S0test per session) = acc1 (1e-6) and = the E14.07 run of this set (1e-4); N, Nc (New,
+    Old, S0test per session) = that run (1e-4). G2 each operator at its neutral point gives New, Old, S0test of N
+    (1e-6); O3 at tau = 1 and O4 at b = 0 give the argmax of N exactly. G3 Mb and Psib slots with both sources the
+    rows of N equal the N slots, with both the rows of Nc the Nc slots (relative 1e-6, every slot, every session).
+    G4 the steal count equals an independent count (per-image max comparison); dA + dB = L_k - L_y (relative 1e-6).
+    No SVI, no RNG; pool labels for Nc, Mb, Psib and A3 only; test labels for scoring. The progress line prints the
+    gates and the time only. Keys: r<r>_s<N>_<key>; G1_ok ... G4_ok, checks_ok. checks_only: chain r0 s0 only, no keys."""
+    import niw
+    from replay import _clf, _git
+    from sessions import load as load_sessions, _device
+    assert prefix in ("cub_chain_ft", "cub_chain_ft_l25"), "E14.08 is pre-registered on the two sets of CUB chains"
+    t0 = time.time()
+    if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
+        raise SystemExit("e1408: commit the code first (same dirty rule as scripts/exp.py)")
+    e07 = _ref_metrics("cub_e14_07_" + prefix[len("cub_chain_"):])
+    assert e07.get("checks_ok") == 1, "E14.07 run of this feature set: checks failed"
+    rel = lambda u, w: float(np.max(np.abs(np.asarray(u, np.float64) - np.asarray(w, np.float64))) / max(1e-300, float(np.max(np.abs(np.asarray(w, np.float64))))))
+    same = lambda s1, s2: all(rel(u, w) <= 1e-6 for u, w in zip(s1, s2))
+    out, gates = {}, {f"G{k}": True for k in range(1, 5)}
+    for r, N in ((0, 0),) if checks_only else [(r, N) for r in range(3) for N in range(5)]:
+        tag, pre = f"{prefix}_r{r}_s{N}", f"r{r}_s{N}_"
+        st, views = load_sessions(tag)                  # the workbench first: torch, main, then jax, as the chains
+        import jax.numpy as jnp
+        _device()
+        a = st["args"]
+        assert a.dataset == "cub200" and a.load_mode == "t5" and len(views) == 5 and a.seed == N, f"{tag}: not a CUB t5 chain of seed {N}"
+        base, inc, res, g = a.base, a.increment, {}, {f"G{k}": True for k in range(1, 5)}
+        z0, y0 = np.asarray(st["z_s0"], np.float64), np.asarray(st["s0_y"]).astype(int)
+        d = z0.shape[1]
+        off0 = niw.choose(niw.loo_curve(z0, y0))
+        sts = niw.class_stats(z0, y0)
+        P = niw.prior_cov(sts, 0)
+        prior = (sts["m0"], niw.K0, d + 1 + off0, off0 * P)
+        base_slots = [_post_1406(z0[y0 == k], prior) for k in range(base)]
+        ref_slot = (sts["m0"], np.linalg.cholesky(P), 2.0 * float(np.log(np.diag(np.linalg.cholesky(P))).sum()))
+        res["off"] = off0
+        rows = {"N": [], "Nc": []}                      # rows of every new slot so far, in slot order
+        meta = []                                       # per new slot of N: (session, pool labels of its rows, offset of its session)
+        post = {"N": [], "Nc": [], "Mb": [], "Psib": [], "X0": []}   # X0: _postx_1408 at its neutral point (G2)
+        post.update({f"O1_{j}": [] for j in range(1, len(ETA_1408))})
+        post.update({f"O2_{j}": [] for j in range(1, len(W_1408))})
+        for i, v in enumerate(views, 1):
+            off = v["offset"]
+            n = off + inc
+            zp = np.asarray(v["z_pool"], np.float64)
+            ids, k = np.asarray(v["ids"]).astype(int), np.asarray(v["keep"]).astype(bool)
+            yp, lut = np.asarray(v["true_pool_y"]).astype(int), np.asarray(v["lut"])
+            for c in range(inc):
+                sk = k & (ids == c)
+                sc = sk & (yp >= off)
+                xn, xc = zp[sk], zp[sc]
+                rows["N"].append(xn)
+                rows["Nc"].append(xc)
+                meta.append((i, yp[sk], off))
+                sN, sC = _post_1406(xn, prior), _post_1406(xc, prior)
+                post["N"].append(sN)
+                post["Nc"].append(sC)
+                post["Mb"].append(_mix_1408(xn, xc, prior))
+                post["Psib"].append(_mix_1408(xc, xn, prior))
+                g["G3"] &= same(_mix_1408(xn, xn, prior), sN) and same(_mix_1408(xc, xc, prior), sC)
+                post["X0"].append(_postx_1408(xn, prior))
+                for j in range(1, len(ETA_1408)):
+                    post[f"O1_{j}"].append(_postx_1408(xn, prior, eta=ETA_1408[j]))
+                for j in range(1, len(W_1408)):
+                    post[f"O2_{j}"].append(_postx_1408(xn, prior, w=W_1408[j]))
+            clf = _clf(v)
+            _component(v["predict"])(clf)
+            clf.label_offset, clf.n_seen = off, n
+            xt = clf.pca.transform(v["test_all_x"])
+            zt = np.asarray(xt, np.float64)
+            y = np.asarray(v["true_test_all_y"]).astype(int)
+            tgt, new, b0 = lut[y], y >= off, y < base
+            pr = np.asarray(clf._predict(jnp.array(xt), _jnp(v["params1"]))[0]).astype(int)
+            okp = pr == tgt
+            pn, po, ps = 100.0 * float(okp[new].mean()), 100.0 * float(okp[~new].mean()), 100.0 * float(okp[b0].mean())
+            res.update({f"S{i}_P_New": pn, f"S{i}_P_Old": po, f"S{i}_P_S0test": ps})
+            g["G1"] &= abs(pn - float(v["acc1"]["Novel"])) <= 1e-6 and abs(po - float(v["acc1"]["Old"])) <= 1e-6
+            g["G1"] &= all(abs(res[f"S{i}_P_{q}"] - float(e07[f"{pre}S{i}_P_{q}"])) <= 1e-4 for q in ("New", "Old", "S0test"))
+            lb = _logd_1202("A3", base_slots, zt)
+            lnew = {b: _logd_1202("A3", post[b], zt) for b in post}
+            for b in post:
+                assert lb.shape[1] + lnew[b].shape[1] == n, f"{tag} S{i}: {lb.shape[1] + lnew[b].shape[1]} slots"
+            LN = np.concatenate([lb, lnew["N"]], 1)
+            nN, oN, sN0, prN = _acc_1408(LN, tgt, new, b0)
+            for b in ("N", "Nc", "Mb", "Psib"):
+                vals = _acc_1408(np.concatenate([lb, lnew[b]], 1), tgt, new, b0)
+                res.update({f"S{i}_{b}_New": vals[0], f"S{i}_{b}_Old": vals[1], f"S{i}_{b}_S0test": vals[2]})
+                if b in ("N", "Nc"):
+                    g["G1"] &= all(abs(res[f"S{i}_{b}_{q}"] - float(e07[f"{pre}S{i}_{b}_{q}"])) <= 1e-4 for q in ("New", "Old", "S0test"))
+            # part B: every operator, grid point 0 = N
+            lref = _logd_1202("A1", [ref_slot], zt)[:, 0]
+            mrg = lnew["N"].max(1) - lb.max(1)
+            bs = [0.0] + [min(0.0, float(-np.quantile(mrg, q))) for q in Q_1403]
+            for op, npts in GRID_1408.items():
+                for j in range(npts):
+                    if op in ("O1", "O2"):
+                        Lj = np.concatenate([lb, lnew["X0" if j == 0 else f"{op}_{j}"]], 1)
+                    elif op == "O3":
+                        t = TAU_1408[j]
+                        Lj = np.concatenate([lb, t * lnew["N"] + (1.0 - t) * lref[:, None]], 1)
+                    else:
+                        Lj = np.concatenate([lb, lnew["N"] + bs[j]], 1)
+                        res[f"S{i}_O4_{j}_b"] = bs[j]
+                    nj, oj, sj, prj = _acc_1408(Lj, tgt, new, b0)
+                    res.update({f"S{i}_{op}_{j}_New": nj, f"S{i}_{op}_{j}_Old": oj, f"S{i}_{op}_{j}_S0test": sj})
+                    if j == 0:
+                        g["G2"] &= abs(nj - nN) <= 1e-6 and abs(oj - oN) <= 1e-6 and abs(sj - sN0) <= 1e-6
+                        if op in ("O3", "O4"):
+                            g["G2"] &= bool(np.array_equal(prj, prN))
+            # part A3: steals at session 5 on N
+            if i == len(views):
+                bright = (lb.argmax(1) == tgt) & b0
+                steal = bright & (prN >= base)
+                cnt2 = 0
+                for row in np.flatnonzero(b0):
+                    if LN[row, :base].argmax() == tgt[row] and LN[row, base:].max() > LN[row, :base].max():
+                        cnt2 += 1
+                g["G4"] &= int(steal.sum()) == cnt2
+                ns = len(meta)
+                has = lambda cls: np.array([bool((meta[s][1] == cls).any()) for s in range(ns)])
+                ind, rate, olds, nk, dA, dB = [], [], [], [], [], []
+                sess = np.zeros(len(views), int)
+                cache = {}
+                for row in np.flatnonzero(steal):
+                    kk, yy, cls = int(prN[row]), int(tgt[row]), int(y[row])
+                    s = kk - base
+                    ses, labs, offs = meta[s]
+                    sess[ses - 1] += 1
+                    nk.append(len(labs))
+                    olds.append(float((labs < offs).mean()) if len(labs) else 0.0)
+                    if cls not in cache:
+                        cache[cls] = has(cls)
+                    ind.append(float(cache[cls][s]))
+                    rate.append(float(cache[cls].mean()))
+                    Ak, Bk = _tparts_1408(post["N"][s], zt[row:row + 1])
+                    Ay, By = _tparts_1408(base_slots[yy], zt[row:row + 1])
+                    dA.append(Ak - Ay)
+                    dB.append(float(Bk[0] - By[0]))
+                    g["G4"] &= abs((Ak + Bk[0]) - (Ay + By[0]) - (LN[row, kk] - LN[row, yy])) <= 1e-6 * max(1.0, abs(LN[row, kk] - LN[row, yy]))
+                res.update({"A3_n": int(steal.sum()), "A3_nright": int(bright.sum()), "A3_sum_ind": float(np.sum(ind)),
+                            "A3_sum_rate": float(np.sum(rate)), "A3_sum_old": float(np.sum(olds)), "A3_sum_nk": float(np.sum(nk)),
+                            "A3_sum_dA": float(np.sum(dA)), "A3_sum_dB": float(np.sum(dB))})
+                res.update({f"A3_sess{s + 1}": int(sess[s]) for s in range(len(views))})
+        for kk in gates:
+            gates[kk] = gates[kk] and g[kk]
+        out.update({pre + kk: round(val, 4) if isinstance(val, float) else val for kk, val in res.items()})
+        print(f"e1408 {tag}: " + " ".join(f"{kk} {'OK' if g[kk] else 'DIFF'}" for kk in g) + f" ({time.time() - t0:.0f} s)", flush=True)
+    chk = {f"{kk}_ok": int(v) for kk, v in gates.items()}
+    chk["checks_ok"] = int(all(gates.values()))
+    print(f"e1408 {prefix}: checks {'OK' if chk['checks_ok'] else 'FAILED'} ({time.time() - t0:.0f} s)")
+    return chk if checks_only else {**chk, **out}
+
+
+def _read_1408(dS, nw, B):
+    """Walk a curve from the neutral point; first point with dS >= -B, New interpolated linearly in dS at -B
+    between it and the point before. Returns (New at -B or nan, reached)."""
+    for j in range(len(dS)):
+        if dS[j] >= -B:
+            if j == 0:
+                return float(nw[0]), True
+            f = (-B - dS[j - 1]) / (dS[j] - dS[j - 1])
+            return float(nw[j - 1] + f * (nw[j] - nw[j - 1])), True
+    return float("nan"), False
+
+
+def e1408_summary(T=0.935, B=0.376):
+    """Tables of E14.08 from the runs cub_e14_08_ft_l25 and cub_e14_08_ft. Per operator and FT seed: the curve
+    (New = mean of 5 sessions and 5 chains; dS5_S0test and dOld against the pipeline, mean of 5 chains), the reading
+    point at dS5_S0test = -B (_read_1408), G_X = New there - New of the pipeline (P0). Rules R1-R3 and the A2 reading of
+    the pre-registration on the leak-free set; A1, A3 and the leaky set reported. "mean" and "sd" are over the 3 FT
+    seeds (sd with ddof 1). Refuses to read a run without checks_ok = 1."""
+    res = {}
+    for tag in ("cub_e14_08_ft_l25", "cub_e14_08_ft"):
+        if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+            print(f"\n{tag}: no run yet")
+            continue
+        m = _ref_metrics(tag)
+        assert m.get("checks_ok") == 1, f"{tag}: checks failed, results are not read"
+        per = lambda key: np.array([[m[f"r{r}_s{N}_{key}"] for N in range(5)] for r in range(3)], float)
+        ft = lambda k: np.mean([per(f"S{i}_{k}") for i in range(1, 6)], axis=0).mean(1)
+        s5 = lambda k: per(f"S5_{k}").mean(1)
+        line = lambda name, x: f"  {name:<32}" + "".join(f"{val:9.3f}" for val in x) + f"{np.nanmean(x):9.3f}{np.nanstd(x, ddof=1):9.3f}"
+        head = f"  {'':<32}" + "".join(f"{x:>9}" for x in ("r0", "r1", "r2", "mean", "sd"))
+        print(f"\n{tag}: G1-G4 OK; off chosen: {sorted(set(int(x) for x in per('off').ravel()))}\n{head}")
+        for b in ("P", "N", "Nc"):
+            print(line(f"{b} New", ft(f"{b}_New")))
+            print(line(f"{b} Old", ft(f"{b}_Old")))
+            print(line(f"{b} S5_S0test", s5(f"{b}_S0test")))
+        print("  A1: S0test minus pipeline per session")
+        for i in range(1, 6):
+            for b in ("N", "Nc"):
+                print(line(f"S{i} {b} - P", per(f"S{i}_{b}_S0test").mean(1) - per(f"S{i}_P_S0test").mean(1)))
+        newp, s5p, oldp = ft("P_New"), s5("P_S0test"), ft("P_Old")
+        G, reach = {}, {}
+        for op, npts in GRID_1408.items():
+            print(f"  part B, {op}: point, New, dS5_S0test, dOld (FT-seed means)")
+            curves = []
+            for j in range(npts):
+                nw, dS, dO = ft(f"{op}_{j}_New"), s5(f"{op}_{j}_S0test") - s5p, ft(f"{op}_{j}_Old") - oldp
+                curves.append((nw, dS, dO))
+                print(line(f"{op}[{j}] New", nw))
+                print(line(f"{op}[{j}] dS5_S0test", dS))
+                print(line(f"{op}[{j}] dOld", dO))
+            if op == "O4":
+                print("  O4 b at session 5, mean over chains, per point: " + " ".join(f"{per(f'S5_O4_{j}_b').mean():.3f}" for j in range(npts)))
+            gx, rc = np.full(3, np.nan), np.zeros(3, bool)
+            gox = np.full(3, np.nan)
+            for f in range(3):
+                nwf = [c[0][f] for c in curves]
+                dsf = [c[1][f] for c in curves]
+                dof = [c[2][f] for c in curves]
+                val, ok = _read_1408(dsf, nwf, B)
+                vo, _ = _read_1408(dsf, dof, B)
+                gx[f], rc[f], gox[f] = val - newp[f], ok, vo
+            G[op], reach[op] = gx, rc
+            print(line(f"G_{op} = New(-B) - New(P)", gx) + f"   reached {int(rc.sum())}/3")
+            print(line(f"dOld at the reading point", gox))
+        res[tag] = {op: (float(np.nanmean(G[op])) if reach[op].any() else float("nan"), int(reach[op].sum())) for op in G}
+        R = s5("Nc_S0test") - s5("N_S0test")
+        Rm, Rc = s5("Psib_S0test") - s5("N_S0test"), s5("Mb_S0test") - s5("N_S0test")
+        print(line("A2 R = Nc - N", R))
+        print(line("A2 R_mean = Psib - N", Rm))
+        print(line("A2 R_cov = Mb - N", Rc))
+        sm = lambda k: per(k).sum(1)
+        n3 = sm("A3_n")
+        print(line("A3 steals per chain (S5)", per("A3_n").mean(1)))
+        print(line("A3 H8 ratio", (sm("A3_sum_ind") / n3) / (sm("A3_sum_rate") / n3)))
+        print(line("A3 H8 indicator", sm("A3_sum_ind") / n3))
+        print(line("A3 H8 base rate", sm("A3_sum_rate") / n3))
+        print(line("A3 old share of taking slot", sm("A3_sum_old") / n3))
+        print(line("A3 rows of taking slot", sm("A3_sum_nk") / n3))
+        print(line("A3 mean dA", sm("A3_sum_dA") / n3))
+        print(line("A3 mean dB", sm("A3_sum_dB") / n3))
+        for s in range(1, 6):
+            print(line(f"A3 share from session {s}", sm(f"A3_sess{s}") / n3))
+        if tag == "cub_e14_08_ft_l25":
+            ok1 = [op for op in G if reach[op].sum() == 3 and np.mean(G[op]) >= T]
+            ok2 = [op for op in G if reach[op].sum() == 3]
+            if ok1:
+                ok1.sort(key=lambda op: -np.mean(G[op]))
+                print(f"  rule R1: {', '.join(f'{op} (G {np.mean(G[op]):+.3f})' for op in ok1)} reach -B in 3/3 FT seeds with "
+                      f"G >= T {T} -> real VB still has a way: choose the parameter of {ok1[0]} without labels, confirm on r3, r4")
+            elif ok2:
+                print(f"  rule R2: {', '.join(ok2)} reach -B in 3/3 FT seeds, none with G >= T {T} -> weakening returns the old "
+                      "classes only by giving back the new ones: stop the real-VB direction")
+            else:
+                print("  rule R3: no operator reaches -B in 3/3 FT seeds -> weakening is not enough; read A2, A3 before deciding")
+            res["R1"] = ok1
+            Rmean = float(R.mean())
+            fm, fc = float(Rm.mean()) / Rmean, float(Rc.mean()) / Rmean
+            print(f"  A2 reading: R_mean/R {fm:.3f}, R_cov/R {fc:.3f} -> "
+                  + ("the contamination acts through the mean" if fm >= 0.75 else
+                     "the contamination acts through the covariance" if fc >= 0.75 else "both"))
+    if "R1" in res and res["R1"] and "cub_e14_08_ft" in res:
+        for op in res["R1"]:
+            gl = res["cub_e14_08_ft"][op][0]
+            print(f"  leaky set, {op}: G {gl:+.3f}" + (" -> not robust: confirm before use" if not gl > 0 else ""))
+    print("\nE14.08: the reading rules are read on cub_e14_08_ft_l25; cub_e14_08_ft is reported alongside")
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -3217,7 +3551,7 @@ def main(argv):
     p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25"], help="e1401, e1402: tag prefix of the 15 chains")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -3264,9 +3598,12 @@ def main(argv):
     if o.step == "e0908-summary":
         e0908_summary()
         return
-    if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406", "e1202", "e1407", "e0908"):
+    if o.step == "e1408-summary":
+        e1408_summary()
+        return
+    if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406", "e1202", "e1407", "e0908", "e1408"):
         assert o.prefix, f"{o.step} needs --prefix"
-        out = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406, "e1202": tier2_e1202, "e1407": tier2_e1407, "e0908": tier2_e0908}[o.step](o.prefix, o.checks_only)
+        out = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406, "e1202": tier2_e1202, "e1407": tier2_e1407, "e0908": tier2_e0908, "e1408": tier2_e1408}[o.step](o.prefix, o.checks_only)
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
