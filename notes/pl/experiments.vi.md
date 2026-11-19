@@ -1083,6 +1083,20 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - Tên gọi khi báo cáo: "NIW + lọc bằng mật độ dự đoán LOO"; phần lọc không thuộc 4 thành phần VB thật ban đầu.
 - Bước kế (Rito duyệt): tiền đăng ký xác nhận trên r3, r4 (10 chuỗi, cùng code, cùng luật Đạt; cổng G1 đổi vì r3, r4 chưa có run E14.09); sau đó E09.10, làm trên nền NL thay vì N.
 
+### Sửa đổi (2026-11-19; phần xác nhận, viết sau Kết luận dò hướng `b840ea0`, trước mọi run và mọi số của NL trên r3, r4)
+
+- Run xác nhận: tag `cub_e12_03x_ft_l25`, 10 chuỗi `cub_chain_ft_l25_r<r>_s<N>`, r = 3, 4, N = 0–4; cùng hàm `tier2_e1203` với tham số danh sách FT seed (mặc định 0, 1, 2, giữ nguyên run dò hướng), lệnh `e1203 --prefix cub_chain_ft_l25 --fts 3,4`; cùng code, ngưỡng 0; một luồng BLAS. Không có bộ có rò cho r3, r4.
+- Luật xác nhận (khuôn của E09.08, cộng ràng buộc Old của QD28 Sửa 2026-11-19); mỗi số là trung bình 5 chuỗi của một FT seed:
+  - XÁC NHẬN: ΔM_d(NL − PIPE) > 0 ở cả r3 và r4, trung bình hai FT seed ≥ T, trung bình ΔS5_S0test ≥ −B và trung bình ΔOld ≥ −B.
+  - KHÔNG XÁC NHẬN: trung bình ΔM_d ≤ 0, hoặc trung bình ΔS5_S0test < −B, hoặc trung bình ΔOld < −B.
+  - KHÔNG RÕ: còn lại.
+  - Chỉ khi XÁC NHẬN mới báo NL như cải tiến (số laptop; QD27: server chạy lại).
+- Cổng của run xác nhận: G1 phần PIPE trùng `acc1` (1e-6): giữ. G1 phần PIPE, N, Nc trùng E14.09: bỏ, vì r3, r4 không có run E14.09; code của các nhánh này đã qua ở 30/30 chuỗi r0–r2 và không đổi. G2, G3, G4 giữ nguyên. Run chỉ được đọc khi mọi cổng giữ lại đạt ở 10/10 chuỗi.
+- `e1203-summary` đọc thêm `cub_e12_03x_ft_l25` khi có: cột r3, r4 và trung bình, kết luận theo luật trên; báo kèm S5_All, D1–D4, NL3, N, Nc. Không gộp r3, r4 với r0–r2.
+- Đã thấy trước Sửa đổi này: các cột độ chính xác của pipeline trên 5 chuỗi r3 trong `runs/INDEX.txt` (thấy lúc kiểm dữ liệu). Chưa thấy số nào của NL, N, Nc trên r3, r4.
+- Dự đoán của Claude [SUY LUẬN]: XÁC NHẬN; ở dò hướng, ΔM_d của 3 FT seed nằm trong 2.5–3.2, ΔOld và ΔS5_S0test có biên rộng hơn SD. Rủi ro chính: ΔS5_S0test (−0.162 so với biên −0.376) có thể trượt ở FT seed mới.
+- Code (viết sau Sửa đổi này): tham số `fts` của `tier2_e1203`, cờ `--fts` của `main`, nhánh đọc run xác nhận của `e1203_summary`; thử trên chuỗi giả: run dò hướng cho lại đúng từng khoá như trước khi sửa; run xác nhận qua cổng; bộ có rò bị từ chối.
+
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
 ### Tiền đăng ký (2026-11-16; viết trước khi có code và trước mọi số)
