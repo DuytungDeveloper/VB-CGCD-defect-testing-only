@@ -682,6 +682,21 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - GC10 không thuộc thí nghiệm này (QD28 Sửa 2026-11-18).
 - Tag: `cub_e09_08_ft_l25`, `cub_e09_08_ft`; xác nhận `cub_e09_08x_ft_l25`.
 
+### Sửa đổi (2026-11-19; viết sau khi có run `cub_e09_08_ft_l25`, `cub_e09_08_ft` và hai mốc C1 của r3, r4, trước khi chạy `e0908-summary`; phần tiền đăng ký ở trên, `c17e53c`, giữ nguyên)
+
+- Trạng thái lúc viết: hai run E09.08 qua G1–G5 ở 15/15 chuỗi mỗi bộ; chuỗi r3, r4 qua C1 48/48 ở seed 0 so với mốc `main.py` tất định (`cub_km_evhung_det_ft_l25_r3_s0`, `_r4_s0`). Claude chưa thấy số nào của PIPE, N, Nc, Nlab, KW, V-new, V, V-hard, V-πfix từ hai run này: các lệnh đã chạy chỉ in trạng thái cổng và thời gian; dòng `result:` mà `exp.py` tự ghi vào LOG không được in trong lệnh nào.
+- Lý do: luật xác nhận chạy trên r3, r4, nhưng cổng G1 (phần N, Nc, Nlab) và G5 so với run E14.07 và E14.01, mà hai run này chỉ có trên r0–r2. Cần chốt cổng của run xác nhận trước khi biết dò hướng ra gì, để không chọn cổng theo kết quả.
+- Không đổi: câu hỏi, mô hình V, các nhánh, cách đặt tên P1, đại lượng chính, ràng buộc, T = 0.935, B = 0.376, quy tắc quyết định, luật xác nhận, luật đọc phụ, điều kiện bỏ cơ chế. Run xác nhận chỉ chạy khi `e0908-summary` ra Chấp nhận trên `cub_e09_08_ft_l25`; ra Bác hoặc Không đủ lớn thì Sửa đổi này không dùng và r3, r4 không được chấm bằng các nhánh của E09.08.
+- Run xác nhận: tag `cub_e09_08x_ft_l25`; 10 chuỗi `cub_chain_ft_l25_r<r>_s<N>`, r = 3, 4, N = 0–4; cùng hàm `tier2_e0908` với tham số danh sách FT seed (mặc định 0–2, giữ nguyên run dò hướng), lệnh `e0908 --prefix cub_chain_ft_l25 --fts 3,4`; RNG của KW theo công thức đã chốt (`908000 + 1000 r + 100 N + i`); off chọn lại cho từng chuỗi như ở dò hướng.
+- Cổng của run xác nhận:
+  - G1 phần PIPE trùng `acc1` (1e-6): giữ.
+  - G1 phần N, Nc, Nlab trùng E14.07, và G5 (M_d của PIPE dưới P1 trùng E14.01): bỏ, vì không có run tham chiếu. Hai cổng này kiểm code của nhánh N, Nc, Nlab và của P1 so với code đã kiểm; code đó đã qua ở 30/30 chuỗi r0–r2 (hai bộ) và không đổi ở run xác nhận (cùng commit runner). Phần mất đi là kiểm đầu vào của r3, r4; đầu vào đã qua kiểm lệnh phase 1 và lệnh chuỗi (commit `a1b4193`) và C1 ở seed 0.
+  - G2, G3, G4: giữ nguyên.
+  - Run xác nhận chỉ được đọc khi mọi cổng giữ lại đều đạt ở 10/10 chuỗi.
+- `e0908-summary` đọc thêm `cub_e09_08x_ft_l25` khi có: cột r3, r4 (trung bình 5 chuỗi mỗi FT seed) và trung bình hai FT seed của ΔM_d(V − PIPE) và ΔS5_S0test(V − PIPE), số FT seed có ΔM_d > 0, kết luận XÁC NHẬN, KHÔNG XÁC NHẬN hoặc KHÔNG RÕ theo luật đã chốt; báo kèm như dò hướng. Không gộp r3, r4 với r0–r2.
+- Code (viết sau Sửa đổi này, chỉ khi dò hướng ra Chấp nhận): thêm tham số FT seed vào `tier2_e0908` và nhánh đọc run xác nhận vào `e0908_summary`; phép thử trên chuỗi giả như runner gốc, có đối chứng âm cho từng cổng giữ lại; checks-only trên `cub_chain_ft_l25_r3_s0` trước run thật.
+- Chi phí [tính tay]: khoảng 10 × 15.5 phút ≈ 2.6 giờ, từ thời gian mỗi chuỗi của run dò hướng (13995 s cho 15 chuỗi).
+
 ## E09.09 — Dừng gộp theo dấu của log Bayes factor (Q09.14, Q09.02)
 
 ### Tiền đăng ký (2026-11-14; viết trước khi chạy và trước khi đọc các khoá `t1_k20_*` của r3, r4)
