@@ -333,3 +333,8 @@ QD01–QD15 (các dòng cũ) ở `notes/plan.vi.md` §4.
   - Các câu của D đo trên mô hình N: bộ lọc thật là Nc (E14.06, E12.02); bộ định tuyến lúc test là g20 (E14.03, E14.06); phân hoạch thật là Nlab (E14.07).
   - Nhánh "bỏ ảnh cũ trước bước 09" không đo: nó đổi phân hoạch k-means của mọi phiên và cần đợt 3b-2; để sau E09.08 nếu cần.
   - E09.08 quyết định trên CUB, khởi tạo bằng k-means mặc định của bước 09, không bằng `09a` + `09b` (thay câu tương ứng của QD27, theo dòng Sửa 2026-11-13 ở trên); GC10 chỉ báo cáo.
+- Sửa ngày 2026-11-19, sau Kết luận E14.08 (`17f7263`), trước tiền đăng ký E14.09:
+  - Ràng buộc lớp cũ trên CUB, từ E14.09 trở đi: ΔS5_S0test ≥ −B và ΔOld ≥ −B so với pipeline. Old là trung bình 5 phiên của độ chính xác trên mọi lớp cũ của phiên (cột Old của E14.06–E14.08). S5_All lên thành báo cáo bắt buộc.
+  - Lý do: ở E14.08, O4 đạt R1 với ΔS5_S0test ≥ −B nhưng ΔOld = −3.488. Ràng buộc cũ không thấy phần các lớp của đợt giữa bị khe gốc giành lại.
+  - Đây là sửa sau khi thấy số của E14.08. Kết luận R1 đã đăng ký của E14.08 giữ nguyên; ràng buộc mới chỉ áp cho các thí nghiệm sau.
+  - B dùng cho Old là B của S5_S0test (0.376). Mỗi tiền đăng ký in kèm SD giữa các seed của Old trên pipeline để kiểm thước này.
