@@ -916,6 +916,16 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Giới hạn thêm: ngưỡng 5 điểm của c09 là tuỳ chọn, không suy từ T (T là ngưỡng của M_d); r0–r2 đã dùng ở E14.01–E14.09, E12.02, E12.03, E09.08.
 - Đã thấy trước Sửa đổi này: mọi số của E12.03 trên r0–r4. Chưa thấy số nào của SSKM, OCM, NL-X.
 
+### Sửa (2026-11-19; viết sau code, trước checks-only và trước mọi số của thí nghiệm)
+
+- Các chỗ cài đặt trong `tier2_e0910` không ghi chữ-theo-chữ ở tiền đăng ký và Sửa đổi; không đổi luật quyết định:
+  - Ghép tên: khe của SSKM và OCM không tương ứng với bảng tên P0 (bảng P0 dựng trên id k-means của pipeline), nên mọi mô hình báo kèm và pipeline được chấm bằng P1 (E14.01, như E09.08), kể cả N-KM, NL-KM; mọi hiệu (so với pipeline, so với NL-KM) lấy dưới P1. P0 giữ thêm cho pipeline, N-KM, NL-KM để làm cổng.
+  - SSKM: khoảng cách Euclid trong không gian PCA của S0 (không làm trắng); tâm không có hàng nào giữ nguyên ở vòng đó; tâm lớp đã khám phá ở phiên sau là mean các hàng của cụm mới tương ứng (cụm rỗng: tâm cuối). c09 của SSKM: Hungarian trên 20 cụm mới.
+  - OCM: k-means trên toàn pool với K' = 3 × 20 = 60; log-evidence khi gộp tính từ thống kê đủ (n, mean, scatter quanh mean), hợp hai cụm bằng công thức cộng scatter; hoà thì lấy cặp đầu tiên. id cuối đánh số theo thứ tự tạo nhóm.
+  - G1 thêm: pipeline dưới P0 trùng `acc1` (1e-6). G5 thêm: N-KM dưới P0 trùng N của run E12.03 (1e-4).
+  - G4 không chặn việc đọc: `checks_ok` gồm G1, G2, G3, G5; số phiên SSKM chạm 100 vòng in trong `e0910-summary`.
+- Code đã thử trên 15 chuỗi giả (d = 6, 30 lớp, 5 phiên, ảnh cũ lặp lại như D16; mock `sessions`, `replay`, `jax`; mốc E09.08 và E12.03 tính trên cùng dữ liệu giả): G1–G5 OK ở 15/15; bốn đối chứng âm cho DIFF đúng cổng (một số của E12.03 lệch 0.01 → G5; một c09 của E09.08 lệch 0.01 → G1; log-evidence trực tiếp lệch 1e-3 → G3; tâm lớp gốc lệch 1e-6 → G2). Không có số nào của dữ liệu thật.
+
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
 ### Tiền đăng ký (2026-11-17; viết trước khi có code và trước mọi số của thí nghiệm)
