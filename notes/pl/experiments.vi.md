@@ -31,6 +31,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.08: CUB t5, VB-GMM cho phiên không nhãn, biến thể `09e-vbgmm` (thay bước 11–13): trách nhiệm hai phía với thành phần cũ cố định, mọi khe dùng hậu nghiệm NIW, khởi tạo từ k-means của bước 09; nhánh chẩn đoán KW (k-means làm trắng theo P) và V-new (E-M trong nhóm mới); luật xác nhận trên r3, r4 (đề xuất 2026-11-05; tiền đăng ký 2026-11-18; xong, Rito duyệt 2026-11-19: Bác, ΔS5_S0test −8.522; CAVI khoá ở khởi tạo k-means, KW −0.140; điều kiện bỏ cơ chế đạt; VB thật: hỏng nhãn mềm và Dirichlet, NIW còn mất lớp cũ, prior phân cấp chưa thử) — mục E09.08 dưới đây
 - E09.09: dừng phép gộp của `09b` khi log Bayes factor lớn nhất không còn dương (k tự do, không dưới 5), biến thể `09f-merge-stop`, tầng 1, GC10 (2026-11-14; xong: KHÔNG RÕ, Δ ≈ 0; rolled_pit giữ được cụm con ở 98% số lần; rất nhạy với off) — Q09.14; mục E09.09 dưới đây
 - E09.10: CUB t5, phân hoạch trong nhóm mới trên đặc trưng hiện có: SSKM (semi-supervised k-means) và OCM (gom thừa K' = 60 rồi gộp bằng Bayes factor NIW), luật Δc09 ≥ 5 điểm (tiền đăng ký 2026-11-19; Sửa đổi 2026-11-19: báo kèm trên nền NL của E12.03, luật giữ nguyên; kết quả: Không, Δc09 SSKM −47.459, OCM −2.672; hướng (2) sang nhánh (a)) — mục E09.10 dưới đây
+- E09.11: CUB t5, phân hoạch nhóm mới trên đặc trưng DINO chưa fine-tune (nhánh (a) của E09.10): KMfz, SSKMfz so với KMft trên 5 chuỗi `cub_chain_fz_s<N>`, luật Δc09(KMfz − KMft) ≥ 5 điểm và dương ≥ 4/5 chuỗi (tiền đăng ký 2026-11-20) — mục E09.11 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
@@ -940,6 +941,41 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - SSKM hỏng vì hút ảnh mới vào cụm cũ (0.209 ảnh mới vào cụm mới), trong khi giữ ảnh cũ tốt (0.979). Chưa tách được nguyên nhân là đặc trưng (backbone fine-tune trên lớp gốc kéo lớp mới về gần tâm gốc) hay cài đặt (100–180 tâm cũ so với 20 tâm mới, gồm tâm lớp đã khám phá; Euclid không chuẩn hoá; khởi tạo k-means++ trên toàn pool); metrics không ghi ảnh mới bị hút vào tâm gốc hay tâm đã khám phá. Kết luận chỉ áp cho bản SSKM đã đăng ký, không cho mọi k-means bán giám sát.
 - NL-KM giữ lợi thế so với pipeline dưới P1, nên NL vẫn là nền cho bước sau.
 - Bước kế (Rito duyệt): kiểm đặc trưng DINO chưa fine-tune của CUB đã có hay chưa; nếu có, tiền đăng ký nhánh (a) đo SSKM, KM trên cả hai loại đặc trưng trong cùng một thí nghiệm, để tách nguyên nhân đặc trưng khỏi cài đặt mà không cần chẩn đoán sau khi đã thấy số; sau đó viết tài liệu bàn giao.
+
+## E09.11 — CUB t5: k-means trên đặc trưng DINO chưa fine-tune có gom ảnh mới đúng hơn trên đặc trưng đã fine-tune không, và SSKM hỏng ở E09.10 vì đặc trưng hay vì cài đặt? (nhánh (a) của E09.10; QD27, QD28)
+
+### Tiền đăng ký (2026-11-20; viết sau Kết luận E09.10 `1199fe6`, trước mọi số trên đặc trưng chưa fine-tune của CUB)
+
+- Vì sao có thí nghiệm này: E09.10 cho Không trên đặc trưng đã fine-tune (Δc09 SSKM − KM −47.459, OCM − KM −2.672) và chuyển hướng (2) sang nhánh (a). SSKM hỏng vì hút ảnh mới vào cụm cũ (0.209 ảnh mới vào cụm mới), chưa tách được do đặc trưng hay do cài đặt. Nếu phân hoạch trên đặc trưng chưa fine-tune đúng hơn, thiết kế ghép (phân hoạch trên fz, khe NL trên ft) có cơ sở.
+- Loại: phép đo có luật quyết định "đáng làm tiếp hay không"; không khớp mô hình, không có M_d.
+- Dữ liệu: `features/20261105_183044__cub_fz_up/dino-vitb16` (DINO ViT-B/16 đóng băng, run 2026-11-05, không cờ `--finetuned`). Kiểm ngày 2026-11-20 (chỉ đọc): train (5994, 768), test (5794, 768) float32, cùng tên file và cùng thứ tự nhãn train và test với `features/20261116_005649__cub_ft_l25_r0/dino-vitb16-sl`. `merge_npy` của `dino-cub200.py` sắp file theo chuỗi ký tự, nên thứ tự ảnh khác thứ tự dataset nhưng giống nhau ở hai lần trích (cùng batch 128, không shuffle).
+- Dựng chuỗi (thuộc thí nghiệm):
+  - 5 chuỗi `cub_chain_fz_s<N>`, N = 0…4: `python lab/sessions.py run --features features/20261105_183044__cub_fz_up/dino-vitb16 --seed N --dataset cub200` qua `exp.py`, giao thức QD28 mặc định. Đặc trưng đóng băng không có FT seed: một chuỗi mỗi seed chia dữ liệu.
+  - Một run `main.py` tất định `cub_km_evhung_det_fz_s0` (cùng lệnh với `cub_km_evhung_det_ft_l25_r0_s0`, `--data_dir features/20261105_183044__cub_fz_up --pretrained_model_name dino-vitb16`) để kiểm C1 của chuỗi s0.
+- Nhánh, trên mỗi chuỗi fz:
+  - KMfz: id k-means của pipeline trên fz.
+  - SSKMfz: đúng `_sskm_0910` của E09.10 (K = số lớp đã thấy + 20; tâm lớp gốc là mean S0, ảnh S0 buộc theo lớp; tâm lớp đã khám phá khởi tạo bằng mean hàng của cụm SSKM mới ở phiên trước; 20 tâm mới bằng k-means++ trên pool, `random_state` 0; Euclid trong PCA-384 của S0 fz; tối đa 100 vòng).
+  - Không có OCM (OCM không phải giả thuyết đang kiểm; E09.10: −2.672 so với KM).
+- Mốc: KMft = c09 của KM trên `cub_chain_ft_l25_r<r>_s<N>` lấy từ run E09.10 (`cub_e09_10_ft_l25`), trung bình qua r = 0–2 ở cùng N.
+- Đại lượng:
+  - c09 của KMfz, SSKMfz, KMft (định nghĩa của E09.10; SSKM: Hungarian trên 20 cụm mới, ảnh mới ở cụm cũ tính sai).
+  - Độ tách SSKMfz: ảnh cũ của pool vào cụm cũ, ảnh mới vào cụm mới (gộp 5 phiên của mỗi chuỗi).
+  - Báo kèm: `acc1` (New, Old) của pipeline trên fz và trên ft_l25 (trung bình r0–r2), cùng N.
+- Luật quyết định, theo chuỗi seed N:
+  - Đáng ghép: Δc09(KMfz − KMft), trung bình qua phiên của mỗi chuỗi, có trung bình qua 5 chuỗi ≥ 5 điểm và dương ở ≥ 4/5 chuỗi → tiền đăng ký thí nghiệm ghép (phân hoạch fz, khe NL trên ft, cổng kiểm từng hàng khớp nhau).
+  - Không: còn lại → hướng (2) dừng trên CUB với các đặc trưng hiện có.
+- Luật chẩn đoán SSKM (không quyết định): tỉ lệ ảnh mới vào cụm mới của SSKMfz (gộp 5 chuỗi) ≥ 0.5 → ghi "đặc trưng là một phần nguyên nhân SSKM hỏng ở E09.10"; ≤ 0.3 → ghi "chủ yếu do cài đặt"; giữa → không rõ.
+- Cổng:
+  - G1: ở mọi phiên, `true_pool_y` và `true_test_all_y` của chuỗi fz s<N> trùng chuỗi ft_l25 r0_s<N> (cùng cách chia, cùng thứ tự).
+  - G2: bước tâm của SSKM khi không có hàng pool cho mean S0 của lớp gốc (1e-9), như E09.10.
+  - G3: SSKMfz hội tụ ở mọi phiên (không chặn việc đọc; số phiên chạm 100 vòng được in).
+  - G4: C1 của chuỗi fz s0 so với `cub_km_evhung_det_fz_s0` (`python lab/sessions.py check`), như các chuỗi ft_l25 r0–r4 s0.
+  - Đọc kết quả chỉ khi G1, G2, G4 đạt.
+- Code (viết sau tiền đăng ký và sau khi dựng chuỗi): runner `tier2_e0911` và `e0911-summary` trong `lab/score.py`, lệnh `e0911` qua `exp.py`, một run (tag `cub_e09_11_fz`). Dùng lại `_sskm_0910`, `_centers_0910`, `_hung_correct_1402`. Không sửa `lab/niw.py`, `lab/sessions.py`, `lab/replay.py`, `lab/variants.py`.
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp: KMfz cho c09 thấp hơn KMft. Lý do: tài liệu GCD (Vaze et al. 2022; Fei et al. 2022, hình 1) cho thấy k-means trên DINO thô gom kém ở CUB và fine-tune giúp gom; nhưng fine-tune ở đó dùng cả dữ liệu không nhãn, khác BOFT có giám sát chỉ trên lớp gốc ở đây. SSKMfz có tỉ lệ ảnh mới vào cụm mới cao hơn 0.209.
+- Giới hạn: 5 chuỗi, không có biến thiên do FT seed; ngưỡng 5 điểm là tuỳ chọn (như E09.10); DINO huấn luyện trước trên ImageNet, có ảnh chim; so sánh fz với ft lẫn cả đặc trưng lẫn PCA (PCA fit riêng mỗi bộ).
+- Chi phí ước lượng (tính tay): dựng chuỗi khoảng 5 × 18 = 90 phút, thêm khoảng 18 phút cho run tất định; phần đo dưới 10 phút (không LOO, không OCM).
+- Đã thấy trước tiền đăng ký này: mọi số của E09.10 và E12.03; shape và thứ tự nhãn của bộ fz. Chưa thấy số nào trên đặc trưng chưa fine-tune của CUB.
 
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
