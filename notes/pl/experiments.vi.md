@@ -42,7 +42,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E14.06: CUB t5, L_10 và L_comp khi mọi khe dùng hậu nghiệm NIW với dự đoán Student-t (A3 của E06.04 cho lớp gốc, cùng tiên nghiệm cho khe của các phiên); phụ: mô hình đó có hơn pipeline không (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp_N = 6.50, cạnh tranh vẫn là đích; N không hơn pipeline vì Old giảm 4.9; N sạch hơn pipeline ở cả New và Old) — mục E14.06 dưới đây
 - E14.07: CUB t5, trần dưới bộ ước lượng nhất quán: L_comp và lớp mới khi khe mới khớp đúng lớp (Nlab); S5_S0test của N, Nc, Nlab; đường cong độ lệch b trên N (tiền đăng ký 2026-11-18; xong, Rito duyệt tạm: L_comp_Nlab = 8.81 > T, cạnh tranh là giới hạn của biểu diễn dưới NIW, bỏ ý (c); Nlab hơn Nc 25.2 điểm New: đích của E09.08 là phân hoạch trong nhóm mới; ràng buộc S5_S0test đạt được với bộ lọc hoàn hảo) — mục E14.07 dưới đây
 - E14.08: CUB t5, vì sao N mất lớp cũ: bốn phép làm yếu khe mới của N (O1 tempering likelihood, O2 co mean về m0, O3 tempering lúc dự đoán so với p_ref, O4 lệch cộng b ≤ 0) đọc tại ΔS5_S0test = −B; ảnh cũ gây hại qua mean hay hiệp phương sai (Mb, Ψb); phân bổ ảnh test gốc bị chiếm (tiền đăng ký 2026-11-19; xong, Rito duyệt 2026-11-19: R1, G_O4 +3.087 ở 3/3 FT seed nhưng ΔOld −3.488 và b chọn bằng nhãn test; ảnh cũ hại qua khe bản sao, tỉ số H8 15.278, qua cả hiệp phương sai lẫn mean; bước kế E14.09: chọn b không nhãn, thêm ràng buộc Old) — mục E14.08 dưới đây
-- E14.09: CUB t5, prior phân cấp cho khe mới của N (HB-off: off chọn bằng LOO trên hàng được giữ; HB-full: m0, P, off của nhóm mới; HB-slot: off theo evidence từng khe; HB-near: mượn lớp gốc gần nhất, kiểm phản biện), đọc dưới ràng buộc hai vế của QD28 (tiền đăng ký 2026-11-19) — mục E14.09 dưới đây
+- E14.09: CUB t5, prior phân cấp cho khe mới của N (HB-off: off chọn bằng LOO trên hàng được giữ; HB-full: m0, P, off của nhóm mới; HB-slot: off theo evidence từng khe; HB-near: mượn lớp gốc gần nhất, kiểm phản biện), đọc dưới ràng buộc hai vế của QD28 (tiền đăng ký 2026-11-19; xong, Rito duyệt 2026-11-19: không đạt, mọi nhánh trượt dọc đường đánh đổi; ΔS5_All của N −3.513, của Nc +2.004; HB-near ủng hộ phản biện; bước kế (1) và (2)) — mục E14.09 dưới đây
 
 ## E03.02 — Probe theo lớp: điểm mất ở biểu diễn hay ở khám phá? (Q03.02, Q14.04)
 
@@ -1662,3 +1662,39 @@ Số ghi là bộ không rò / bộ có rò; trung bình ba FT seed, SD giữa F
 - Chi phí: đo bằng một lần checks-only có profile trước run thật.
 - Dự đoán của Claude [SUY LUẬN], độ tin thấp: không nhánh nào đạt; HB-off chọn off ≥ 250 và nằm gần đường O1 của E14.08; HB-full xấu hơn N ở S5_S0test vì P_new bị ảnh cũ làm rộng; HB-near xấu hơn N ở S5_S0test.
 - Giới hạn: chỉ dưới NIW trên PCA-384 của CUB t5; r0–r2 đã dùng ở E14.01–E14.08, E12.02, E09.08; không thử prior phân cấp trên mean, vì O2 của E14.08 cho thấy co mean về m0 làm xấu đi.
+
+### Kết quả (2026-11-19; run `20261119_141626__cub_e14_09_ft_l25`, `20261119_143918__cub_e14_09_ft`, code `70dcf98`, commit run `b17c285`; số in bằng `python lab/score.py e1409-summary`; 30/30 chuỗi qua G1–G4)
+
+- off0 = 250 ở 30/30 chuỗi. Hai run chạy với một luồng BLAS (`OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1`); lý do ghi ở note của run trong `notes/LOG.md`.
+- Bộ không rò, hiệu so với pipeline (trung bình 3 FT seed; pipeline: M_d 56.944, Old 74.046, S5_S0test 78.398, S5_All 66.381):
+
+| Nhánh | ΔM_d | ΔOld | ΔS5_S0test | ΔS5_All |
+|---|---|---|---|---|
+| N | +4.089 | −4.885 | −9.296 | −3.513 |
+| HB-off | +3.748 | −4.879 | −9.184 | −3.601 |
+| HB-full | −39.327 | −3.702 | +8.196 | −14.015 |
+| HB-slot | +2.456 | −4.198 | −7.452 | −3.395 |
+| HB-near | +4.163 | −5.465 | −10.677 | −4.195 |
+| Nc (oracle) | +3.988 | +1.889 | −0.198 | +2.004 |
+
+  - So với N: HB-off ΔM_d −0.341, ΔS5_S0test +0.112; HB-full −43.416, +17.492 (New còn 17.617); HB-slot −1.632, +1.844; HB-near +0.074, −1.382.
+  - off của HB-off và HB-full: 250 ở 15/15 chuỗi tại phiên 1 và 2; 100 ở 4, 1, 2 chuỗi tại phiên 3, 4, 5, còn lại 250. off của HB-slot trên mọi khe: 2 ×133, 5 ×31, 10 ×54, 25 ×79, 50 ×246, 100 ×480, 250 ×477.
+  - SD gộp giữa các seed (trong FT seed) của Old trên pipeline: 0.477, lớn hơn B = 0.376 (QD28, Sửa 2026-11-19).
+  - Bộ có rò cùng chiều ở mọi nhánh: ΔS5_All của N −3.704, HB-off −3.746, HB-full −14.191, HB-slot −3.349, HB-near −4.413, Nc +1.985; HB-near so với N ở S5_S0test −1.375.
+- Luật đọc chốt trước, bộ không rò:
+  - Đạt: không nhánh nào.
+  - Không đạt nhưng có ích: không nhánh nào. HB-slot có ΔS5_S0test so với N +1.844 ≥ T, nhưng ΔM_d so với N −1.632 < −T.
+  - → Không đạt: prior phân cấp trên hiệp phương sai không gỡ được khe bản sao; chuyển sang (1) và (2).
+  - HB-near: ΔS5_S0test(HB-near − N) = −1.382 < 0 → phản biện "mượn từ lớp gần nhất làm khe giống lớp cũ hơn" được ủng hộ.
+- Dự đoán đã đăng ký: không nhánh nào đạt: đúng. HB-off chọn off ≥ 250 và nằm gần đường O1: sai một nửa (off chủ yếu là 250, đôi khi 100; nhánh gần như trùng N, không gần O1). HB-full xấu hơn N ở S5_S0test: sai (tốt hơn +17.492, nhưng New sụp). HB-near xấu hơn N ở S5_S0test: đúng.
+- Giới hạn cài đặt: off của HB-off chọn bằng `niw.loo_curve`, vốn dùng hiệp phương sai gộp của chính các hàng (P_new), rồi đem dùng với P của S0. Vì off rơi vào 250 ở phần lớn chuỗi, giới hạn này gần như không ảnh hưởng.
+
+### Kết luận (Rito duyệt 2026-11-19)
+
+- Prior phân cấp cho khe mới không đưa N qua được ràng buộc hai vế, và không thuộc loại "có ích" theo luật đã đăng ký. Ba cách học prior cho nhóm mới chỉ trượt dọc cùng một đường đánh đổi giữa lớp cũ và lớp mới, như các phép làm yếu của E14.08. Chỉ khi tách cũ/mới bằng nhãn (Nc) mới vượt pipeline, kể cả ở S5_All (+2.004). Thành phần VB còn lại không cứu được VB thật; đường còn lại là tách cũ/mới không nhãn (1) và phân hoạch trong nhóm mới (2).
+- S5_All lần đầu có số: N thua pipeline −3.513, Nc hơn +2.004. Theo chỉ số chính của paper, chỉ tách cũ/mới hoàn hảo thắng pipeline; mọi nhánh không nhãn ở đây thua khoảng 3.4–4.2 điểm All. [suy luận] O4 của E14.08 (ΔOld −3.488) nhiều khả năng cũng thua ở All; chưa đo.
+- Cơ chế:
+  - HB-near xác nhận mượn thống kê của lớp gốc gần nhất làm khe mới giống lớp cũ hơn.
+  - HB-full: P_new ước lượng từ các cụm lẫn ảnh cũ nên rộng ra, khe mới gần như không thắng; S5_S0test lên 86.594, New còn 17.617. [suy luận] Cùng với đường O1–O4 của E14.08, đây là bằng chứng mọi cách làm yếu khe mới không nhãn nằm trên cùng một đường; chỉ Nc vượt ra ngoài, nên nút thắt là chất lượng tách cũ/mới, không phải dạng prior.
+- Thước đo: SD giữa các seed của Old trên pipeline (0.477) lớn hơn B (0.376); thước cho Old cần xem lại trước thí nghiệm sau. Ở đây không đổi kết luận, vì mọi nhánh không nhãn có ΔOld từ −3.702 trở xuống.
+- Bước kế: thiết kế (1) và (2) song song. Đích của (1): Nc, ΔS5_All +2.004, ΔOld +1.889. (1) mở đầu bằng phân tích vì sao E12.02, E09.08, E14.08 hỏng, trước khi đề xuất phương pháp.
