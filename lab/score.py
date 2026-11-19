@@ -36,6 +36,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e1408-summary                                  E14.08: tables and rules R1-R3 from the two runs
   python lab/score.py e1409 --prefix cub_chain_ft[_l25] [--checks-only]   E14.09: hierarchical prior for the new slots of N (exp.py)
   python lab/score.py e1409-summary                                  E14.09: tables and reading rules from the two runs
+  python lab/score.py e1203 --prefix cub_chain_ft[_l25] [--checks-only]   E12.03: old/new filter by the LOO margin (exp.py)
+  python lab/score.py e1203-summary                                  E12.03: tables, D1-D4 and reading rules from the two runs
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -3760,9 +3762,248 @@ def e1409_summary(T=0.935, B=0.376):
     print("\nE14.09: the reading rules are read on cub_e14_09_ft_l25; cub_e14_09_ft is reported alongside")
 
 
+# ---- E12.03: old/new filter by the LOO margin (out of sample on both sides) (pre-registered 446cbd0) ----
+def _tlog_1203(slot, x):
+    """Student-t log predictive density of a _post_1406 slot at the rows x (_tparts_1408 A + B)."""
+    A, B = _tparts_1408(slot, x)
+    return A + B
+
+
+def _loo_1203(X, prior):
+    """Leave-one-out log predictive of every row of X under the NIW slot refitted without that row (exact refit;
+    1 row: the prior predictive)."""
+    return np.array([_tlog_1203(_post_1406(np.delete(X, j, 0), prior), X[j:j + 1])[0] for j in range(len(X))])
+
+
+def _old_max_1203(x, old_rows, old_slots, lold, prior, index):
+    """Best old-slot log density per row of x. lold: _logd_1202 of the old slots at x; a row of x equal to a row of an
+    old slot (same feature values, D16) gets the LOO density of that slot instead. index: bytes of a row -> list of
+    (old slot, row in that slot)."""
+    L = lold.copy()
+    for r in range(len(x)):
+        for s, j in index.get(x[r].tobytes(), ()):
+            L[r, s] = _tlog_1203(_post_1406(np.delete(old_rows[s], j, 0), prior), x[r:r + 1])[0]
+    return L.max(1)
+
+
+def _index_1203(old_rows):
+    idx = {}
+    for s, R in enumerate(old_rows):
+        for j in range(len(R)):
+            idx.setdefault(R[j].tobytes(), []).append((s, j))
+    return idx
+
+
+def _mw_1203(pos, neg):
+    """Mann-Whitney U of pos over neg (ties count 1/2) and the number of pairs."""
+    from scipy.stats import rankdata
+    if len(pos) == 0 or len(neg) == 0:
+        return 0.0, 0
+    rk = rankdata(np.concatenate([pos, neg]))
+    return float(rk[:len(pos)].sum() - len(pos) * (len(pos) + 1) / 2), len(pos) * len(neg)
+
+
+def tier2_e1203(prefix, checks_only=False):
+    """E12.03 (pre-registration 446cbd0) on the 15 default chains <prefix>_r<r>_s<N>. Model N (E14.06-E14.09). Per
+    session, in order: old slots = base slots + the slots of the branch from earlier sessions. For each kept pool row x
+    of new slot k: L_in (slot of N on all its rows), L_loo (slot refitted without x, _loo_1203), L_old (max over the
+    old slots; an old slot holding a row equal to x uses its LOO density, D16); m_in = L_in - L_old, m_loo = L_loo - L_old.
+    NL: drop the rows with m_loo < 0, refit once (empty slot = prior). NL3: three rounds per session (rows still in the
+    slot: LOO; rows dropped: plain density of the refitted slot; keep m >= 0 among all kept rows of the cluster). Each
+    branch has its own old slots. N, Nc as E14.07. D1-D4 on the NL flow: counts per chain and session; AUROC of m_loo
+    and m_in (new positive) from Mann-Whitney U and pairs within each chain and session, summed in the summary.
+    Gates: G1 PIPE (New, Old, S0test per session) = acc1 (1e-6) and = the E14.09 run (1e-4); N, Nc = that run (1e-4).
+    G2 _tlog_1203 = _logd_1202("A3") on the rows of the first non-empty slot of each session (1e-6). G3 L_loo of the
+    last row of the first slot with >= 3 rows of each session = niw.log_sequential(X) - niw.log_sequential(X[:-1])
+    (relative 1e-8). G4 NL with threshold -inf (keep every row) gives New, Old, S0test of N (1e-6).
+    No SVI, no RNG; pool labels for Nc and D1-D4 only; test labels for scoring. Progress line: gates and time only.
+    Keys: r<r>_s<N>_<key>; G1_ok ... G4_ok, checks_ok. checks_only: chain r0 s0 only, no keys."""
+    import niw
+    from replay import _clf, _git
+    from sessions import load as load_sessions, _device
+    assert prefix in ("cub_chain_ft", "cub_chain_ft_l25"), "E12.03 is pre-registered on the two sets of CUB chains"
+    t0 = time.time()
+    if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
+        raise SystemExit("e1203: commit the code first (same dirty rule as scripts/exp.py)")
+    e09 = _ref_metrics("cub_e14_09_" + prefix[len("cub_chain_"):])
+    assert e09.get("checks_ok") == 1, "E14.09 run of this feature set: checks failed"
+    out, gates = {}, {f"G{k}": True for k in range(1, 5)}
+    for r, N in ((0, 0),) if checks_only else [(r, N) for r in range(3) for N in range(5)]:
+        tag, pre = f"{prefix}_r{r}_s{N}", f"r{r}_s{N}_"
+        st, views = load_sessions(tag)                  # the workbench first: torch, main, then jax, as the chains
+        import jax.numpy as jnp
+        _device()
+        a = st["args"]
+        assert a.dataset == "cub200" and a.load_mode == "t5" and len(views) == 5 and a.seed == N, f"{tag}: not a CUB t5 chain of seed {N}"
+        base, inc, res, g = a.base, a.increment, {}, {f"G{k}": True for k in range(1, 5)}
+        z0, y0 = np.asarray(st["z_s0"], np.float64), np.asarray(st["s0_y"]).astype(int)
+        d = z0.shape[1]
+        off0 = niw.choose(niw.loo_curve(z0, y0))
+        sts = niw.class_stats(z0, y0)
+        prior = (sts["m0"], niw.K0, d + 1 + off0, off0 * niw.prior_cov(sts, 0))
+        base_rows = [z0[y0 == k] for k in range(base)]
+        base_slots = [_post_1406(R, prior) for R in base_rows]
+        res["off"] = off0
+        rows = {b: [] for b in ("N", "Nc", "NL", "NL3", "G4")}     # rows of every new slot so far, per branch
+        post = {b: [] for b in rows}
+        for i, v in enumerate(views, 1):
+            off = v["offset"]
+            n = off + inc
+            zp = np.asarray(v["z_pool"], np.float64)
+            ids, k = np.asarray(v["ids"]).astype(int), np.asarray(v["keep"]).astype(bool)
+            yp, lut = np.asarray(v["true_pool_y"]).astype(int), np.asarray(v["lut"])
+            old = {b: (base_rows + rows[b], base_slots + post[b]) for b in ("NL", "NL3")}
+            idx = {b: _index_1203(old[b][0]) for b in old}
+            cnt = dict(n_old=0, n_new=0, d1=0, d2=0, drop_old=0, drop_new=0, match=0)
+            ml_all, mi_all, nw_all = [], [], []
+            new_rows = {b: [] for b in rows}
+            g2_done = g3_done = False
+            for c in range(inc):
+                sk = k & (ids == c)
+                X, isnew = zp[sk], yp[sk] >= off
+                new_rows["N"].append(X)
+                new_rows["Nc"].append(zp[sk & (yp >= off)])
+                if len(X) == 0:
+                    for b in ("NL", "NL3", "G4"):
+                        new_rows[b].append(X)
+                    continue
+                full = _post_1406(X, prior)
+                L_in = _logd_1202("A3", [full], X)[:, 0]
+                if not g2_done:
+                    g["G2"] &= bool(np.max(np.abs(_tlog_1203(full, X) - L_in)) <= 1e-6)
+                    g2_done = True
+                L_loo = _loo_1203(X, prior)
+                if not g3_done and len(X) >= 3:
+                    sq = niw.log_sequential(X, *prior) - niw.log_sequential(X[:-1], *prior)
+                    g["G3"] &= abs(L_loo[-1] - sq) <= 1e-8 * max(1.0, abs(sq))
+                    g3_done = True
+                # NL: one pass against the NL old slots
+                Lo = _old_max_1203(X, old["NL"][0], old["NL"][1], _logd_1202("A3", old["NL"][1], X), prior, idx["NL"])
+                m_in, m_loo = L_in - Lo, L_loo - Lo
+                drop = m_loo < 0
+                new_rows["NL"].append(X[~drop])
+                new_rows["G4"].append(X[~(m_loo < -np.inf)])          # G4: the NL step with threshold -inf
+                cnt["match"] += int(sum(1 for xr in X if xr.tobytes() in idx["NL"]))   # rows equal to a row of an old slot (D16 path)
+                cnt["n_old"] += int((~isnew).sum())
+                cnt["n_new"] += int(isnew.sum())
+                cnt["d1"] += int(((~isnew) & (m_in > 0) & (m_loo < 0)).sum())
+                cnt["d2"] += int((isnew & drop).sum())
+                cnt["drop_old"] += int(((~isnew) & drop).sum())
+                cnt["drop_new"] += int((isnew & drop).sum())
+                # NL3: three rounds against the NL3 old slots
+                Lo3 = _old_max_1203(X, old["NL3"][0], old["NL3"][1], _logd_1202("A3", old["NL3"][1], X), prior, idx["NL3"])
+                inslot = np.ones(len(X), bool)
+                for _ in range(3):
+                    sl = _post_1406(X[inslot], prior)
+                    Lc = _tlog_1203(sl, X)
+                    if inslot.any():
+                        Lc[inslot] = _loo_1203(X[inslot], prior)
+                    inslot = (Lc - Lo3) >= 0
+                new_rows["NL3"].append(X[inslot])
+                ml_all.append(m_loo)
+                mi_all.append(m_in)
+                nw_all.append(isnew)
+            ml, mi, nw = (np.concatenate(a) if a else np.zeros(0) for a in (ml_all, mi_all, nw_all))
+            nw = nw.astype(bool)
+            U_loo, P_pairs = _mw_1203(ml[nw], ml[~nw])                   # pairs within this chain and session
+            U_in, _ = _mw_1203(mi[nw], mi[~nw])
+            res.update({f"S{i}_{kk}": vv for kk, vv in cnt.items()})
+            for b in rows:
+                rows[b] += new_rows[b]
+                post[b] += [_post_1406(R, prior) for R in new_rows[b]]
+            clf = _clf(v)
+            _component(v["predict"])(clf)
+            clf.label_offset, clf.n_seen = off, n
+            xt = clf.pca.transform(v["test_all_x"])
+            zt = np.asarray(xt, np.float64)
+            y = np.asarray(v["true_test_all_y"]).astype(int)
+            tgt, new, b0 = lut[y], y >= off, y < base
+            pr = np.asarray(clf._predict(jnp.array(xt), _jnp(v["params1"]))[0]).astype(int)
+            okp = pr == tgt
+            res.update({f"S{i}_P_New": 100.0 * float(okp[new].mean()), f"S{i}_P_Old": 100.0 * float(okp[~new].mean()),
+                        f"S{i}_P_All": 100.0 * float(okp.mean()), f"S{i}_P_S0test": 100.0 * float(okp[b0].mean())})
+            g["G1"] &= abs(res[f"S{i}_P_New"] - float(v["acc1"]["Novel"])) <= 1e-6 and abs(res[f"S{i}_P_Old"] - float(v["acc1"]["Old"])) <= 1e-6
+            g["G1"] &= all(abs(res[f"S{i}_P_{q}"] - float(e09[f"{pre}S{i}_P_{q}"])) <= 1e-4 for q in ("New", "Old", "S0test"))
+            lb = _logd_1202("A3", base_slots, zt)
+            for b in rows:
+                L = np.concatenate([lb, _logd_1202("A3", post[b], zt)], 1)
+                assert L.shape[1] == n, f"{tag} S{i}: {L.shape[1]} slots"
+                ok = L.argmax(1) == tgt
+                res.update({f"S{i}_{b}_New": 100.0 * float(ok[new].mean()), f"S{i}_{b}_Old": 100.0 * float(ok[~new].mean()),
+                            f"S{i}_{b}_All": 100.0 * float(ok.mean()), f"S{i}_{b}_S0test": 100.0 * float(ok[b0].mean())})
+            for b in ("N", "Nc"):
+                g["G1"] &= all(abs(res[f"S{i}_{b}_{q}"] - float(e09[f"{pre}S{i}_{b}_{q}"])) <= 1e-4 for q in ("New", "Old", "S0test"))
+            g["G4"] &= all(abs(res[f"S{i}_G4_{q}"] - res[f"S{i}_N_{q}"]) <= 1e-6 for q in ("New", "Old", "S0test"))
+            res.update({f"S{i}_U_loo": U_loo, f"S{i}_U_in": U_in, f"S{i}_pairs": P_pairs})
+        for kk in gates:
+            gates[kk] = gates[kk] and g[kk]
+        out.update({pre + kk: round(val, 4) if isinstance(val, float) else val for kk, val in res.items()})
+        print(f"e1203 {tag}: " + " ".join(f"{kk} {'OK' if g[kk] else 'DIFF'}" for kk in g) + f" ({time.time() - t0:.0f} s)", flush=True)
+    chk = {f"{kk}_ok": int(v) for kk, v in gates.items()}
+    chk["checks_ok"] = int(all(gates.values()))
+    print(f"e1203 {prefix}: checks {'OK' if chk['checks_ok'] else 'FAILED'} ({time.time() - t0:.0f} s)")
+    return chk if checks_only else {**chk, **out}
+
+
+def e1203_summary(T=0.935, B=0.376):
+    """Tables of E12.03 from the runs cub_e12_03_ft_l25 and cub_e12_03_ft: per branch M_d, Old, S5_S0test, S5_All and
+    the differences to the pipeline; D1-D4 of the NL flow (D1 = old kept rows with m_in > 0 and m_loo < 0 over old kept
+    rows; D2 = new kept rows with m_loo < 0 over new kept rows; D3 = AUROC = sum of Mann-Whitney U over sum of pairs,
+    pairs within a chain and session; D4 = share of old and of new kept rows dropped), each pooled over the 5 chains
+    and 5 sessions of an FT seed. Reading rules of the pre-registration on the leak-free set. "mean" and "sd" over the
+    3 FT seeds (sd ddof 1). Refuses to read a run without checks_ok = 1."""
+    for tag in ("cub_e12_03_ft_l25", "cub_e12_03_ft"):
+        if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+            print(f"\n{tag}: no run yet")
+            continue
+        m = _ref_metrics(tag)
+        assert m.get("checks_ok") == 1, f"{tag}: checks failed, results are not read"
+        per = lambda key: np.array([[m[f"r{r}_s{N}_{key}"] for N in range(5)] for r in range(3)], float)
+        ft = lambda k: np.mean([per(f"S{i}_{k}") for i in range(1, 6)], axis=0).mean(1)
+        s5 = lambda k: per(f"S5_{k}").mean(1)
+        tot = lambda k: sum(per(f"S{i}_{k}") for i in range(1, 6)).sum(1)
+        line = lambda name, x: f"  {name:<34}" + "".join(f"{val:9.3f}" for val in x) + f"{x.mean():9.3f}{x.std(ddof=1):9.3f}"
+        head = f"  {'':<34}" + "".join(f"{x:>9}" for x in ("r0", "r1", "r2", "mean", "sd"))
+        print(f"\n{tag}: G1-G4 OK; off chosen: {sorted(set(int(x) for x in per('off').ravel()))}\n{head}")
+        for b in ("P", "N", "Nc", "NL", "NL3"):
+            print(line(f"{b} New (M_d)", ft(f"{b}_New")))
+            print(line(f"{b} Old", ft(f"{b}_Old")))
+            print(line(f"{b} S5_S0test", s5(f"{b}_S0test")))
+            print(line(f"{b} S5_All", s5(f"{b}_All")))
+            if b != "P":
+                print(line(f"{b} dM_d vs P", ft(f"{b}_New") - ft("P_New")))
+                print(line(f"{b} dOld vs P", ft(f"{b}_Old") - ft("P_Old")))
+                print(line(f"{b} dS5_S0test vs P", s5(f"{b}_S0test") - s5("P_S0test")))
+                print(line(f"{b} dS5_All vs P", s5(f"{b}_All") - s5("P_All")))
+        D1, D2 = tot("d1") / tot("n_old"), tot("d2") / tot("n_new")
+        D3, D3i = tot("U_loo") / tot("pairs"), tot("U_in") / tot("pairs")
+        print(line("D1 old flipped (m_in>0, m_loo<0)", D1))
+        print(line("D2 new with m_loo < 0", D2))
+        print(line("D3 AUROC of m_loo", D3))
+        print(line("D3 AUROC of m_in", D3i))
+        print(line("D4 old dropped by NL", tot("drop_old") / tot("n_old")))
+        print(line("D4 new dropped by NL", tot("drop_new") / tot("n_new")))
+        print(line("kept rows per chain: old", tot("n_old") / 5))
+        print(line("kept rows per chain: new", tot("n_new") / 5))
+        print(line("kept rows equal to an old-slot row (D16)", tot("match") / 5))
+        if tag == "cub_e12_03_ft_l25":
+            dmd = ft("NL_New") - ft("P_New")
+            ok = (dmd.mean() >= T and (dmd > 0).sum() == 3 and (s5("NL_S0test") - s5("P_S0test")).mean() >= -B
+                  and (ft("NL_Old") - ft("P_Old")).mean() >= -B)
+            if ok:
+                print("  rule: PASS -> write a separate pre-registration to confirm on r3, r4")
+            elif D3.mean() >= 0.90 and D2.mean() <= 0.10:
+                print("  rule: NL does not pass, but D3 >= 0.90 and D2 <= 0.10 -> separation good but not enough; design the next step on the LOO margin")
+            elif D3.mean() < 0.85:
+                print("  rule: D3 < 0.85 -> the LOO margin does not improve the ranking much over E12.02 (0.798); stop this idea")
+            else:
+                print("  rule: middle zone -> record and change direction")
+    print("\nE12.03: the reading rules are read on cub_e12_03_ft_l25; cub_e12_03_ft is reported alongside")
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -3776,7 +4017,7 @@ def main(argv):
     p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25"], help="e1401, e1402: tag prefix of the 15 chains")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -3829,9 +4070,12 @@ def main(argv):
     if o.step == "e1409-summary":
         e1409_summary()
         return
-    if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406", "e1202", "e1407", "e0908", "e1408", "e1409"):
+    if o.step == "e1203-summary":
+        e1203_summary()
+        return
+    if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406", "e1202", "e1407", "e0908", "e1408", "e1409", "e1203"):
         assert o.prefix, f"{o.step} needs --prefix"
-        out = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406, "e1202": tier2_e1202, "e1407": tier2_e1407, "e0908": tier2_e0908, "e1408": tier2_e1408, "e1409": tier2_e1409}[o.step](o.prefix, o.checks_only)
+        out = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406, "e1202": tier2_e1202, "e1407": tier2_e1407, "e0908": tier2_e0908, "e1408": tier2_e1408, "e1409": tier2_e1409, "e1203": tier2_e1203}[o.step](o.prefix, o.checks_only)
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
