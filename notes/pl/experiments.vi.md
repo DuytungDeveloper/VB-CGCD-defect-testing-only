@@ -977,6 +977,17 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Chi phí ước lượng (tính tay): dựng chuỗi khoảng 5 × 18 = 90 phút, thêm khoảng 18 phút cho run tất định; phần đo dưới 10 phút (không LOO, không OCM).
 - Đã thấy trước tiền đăng ký này: mọi số của E09.10 và E12.03; shape và thứ tự nhãn của bộ fz. Chưa thấy số nào trên đặc trưng chưa fine-tune của CUB.
 
+### Sửa (2026-11-20; viết sau code, trước checks-only và trước mọi số của thí nghiệm)
+
+- Dựng chuỗi xong (commit `3b95a16`): `cub_km_evhung_det_fz_s0` (20261120_001856) và `cub_chain_fz_s0`–`s4`; C1 của chuỗi s0 OK 48/48 với run tất định (G4 đạt). Thư mục `snap/` của các chuỗi không commit, như các chuỗi ft_l25.
+- Các chỗ cài đặt trong `tier2_e0911` không ghi chữ-theo-chữ ở tiền đăng ký; không đổi luật:
+  - KMft của chuỗi N: c09 KM của run `cub_e09_10_ft_l25` (khoá `r<r>_s<N>_S<i>_KM_c09`), trung bình qua r = 0–2 ở mỗi phiên, rồi trung bình qua 5 phiên như KMfz.
+  - `acc1` của pipeline trên ft_l25 lấy từ khoá `S<i>_P_P0_New`, `S<i>_P_P0_Old` của run E09.10 (trùng `acc1` theo G1 của E09.10, 1e-6), trung bình qua r; trên fz lấy `acc1` của chuỗi fz.
+  - G1 so `offset`, `true_pool_y`, `true_test_all_y` của chuỗi fz s<N> với `cub_chain_ft_l25_r0_s<N>` ở mọi phiên.
+  - G4 nằm ngoài runner (C1 bằng `lab/sessions.py check`, đã đạt); `checks_ok` gồm G1, G2; G3 không chặn.
+  - Luật chẩn đoán SSKM đọc trên tỉ lệ gộp 25 phiên (5 chuỗi × 5 phiên).
+- Code đã thử trên 5 chuỗi giả (chuỗi fz giả là chuỗi ft_l25 r0 giả với đặc trưng biến đổi tuyến tính cộng nhiễu, cùng nhãn; mốc E09.10 tính trên cùng dữ liệu giả): G1–G3 OK ở 5/5; hai giá trị kiểm bằng tay khớp; ba đối chứng âm cho đúng kết quả (một nhãn pool lệch → G1 DIFF; tâm lớp gốc lệch 1e-6 → G2 DIFF; `checks_ok` = 0 → `e0911-summary` từ chối đọc). Không có số nào của dữ liệu thật.
+
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
 ### Tiền đăng ký (2026-11-17; viết trước khi có code và trước mọi số của thí nghiệm)
