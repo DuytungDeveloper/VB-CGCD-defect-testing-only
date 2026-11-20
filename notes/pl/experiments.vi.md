@@ -37,6 +37,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
 - E12.02: CUB t5, bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ (A3 hoặc A1, chọn bằng mô phỏng bỏ-một-lớp trên S0; ngưỡng p-value conformal α = 0.10) thay `keep` của bước 12, rồi khớp mô hình N của E14.06: lấy lại bao nhiêu phần khoảng lớp cũ giữa N và N sạch (tiền đăng ký 2026-11-17) — mục E12.02 dưới đây
 - E12.03: CUB t5, lọc cũ/mới bằng lề LOO (ngoài mẫu ở cả hai phía), nhánh NL, D1–D4, đọc dưới ràng buộc hai vế của QD28 (tiền đăng ký 2026-11-19; xong, Rito duyệt 2026-11-19: Đạt trên r0–r2, NL ΔM_d +2.726, ΔOld +1.334, ΔS5_S0test −0.162, ΔS5_All +1.611; AUROC lề LOO 0.956 so với 0.800 trong mẫu; XÁC NHẬN trên r3, r4: NL ΔM_d +2.741, ΔOld +1.310, ΔS5_S0test −0.137) — mục E12.03 dưới đây
+- E12.04: GC10 t1, lọc cũ/mới bằng lề LOO (NL của E12.03) trên 15 ảnh chụp r0–r2, luật như E09.06 (T = 0.0273, B = 0.615) (tiền đăng ký 2026-11-20) — mục E12.04 dưới đây
 - E14.01: điểm lớp mới theo bốn quy ước ghép tên P0–P3 trên cùng dự đoán, CUB t5 (2026-11-16; xong, Rito duyệt tạm: P1–P3 cao hơn P0 0.75–0.79 điểm M_d; P3 trùng P2) — mục E14.01 dưới đây
 - E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
@@ -1226,6 +1227,34 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - Tên gọi khi báo cáo: "VB thật (NIW) + lọc lề LOO vượt pipeline MLE tái lập"; không viết "VB thật vượt bản gốc", vì phần lọc không thuộc VB-CGCD và pipeline là bản tái lập.
   - NL3 cân bằng hơn ở lớp gốc nhưng là báo kèm; muốn dùng NL3 phải tiền đăng ký riêng.
 - Bước kế (Rito duyệt): Sửa đổi E09.10 đổi nền từ N sang NL, tiền đăng ký trước code; sau đó viết tài liệu bàn giao.
+
+## E12.04 — GC10 t1: lọc cũ/mới bằng lề LOO (NL của E12.03) có tăng balanced novel mà không mất lớp cũ không? (QD25, QD27)
+
+### Tiền đăng ký (2026-11-20; viết sau Kết luận E09.11 `ad1555c`, trước mọi số của N hay NL trên GC10)
+
+- Vì sao có thí nghiệm này: E12.03 XÁC NHẬN NL trên CUB (ΔM_d +2.741 trên r3, r4). Đề tài là phát hiện khuyết tật công nghiệp, nên cần biết NL có chuyển sang GC10 không. Trên GC10, bộ lọc mặc định để lọt ảnh cũ (E06.03, `notes/improvement-1.vi.md` §4).
+- GC10 khác CUB: 5 lớp gốc + 5 lớp mới, một phiên (tập test cũ là tập test S0); PCA-64; S0 có 130–184 ảnh mỗi lớp (E06.04); không dính D9; đại lượng là balanced novel (QD25); T = 0.0273, B = 0.615 (E09.07 phần 2, QD28).
+- Dữ liệu: 15 ảnh chụp `gc10_v2_ft_r<r>_s<N>`, r = 0–2, N = 0–4 (dò hướng); trạng thái sau bước 14 (`replay.load`); không gian PCA-64 của bước 05; phân hoạch là `ids` k-means mặc định (không phải `09a` + `09b` của E09.06), bộ lọc `keep`, ghép tên `lut` của pipeline. r3, r4 để dành cho xác nhận.
+- Nhánh (như E12.03), dự đoán Student-t, argmax trên 10 khe:
+  - P: pipeline (cột 14 của sổ mất điểm).
+  - N: hậu nghiệm NIW cho mọi khe; prior m0 của S0, κ0 = `niw.K0`, off chọn bằng LOO trên S0 như E06.04; khe gốc từ S0, khe mới từ ảnh `keep` theo id cụm.
+  - NL: bỏ hàng có m_loo < 0 (m_loo = L_loo − L_old, như E12.03), khớp lại một lần.
+  - Nc (oracle): bỏ ảnh cũ bằng nhãn pool.
+- Đại lượng: balanced novel (trung bình recall 5 lớp mới trên tập test lớp mới, ghép tên như pipeline); Old (% đúng trên tập test cũ). Báo kèm: All; D1–D4 của E12.03 (AUROC của m_loo và m_in, tỉ lệ ảnh cũ và mới bị bỏ); số ảnh cũ trong `keep`.
+- Luật quyết định (cách so như E09.06): Δ_r = trung bình trên 5 seed của (balanced novel NL − P); Δ = trung bình Δ_r trên 3 FT seed; ΔOld tính cùng cách.
+  - ĐẠT: Δ ≥ T = 0.0273, Δ_r > 0 ở ít nhất 2/3 FT seed, và ΔOld ≥ −B = −0.615 điểm → viết Sửa đổi xác nhận trên r3, r4 trước khi đọc số của chúng.
+  - BÁC: Δ ≤ 0, hoặc ΔOld < −B.
+  - KHÔNG ĐỦ LỚN: còn lại.
+- Cổng:
+  - G1: P tính lại trùng balanced novel và Old ở cột 14 của sổ mất điểm (1e-6).
+  - G2: off và độ chính xác test S0 của khe gốc dưới Student-t trùng `off`, `acc_A3` của run `gc10_e06_04_r<r>_s<N>`.
+  - G3: L_loo = `niw.log_sequential(X) − niw.log_sequential(X[:-1])` trên hàng cuối của khe đầu tiên có ít nhất 3 hàng (1e-8 tương đối).
+  - G4: NL với ngưỡng −∞ cho lại N (1e-6).
+  - Đọc kết quả chỉ khi mọi cổng đạt.
+- Code (viết sau tiền đăng ký): `tier2_e1204` và `e1204-summary` trong `lab/score.py`, dùng lại `_post_1406`, `_loo_1203`, `_old_max_1203`, `_logd_1202`; lệnh `e1204` qua `exp.py`, một run (tag `gc10_e12_04`); không sửa `lab/replay.py`, `lab/niw.py`.
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp: N mất Old so với P như trên CUB nhưng ít hơn (S0 của GC10 lớn hơn nhiều); NL lấy lại Old; Δ dương nhưng có thể dưới T, vì khám phá lớp mới mới là chỗ mất điểm chính trên GC10 (E03.02).
+- Giới hạn: GC10 nhỏ (214 ảnh test lớp mới; lớp hiếm làm balanced novel nhiễu); một phiên; ảnh cũ trong pool ít hơn CUB nên phần NL sửa được có thể nhỏ; kết quả không nói được NL có cộng thêm vào `09a` + `09b` không. KHÔNG ĐỦ LỚN không chứng minh NL vô ích trên dữ liệu công nghiệp.
+- Đã thấy trước tiền đăng ký này: mọi số của E12.03, E06.04 trên GC10, E09.06. Chưa có số nào của N hay NL trên GC10.
 
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
