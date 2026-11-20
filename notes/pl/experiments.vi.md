@@ -1124,6 +1124,17 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - FTR2 không hơn FTR1 về M_d (69.057 so với 69.575) nhưng hơn về Old và S0test; chỉ báo kèm, không có khẳng định.
 - Giới hạn giữ nguyên như tiền đăng ký: r0–r2 đã dùng nhiều lần, c09 của FTR1-thử đã bị nhìn trên chính các seed này.
 
+### Sửa đổi (2026-11-21; viết sau khi đã thấy kết quả dò hướng r0–r2, trước run xác nhận r3, r4 và trước mọi số của FTR1, FTR2, Npre trên r3, r4; Rito chốt 2026-11-21 01:44)
+
+- Thêm khẳng định 2 cho run xác nhận: "FTR1 không tệ hơn NL ở lớp cũ". Khẳng định này hình thành sau khi đã thấy ΔOld(FTR1 − NL) +3.554 ở r0–r2 (mục Kết quả ở trên); r3, r4 là hai FT seed sạch cuối cùng, nên phải đăng ký trước run (quy tắc ở bàn giao 2026-11-20 chiều, mục 7).
+- Luật của khẳng định 2 (r3, r4; mỗi số là trung bình 5 chuỗi của một FT seed; Old là trung bình 5 phiên, P1; khuôn E12.03):
+  - XÁC NHẬN: ΔOld(FTR1 − NL) > 0 ở cả r3 và r4, và trung bình hai FT seed ≥ B = 0.376.
+  - KHÔNG XÁC NHẬN: trung bình ΔOld(FTR1 − NL) ≤ 0.
+  - KHÔNG RÕ: còn lại.
+- Hai khẳng định được đọc độc lập. Khẳng định 1 (ΔM_d FTR1 − NL, kèm ràng buộc hai vế so với P) giữ nguyên chữ-theo-chữ như tiền đăng ký và quyết định việc báo FTR1 như cải tiến; khẳng định 2 chỉ quyết định có được viết câu "không đổi lớp cũ lấy lớp mới so với NL" hay không.
+- Không thêm khẳng định cho FTR2 hay Npre. Không đổi nhánh, cổng, T, B hay luật dò hướng.
+- Code: `e0912-summary` in thêm dòng `claim 2 (Old, FTR1 - NL)` cho run xác nhận (commit code sau Sửa đổi này, trước run xác nhận).
+
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
 ### Tiền đăng ký (2026-11-17; viết trước khi có code và trước mọi số của thí nghiệm)
