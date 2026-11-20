@@ -40,6 +40,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e1203-summary                                  E12.03: tables, D1-D4 and reading rules from the two runs
   python lab/score.py e0910 --prefix cub_chain_ft[_l25] [--checks-only]   E09.10: SSKM and OCM partitions, c09, NL-X report (exp.py)
   python lab/score.py e0910-summary                                  E09.10: c09 table, decision rule and report from the two runs
+  python lab/score.py e0911 --prefix cub_chain_fz [--checks-only]    E09.11: KM and SSKM partitions on frozen DINO features (exp.py)
+  python lab/score.py e0911-summary                                  E09.11: c09 table, decision rule and SSKM diagnostic from the run
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -4356,9 +4358,115 @@ def e0910_summary(T=0.935, B=0.376):
     print("\nE09.10: the decision rule is read on cub_e09_10_ft_l25; cub_e09_10_ft is reported alongside")
 
 
+# ---- E09.11: CUB t5, partitions of the new group on frozen DINO features (branch (a) of E09.10; pre-registration d06e9b1) ----
+def tier2_e0911(prefix="cub_chain_fz", checks_only=False):
+    """E09.11 (pre-registration d06e9b1) on the 5 chains cub_chain_fz_s<N> (frozen DINO ViT-B/16 of CUB, one chain per
+    split seed). Per session: KMfz (ids of the pipeline on fz), SSKMfz (_sskm_0910 of E09.10 on the z of the fz chain;
+    discovered centres start at the mean of the rows of the new SSKM clusters of their session, the final centre if
+    empty), c09 as in E09.10 (SSKM: Hungarian over its inc new clusters, a novel image in an old cluster counts wrong),
+    SSKM separation counts. KMft: c09 of KM of the run cub_e09_10_ft_l25 for the chains cub_chain_ft_l25_r<r>_s<N>,
+    r = 0-2, mean over r. Report: acc1 (New, Old) of the pipeline on fz (the chain) and on ft_l25 (S<i>_P_P0_* of the
+    E09.10 run, = acc1 by its G1), mean over r. Pool labels for c09 and separation only; no test labels besides acc1.
+    Gates: G1 true_pool_y and true_test_all_y of fz s<N> equal those of cub_chain_ft_l25_r0_s<N> in every session.
+    G2 the SSKM centre step with no pool rows gives the S0 class means (1e-9). G3 SSKM converged in every session (not
+    blocking; rounds kept). G4 (C1 of chain s0 against cub_km_evhung_det_fz_s0) is checked by lab/sessions.py check,
+    outside this runner. Keys: s<N>_<key>; G1_ok, G2_ok, G3_ok, checks_ok (G1, G2). The progress line prints the gates
+    and the time only. checks_only: chain s0 only, no keys."""
+    from replay import _git
+    from sessions import load as load_sessions, _device
+    assert prefix == "cub_chain_fz", "E09.11 is pre-registered on the chains cub_chain_fz_s<N>"
+    t0 = time.time()
+    if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
+        raise SystemExit("e0911: commit the code first (same dirty rule as scripts/exp.py)")
+    e10 = _ref_metrics("cub_e09_10_ft_l25")
+    assert e10.get("checks_ok") == 1, "E09.10 run of cub_chain_ft_l25: checks failed"
+    out, gates = {}, {f"G{k}": True for k in range(1, 4)}
+    for N in (0,) if checks_only else range(5):
+        tag, pre = f"{prefix}_s{N}", f"s{N}_"
+        st, views = load_sessions(tag)
+        _, vft = load_sessions(f"cub_chain_ft_l25_r0_s{N}")
+        _device()
+        a = st["args"]
+        assert a.dataset == "cub200" and a.load_mode == "t5" and len(views) == 5 == len(vft) and a.seed == N, f"{tag}: not a CUB t5 chain of seed {N}"
+        base, inc, res, g = a.base, a.increment, {}, {f"G{k}": True for k in range(1, 4)}
+        z0, y0 = np.asarray(st["z_s0"], np.float64), np.asarray(st["s0_y"]).astype(int)
+        d = z0.shape[1]
+        Cb0 = _centers_0910(z0, y0, base, z0[:0], np.zeros(0, int), np.zeros((base, d)))
+        g["G2"] &= bool(np.max(np.abs(Cb0 - np.stack([z0[y0 == k].mean(0) for k in range(base)]))) <= 1e-9)
+        Cdisc = np.zeros((0, d))
+        for i, (v, w) in enumerate(zip(views, vft), 1):
+            off = v["offset"]
+            zp = np.asarray(v["z_pool"], np.float64)
+            ids, yp = np.asarray(v["ids"]).astype(int), np.asarray(v["true_pool_y"]).astype(int)
+            g["G1"] &= bool(off == w["offset"] and np.array_equal(yp, np.asarray(w["true_pool_y"]).astype(int))
+                            and np.array_equal(np.asarray(v["true_test_all_y"]), np.asarray(w["true_test_all_y"])))
+            pn = yp >= off
+            sa, Csk, conv, it = _sskm_0910(z0, y0, base, Cdisc, zp, inc)
+            assert sa.max() < off + inc and len(Cdisc) == off - base
+            sk_new = sa >= off
+            g["G3"] &= bool(conv)
+            res.update({f"S{i}_SSKM_iters": int(it), f"S{i}_SSKM_conv": int(conv)})
+            res[f"S{i}_KMfz_c09"] = 100.0 * _hung_correct_1402(ids[pn], yp[pn] - off, inc) / int(pn.sum())
+            m = pn & sk_new
+            res[f"S{i}_SSKMfz_c09"] = 100.0 * _hung_correct_1402(sa[m] - off, yp[m] - off, inc) / int(pn.sum())
+            res[f"S{i}_KMft_c09"] = float(np.mean([e10[f"r{r}_s{N}_S{i}_KM_c09"] for r in range(3)]))
+            res.update({f"S{i}_SSKM_old_n": int((~pn).sum()), f"S{i}_SSKM_old_in_old": int(((~pn) & ~sk_new).sum()),
+                        f"S{i}_SSKM_new_n": int(pn.sum()), f"S{i}_SSKM_new_in_new": int((pn & sk_new).sum())})
+            res.update({f"S{i}_acc1fz_New": float(v["acc1"]["Novel"]), f"S{i}_acc1fz_Old": float(v["acc1"]["Old"]),
+                        f"S{i}_acc1ft_New": float(np.mean([e10[f"r{r}_s{N}_S{i}_P_P0_New"] for r in range(3)])),
+                        f"S{i}_acc1ft_Old": float(np.mean([e10[f"r{r}_s{N}_S{i}_P_P0_Old"] for r in range(3)]))})
+            sel = [sa == off + c for c in range(inc)]
+            Cdisc = np.concatenate([Cdisc, np.stack([zp[s].mean(0) if s.any() else Csk[off + c] for c, s in enumerate(sel)])])
+        for kk in gates:
+            gates[kk] = gates[kk] and g[kk]
+        out.update({pre + kk: round(val, 4) if isinstance(val, float) else val for kk, val in res.items()})
+        print(f"e0911 {tag}: " + " ".join(f"{kk} {'OK' if g[kk] else 'DIFF'}" for kk in g) + f" ({time.time() - t0:.0f} s)", flush=True)
+    chk = {f"{kk}_ok": int(v) for kk, v in gates.items()}
+    chk["checks_ok"] = int(gates["G1"] and gates["G2"])
+    print(f"e0911 {prefix}: checks {'OK' if chk['checks_ok'] else 'FAILED'} (G3 {'OK' if gates['G3'] else 'not converged somewhere, see SSKM_conv'}; {time.time() - t0:.0f} s)")
+    return chk if checks_only else {**chk, **out}
+
+
+def e0911_summary():
+    """Table of E09.11 from the run cub_e09_11_fz: per chain s0-s4 (mean over the 5 sessions) c09 of KMfz, KMft, SSKMfz
+    and the differences; SSKMfz separation pooled over the sessions of a chain and over all 25 sessions; acc1 of the
+    pipeline on fz and on ft_l25. Decision rule and SSKM diagnostic rule of the pre-registration. "mean" and "sd" over
+    the 5 chains (ddof 1). Refuses to read a run without checks_ok = 1."""
+    tag = "cub_e09_11_fz"
+    if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+        print(f"\n{tag}: no run yet")
+        return
+    m = _ref_metrics(tag)
+    assert m.get("checks_ok") == 1, f"{tag}: checks failed, results are not read"
+    per = lambda k: np.array([[m[f"s{N}_S{i}_{k}"] for i in range(1, 6)] for N in range(5)], float)
+    ch = lambda k: per(k).mean(1)
+    tot = lambda k: per(k).sum(1)
+    line = lambda name, x: f"  {name:<38}" + "".join(f"{val:9.3f}" for val in x) + f"{x.mean():9.3f}{x.std(ddof=1):9.3f}"
+    hit = int((per("SSKM_conv") == 0).sum())
+    print(f"\n{tag}: G1 G2 OK; G3 {'OK' if m.get('G3_ok') == 1 else 'not converged'}; SSKM sessions at 100 rounds: {hit} of 25; "
+          f"G4 = C1 of cub_chain_fz_s0 (LOG)\n  {'':<38}" + "".join(f"{x:>9}" for x in ("s0", "s1", "s2", "s3", "s4", "mean", "sd")))
+    d = ch("KMfz_c09") - ch("KMft_c09")
+    for name, x in (("c09 KMfz", ch("KMfz_c09")), ("c09 KMft (E09.10, mean r0-r2)", ch("KMft_c09")), ("dc09 KMfz - KMft", d),
+                    ("c09 SSKMfz", ch("SSKMfz_c09")), ("dc09 SSKMfz - KMfz", ch("SSKMfz_c09") - ch("KMfz_c09")),
+                    ("SSKMfz old pool rows in old clusters", tot("SSKM_old_in_old") / tot("SSKM_old_n")),
+                    ("SSKMfz novel pool rows in new clusters", tot("SSKM_new_in_new") / tot("SSKM_new_n")),
+                    ("SSKMfz rounds (mean per session)", ch("SSKM_iters")),
+                    ("acc1 New, pipeline on fz", ch("acc1fz_New")), ("acc1 New, pipeline on ft_l25", ch("acc1ft_New")),
+                    ("acc1 Old, pipeline on fz", ch("acc1fz_Old")), ("acc1 Old, pipeline on ft_l25", ch("acc1ft_Old"))):
+        print(line(name, x))
+    pooled = tot("SSKM_new_in_new").sum() / tot("SSKM_new_n").sum()
+    print(f"  SSKMfz novel pool rows in new clusters, pooled over 25 sessions: {pooled:.3f}")
+    print("  rule: " + ("worth grafting -> pre-register the graft (partition on fz, NL slots on ft, row-match gate)"
+                        if d.mean() >= 5 and (d > 0).sum() >= 4 else
+                        "No -> direction (2) stops on CUB with the current features")
+          + f" (mean dc09 {d.mean():+.3f}, positive in {(d > 0).sum()} of 5 chains)")
+    print("  SSKM diagnostic: " + ("the features are part of why SSKM failed in E09.10" if pooled >= 0.5 else
+                                   "mainly the implementation" if pooled <= 0.3 else "unclear"))
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -4369,11 +4477,11 @@ def main(argv):
     p.add_argument("--ft", type=int, help="e0604 cub200: FT seed of the features")
     p.add_argument("--seed", type=int, help="e0604 cub200: seed of the chain")
     p.add_argument("--checks-only", action="store_true", help="e0604: print the checks C1-C3 only, no result; e1401: chain r0 s0 only")
-    p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25"], help="e1401, e1402: tag prefix of the 15 chains")
+    p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25", "cub_chain_fz"], help="e1401, e1402: tag prefix of the 15 chains; e0911: cub_chain_fz")
     p.add_argument("--fts", default="0,1,2", help="e1203: FT seeds, 0,1,2 (exploration) or 3,4 (confirmation)")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -4432,9 +4540,12 @@ def main(argv):
     if o.step == "e0910-summary":
         e0910_summary()
         return
-    if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406", "e1202", "e1407", "e0908", "e1408", "e1409", "e1203", "e0910"):
+    if o.step == "e0911-summary":
+        e0911_summary()
+        return
+    if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406", "e1202", "e1407", "e0908", "e1408", "e1409", "e1203", "e0910", "e0911"):
         assert o.prefix, f"{o.step} needs --prefix"
-        fn = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406, "e1202": tier2_e1202, "e1407": tier2_e1407, "e0908": tier2_e0908, "e1408": tier2_e1408, "e1409": tier2_e1409, "e1203": tier2_e1203, "e0910": tier2_e0910}[o.step]
+        fn = {"e1401": tier2_e1401, "e1402": tier2_e1402, "e1402b": tier2_e1402b, "e1403": tier2_e1403, "e1405": tier2_e1405, "e1406": tier2_e1406, "e1202": tier2_e1202, "e1407": tier2_e1407, "e0908": tier2_e0908, "e1408": tier2_e1408, "e1409": tier2_e1409, "e1203": tier2_e1203, "e0910": tier2_e0910, "e0911": tier2_e0911}[o.step]
         out = fn(o.prefix, o.checks_only, tuple(int(x) for x in o.fts.split(","))) if o.step == "e1203" else fn(o.prefix, o.checks_only)
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
