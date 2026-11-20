@@ -42,8 +42,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e0910-summary                                  E09.10: c09 table, decision rule and report from the two runs
   python lab/score.py e0911 --prefix cub_chain_fz [--checks-only]    E09.11: KM and SSKM partitions on frozen DINO features (exp.py)
   python lab/score.py e0911-summary                                  E09.11: c09 table, decision rule and SSKM diagnostic from the run
-  python lab/score.py e1204 [--checks-only]                          E12.04: NL of E12.03 on the 15 GC10 snapshots (exp.py)
-  python lab/score.py e1204-summary                                  E12.04: table and decision rule from the run
+  python lab/score.py e1204 [--fts 3,4] [--checks-only]              E12.04: NL of E12.03 on the GC10 snapshots, r0-r2 or r3, r4 (exp.py)
+  python lab/score.py e1204-summary                                  E12.04: tables and decision rules from the two runs
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -4480,7 +4480,7 @@ def _sc_1204(L, y, tgt, off):
             "new_right": int(ok[new].sum()), "old_right": int(ok[~new].sum())}
 
 
-def tier2_e1204(checks_only=False):
+def tier2_e1204(checks_only=False, fts=(0, 1, 2)):
     """E12.04 (pre-registration 15724a5) on the 15 snapshots gc10_v2_ft_r<r>_s<N>, r = 0-2, N = 0-4: state after step
     14 (replay.load), PCA-64 of step 05, partition ids (default k-means), keep and lut of the pipeline. Model N of
     E14.06 with GC10 numbers: one NIW prior (m0 = mean of S0, kappa0 = niw.K0, Psi0 = off x pooled S0 covariance, off by
@@ -4495,14 +4495,16 @@ def tier2_e1204(checks_only=False):
     run gc10_e06_04_r<r>_s<N> (1e-6). G3 L_loo of the last row of the first slot with >= 3 rows = niw.log_sequential(X)
     - niw.log_sequential(X[:-1]) (relative 1e-8). G4 NL with threshold -inf (keep every row) gives N (bal, Old, All; 1e-6).
     No SVI, no RNG; pool labels for Nc and D1-D4 only; test labels for scoring. Progress line: gates and time only.
-    Keys: r<r>_s<N>_<key>; G1_ok ... G4_ok, checks_ok. checks_only: snapshot r0 s0 only, no keys."""
+    Keys: r<r>_s<N>_<key>; G1_ok ... G4_ok, checks_ok. checks_only: snapshot s0 of the first FT seed only, no keys.
+    fts: (0, 1, 2) exploration (run gc10_e12_04) or (3, 4) confirmation (Sửa đổi 90c3cbd, run gc10_e12_04x)."""
+    assert tuple(fts) in ((0, 1, 2), (3, 4)), f"e1204: fts {fts}"
     import niw
     from replay import _clf, _git
     t0 = time.time()
     if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
         raise SystemExit("e1204: commit the code first (same dirty rule as scripts/exp.py)")
     out, gates = {}, {f"G{k}": True for k in range(1, 5)}
-    for r, N in ((0, 0),) if checks_only else [(r, N) for r in range(3) for N in range(5)]:
+    for r, N in ((fts[0], 0),) if checks_only else [(r, N) for r in fts for N in range(5)]:
         tag, pre = f"gc10_v2_ft_r{r}_s{N}", f"r{r}_s{N}_"
         st = load(tag, "14", check=False)              # new_state first: imports torch, jax, main in the order of the v2 runs
         blobs = snapshots(tag)
@@ -4661,6 +4663,61 @@ def e1204_summary(T=0.0273, B=0.615):
         dec = "NOT LARGE ENOUGH (KHÔNG ĐỦ LỚN)"
     print(f"  rule: Delta = {delta:+.4f} (T = {T}), Delta_r > 0 in {npos}/3 FT seeds, Delta_Old = {dold:+.3f} points "
           f"(-B = {-B}) -> {dec}")
+    _e1204x_summary(m, T, B)
+
+
+def _e1204x_summary(m0, T=0.0273, B=0.615):
+    """Confirmation of E12.04 (Sửa đổi 90c3cbd) from the run gc10_e12_04x on the 10 snapshots r3, r4: the tables of
+    e1204_summary per FT seed (r3, r4, mean), NL - N, and two independent claims with the same rule, NL - P (claim 1)
+    and N - P (claim 2): CONFIRMED if Delta_r > 0 at both r3 and r4, Delta = mean of the two >= T and Delta_Old >= -B;
+    NOT CONFIRMED if Delta <= 0 or Delta_Old < -B; else UNCLEAR. Report only: Delta over the 5 FT seeds r0-r4 (r0-r2
+    from the exploration run m0). r3, r4 are not pooled with r0-r2 in the rule. Refuses a run without checks_ok = 1."""
+    tag, fts = "gc10_e12_04x", (3, 4)
+    if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+        print(f"\n{tag}: no confirmation run yet")
+        return
+    m = _ref_metrics(tag)
+    assert m.get("checks_ok") == 1, f"{tag}: checks failed, results are not read"
+    per = lambda key, mm=m, rs=fts: np.array([[mm[f"r{r}_s{N}_{key}"] for N in range(5)] for r in rs], float)
+    ft = lambda key: per(key).mean(1)
+    tot = lambda key: per(key).sum(1)
+    line = lambda name, x, f=9.4: f"  {name:<34}" + "".join(f"{val:{f}f}" for val in x) + f"{x.mean():{f}f}"
+    print(f"\n{tag} (confirmation, r3, r4): G1-G4 OK; off chosen: {sorted(set(int(x) for x in per('off').ravel()))}")
+    print(f"  {'':<34}" + "".join(f"{x:>9}" for x in ("r3", "r4", "mean")))
+    for b in ("P",) + BRANCHES_1204:
+        print(line(f"{b} balanced novel", ft(f"{b}_bal")))
+        print(line(f"{b} Old (%)", ft(f"{b}_Old")))
+        print(line(f"{b} All (%)", ft(f"{b}_All")))
+        if b != "P":
+            print(line(f"{b} d balanced vs P", ft(f"{b}_bal") - ft("P_bal")))
+            print(line(f"{b} dOld vs P (points)", ft(f"{b}_Old") - ft("P_Old")))
+            print(line(f"{b} dAll vs P (points)", ft(f"{b}_All") - ft("P_All")))
+    print(line("NL - N balanced", ft("NL_bal") - ft("N_bal")))
+    print(line("NL - N Old (points)", ft("NL_Old") - ft("N_Old")))
+    print(line("S0 A3 (base test, %)", ft("S0_A3")))
+    print(line("D1 old flipped (m_in>0, m_loo<0)", tot("d1") / tot("n_old")))
+    print(line("D2 new with m_loo < 0", tot("d2") / tot("n_new")))
+    print(line("D3 AUROC of m_loo", tot("U_loo") / tot("pairs")))
+    print(line("D3 AUROC of m_in", tot("U_in") / tot("pairs")))
+    print(line("D4 old dropped by NL", tot("drop_old") / tot("n_old")))
+    print(line("D4 new dropped by NL", tot("drop_new") / tot("n_new")))
+    print(line("kept rows per snapshot: old", ft("n_old"), 9.2))
+    print(line("kept rows per snapshot: new", ft("n_new"), 9.2))
+    print(f"  kept rows equal to an S0 row (D16): {int(per('match').sum())}; empty NL slots: {int(per('empty_NL').sum())} of 50")
+    for k, b in ((1, "NL"), (2, "N")):
+        dr, do = ft(f"{b}_bal") - ft("P_bal"), ft(f"{b}_Old") - ft("P_Old")
+        delta, dold = float(dr.mean()), float(do.mean())
+        if dr.min() > 0 and delta >= T and dold >= -B:
+            dec = "CONFIRMED (XÁC NHẬN)"
+        elif delta <= 0 or dold < -B:
+            dec = "NOT CONFIRMED (KHÔNG XÁC NHẬN)"
+        else:
+            dec = "UNCLEAR (KHÔNG RÕ)"
+        print(f"  claim {k} ({b} - P): Delta_r3 = {dr[0]:+.4f}, Delta_r4 = {dr[1]:+.4f}, Delta = {delta:+.4f} (T = {T}), "
+              f"Delta_Old = {dold:+.3f} points (-B = {-B}) -> {dec}")
+    for b in ("NL", "N"):
+        d5 = np.r_[(per(f"{b}_bal", m0, range(3)) - per("P_bal", m0, range(3))).mean(1), ft(f"{b}_bal") - ft("P_bal")]
+        print(f"  report only, {b} - P balanced over the 5 FT seeds r0-r4: " + " ".join(f"{x:+.4f}" for x in d5) + f"; mean {d5.mean():+.4f}")
 
 
 def main(argv):
@@ -4677,7 +4734,7 @@ def main(argv):
     p.add_argument("--seed", type=int, help="e0604 cub200: seed of the chain")
     p.add_argument("--checks-only", action="store_true", help="e0604: print the checks C1-C3 only, no result; e1401: chain r0 s0 only")
     p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25", "cub_chain_fz"], help="e1401, e1402: tag prefix of the 15 chains; e0911: cub_chain_fz")
-    p.add_argument("--fts", default="0,1,2", help="e1203: FT seeds, 0,1,2 (exploration) or 3,4 (confirmation)")
+    p.add_argument("--fts", default="0,1,2", help="e1203, e1204: FT seeds, 0,1,2 (exploration) or 3,4 (confirmation)")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
     assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary", "e1204", "e1204-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
@@ -4746,7 +4803,7 @@ def main(argv):
         e1204_summary()
         return
     if o.step == "e1204":
-        out = tier2_e1204(o.checks_only)
+        out = tier2_e1204(o.checks_only, tuple(int(x) for x in o.fts.split(",")))
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
