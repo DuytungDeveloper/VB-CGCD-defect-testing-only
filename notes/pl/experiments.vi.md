@@ -37,7 +37,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
 - E12.02: CUB t5, bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ (A3 hoặc A1, chọn bằng mô phỏng bỏ-một-lớp trên S0; ngưỡng p-value conformal α = 0.10) thay `keep` của bước 12, rồi khớp mô hình N của E14.06: lấy lại bao nhiêu phần khoảng lớp cũ giữa N và N sạch (tiền đăng ký 2026-11-17) — mục E12.02 dưới đây
 - E12.03: CUB t5, lọc cũ/mới bằng lề LOO (ngoài mẫu ở cả hai phía), nhánh NL, D1–D4, đọc dưới ràng buộc hai vế của QD28 (tiền đăng ký 2026-11-19; xong, Rito duyệt 2026-11-19: Đạt trên r0–r2, NL ΔM_d +2.726, ΔOld +1.334, ΔS5_S0test −0.162, ΔS5_All +1.611; AUROC lề LOO 0.956 so với 0.800 trong mẫu; XÁC NHẬN trên r3, r4: NL ΔM_d +2.741, ΔOld +1.310, ΔS5_S0test −0.137) — mục E12.03 dưới đây
-- E12.04: GC10 t1, lọc cũ/mới bằng lề LOO (NL của E12.03) trên 15 ảnh chụp r0–r2, luật như E09.06 (T = 0.0273, B = 0.615) (tiền đăng ký 2026-11-20) — mục E12.04 dưới đây
+- E12.04: GC10 t1, lọc cũ/mới bằng lề LOO (NL của E12.03) trên 15 ảnh chụp r0–r2, luật như E09.06 (T = 0.0273, B = 0.615) (tiền đăng ký 2026-11-20; xong: ĐẠT theo luật, Δ = 0.032, Δ_Old = +1.22 điểm; phần thắng thuộc về NIW, không thuộc bộ lọc; chờ xác nhận r3, r4) — mục E12.04 dưới đây
 - E14.01: điểm lớp mới theo bốn quy ước ghép tên P0–P3 trên cùng dự đoán, CUB t5 (2026-11-16; xong, Rito duyệt tạm: P1–P3 cao hơn P0 0.75–0.79 điểm M_d; P3 trùng P2) — mục E14.01 dưới đây
 - E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
@@ -1268,6 +1268,49 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - D3: AUROC bằng thống kê Mann-Whitney U; cặp (mới, cũ) chỉ lập trong cùng một ảnh chụp, rồi cộng U và số cặp của 5 ảnh chụp một FT seed (như E12.03).
   - Một run cho cả 15 ảnh chụp (tag `gc10_e12_04`), chạy với một luồng BLAS. `e1204-summary` in kèm T, B tính lại từ P (SD gộp giữa các seed trong FT seed) để kiểm; không dùng để quyết định.
 - Code đã thử trên 15 ảnh chụp giả (d = 8, 5 + 5 lớp, một hàng pool cũ trùng một hàng S0 để đường D16 có được dùng; `jax` giả; mốc E06.04 tính bằng `niw.fit` trên cùng dữ liệu giả): G1–G4 OK ở 15/15; balanced novel của P ở r0 s0 tính tay bằng đường độc lập khớp số của runner; ba đối chứng âm cho DIFF đúng cổng (`acc_A3` lệch 0.01 → G2; lật một ô cột 14 → G1; `log_sequential` lệch tương đối 1e-6 → G3); `checks_ok` = 0 thì `e1204-summary` từ chối đọc. G4 không có đối chứng âm riêng: nhánh G4 và nhánh NL dùng cùng một biểu thức bỏ hàng, chỉ khác ngưỡng. Không có số nào của dữ liệu thật.
+
+### Kết quả (2026-11-20; run `20261120_105711__gc10_e12_04`, code `0660cab`, Sửa `2dd872c`, commit run `46d918f`; số in bằng `python lab/score.py e1204-summary`; 15/15 ảnh chụp qua G1–G4)
+
+- off chọn được: 10 hoặc 25. T, B tính lại từ P (SD gộp): 0.02728 và 0.61545, làm tròn ra đúng số đã tiền đăng ký.
+- Trung bình 3 FT seed (mỗi FT seed là trung bình 5 seed). Balanced novel là tỉ lệ; Old và All là điểm %:
+
+| Nhánh | balanced novel | Old | All | Δ balanced so với P | ΔOld so với P | ΔAll so với P |
+|---|---|---|---|---|---|---|
+| P (pipeline) | 0.3494 | 81.5768 | 66.5641 | – | – | – |
+| N | 0.3911 | 82.0194 | 70.8864 | +0.0417 | +0.4426 | +4.3223 |
+| NL | 0.3815 | 82.7939 | 70.8864 | +0.0322 | +1.2172 | +4.3223 |
+| Nc (oracle) | 0.3912 | 82.1853 | 71.0037 | +0.0418 | +0.6086 | +4.4396 |
+
+- Theo FT seed r0, r1, r2:
+  - P balanced novel: 0.3941, 0.2924, 0.3616; P All: 69.1868, 62.3736, 68.1319.
+  - NL − P: balanced +0.0060, +0.0929, −0.0024; Old +0.4979, +0.8299, +2.3237; All +0.0879, +11.0330, +1.8462.
+  - N − P: balanced +0.0214, +0.0926, +0.0111; Old −0.0830, −0.1660, +1.5768; All +0.5714, +10.3736, +2.0220.
+- Chẩn đoán của luồng NL (trung bình 3 FT seed): D1 = 0.5772; D2 = 0.0393; D3 (AUROC) của m_loo 0.9675, của m_in 0.9300; D4: NL bỏ 0.7396 số ảnh cũ và 0.0393 số ảnh mới trong tập khớp. Mỗi ảnh chụp có 6.67 ảnh cũ và 687.53 ảnh mới trong tập khớp. Hàng trùng một hàng S0 (đường D16): 0. Khe NL bị bỏ hết hàng: 0 trên 75. S0 A3: 87.2752.
+- Luật quyết định: Δ = +0.0322 ≥ T = 0.0273; Δ_r > 0 ở 2/3 FT seed; Δ_Old = +1.217 điểm ≥ −B = −0.615 → **ĐẠT**.
+- Số tính tay (kiểm bằng phép tính trong lệnh ghi mục này):
+  - NL − N: balanced −0.0095, Old +0.7746 điểm.
+  - Mỗi ảnh chụp, NL bỏ khoảng 4.9 ảnh cũ và 27.0 ảnh mới (D4 nhân số ảnh trong tập khớp).
+  - Một ảnh test rolled_pit bằng 0.0333 balanced novel (1/6/5); một ảnh crease bằng 0.0182 (1/11/5).
+- Δ = 0.0322 nằm trong khoảng tin cậy 95% của σ của T (0.0196–0.0450; E09.07, mục Ghi chú, dòng 2026-11-05), nên theo E09.07 kết luận ghi là nhạy với ngưỡng; quyết định vẫn theo T = 0.0273.
+- ΔAll trung bình của N và NL trùng nhau (70.8864) dù khác nhau theo FT seed. [SUY LUẬN] Trùng ngẫu nhiên: All là số ảnh đúng trên tổng, hai nhánh có cùng tổng số ảnh đúng trên 15 ảnh chụp.
+- Dự đoán đã đăng ký (độ tin thấp):
+  - "N mất Old so với P như trên CUB nhưng ít hơn": sai. Trung bình N không mất Old (+0.4426); r0, r1 chỉ giảm 0.0830 và 0.1660 điểm.
+  - "NL lấy lại Old": đúng chiều (+1.2172), nhưng không có gì nhiều để lấy lại, vì N không mất Old.
+  - "Δ dương nhưng có thể dưới T": Δ dương và trên T.
+
+### Kết luận (Rito duyệt 2026-11-20)
+
+- **Đạt theo luật, nhưng phần thắng trên GC10 thuộc về hậu nghiệm NIW (NIW posterior), không thuộc về bộ lọc LOO.** NL hơn pipeline +0.0322 balanced novel mà không mất lớp cũ (+1.217 điểm Old). Nhưng N, chỉ thay MLE bằng hậu nghiệm NIW và không lọc gì, đã hơn pipeline +0.0417 và cũng không mất Old. Trên GC10, bộ lọc của pipeline chỉ để lại khoảng 6.7 ảnh cũ mỗi ảnh chụp trong tập khớp, nên NL gần như không còn việc để làm: nó bỏ khoảng 27 ảnh mới để bỏ được khoảng 5 ảnh cũ. Theo luật, ĐẠT trên r0–r2 chưa tính là cải tiến; bước kế là Sửa đổi xác nhận trên r3, r4, viết trước khi đọc số của chúng.
+- Giới hạn:
+  - Phần thắng gần như chỉ đến từ r1 (+0.0929). r0 (+0.0060) nhỏ hơn một ảnh crease hay rolled_pit; r2 âm. Vế "dương ở 2/3 FT seed" đứng trên một số rất mỏng.
+  - Nhạy với ngưỡng: Δ nằm trong khoảng tin cậy 95% của σ.
+  - Bộ lọc không phải nguồn của phần thắng: NL − N là −0.0095 balanced và +0.7746 điểm Old; Nc (oracle bỏ đúng mọi ảnh cũ) gần bằng N.
+  - N là số báo kèm, không phải nhánh quyết định. Câu "N hơn pipeline trên GC10" cần tiền đăng ký riêng.
+  - ΔAll (+4.3) chủ yếu đến từ r1, FT seed mà All của P thấp bất thường (62.3736 so với 69.1868 và 68.1319); chưa rõ vì sao.
+  - [SUY LUẬN] Thứ chuyển được từ CUB sang GC10 là thành phần (1) của VB thật (hậu nghiệm NIW, A3 của E06.04). Bộ lọc LOO chỉ có việc khi tập khớp lẫn nhiều ảnh cũ.
+  - Số laptop (QD27). Chỉ GC10 t1, phân hoạch mặc định của pipeline; chưa thử cộng với `09a` + `09b`.
+- Tên gọi khi báo cáo: "NIW + lọc lề LOO vượt pipeline MLE tái lập trên GC10 r0–r2 (dò hướng, chờ xác nhận)", ghi kèm rằng phần lớn đến từ NIW.
+- Bước kế (Rito duyệt 2026-11-20): Sửa đổi xác nhận trên r3, r4, viết trước khi đọc số. Cùng code, cùng luật ĐẠT. Giữ đủ G1–G4, vì 10 ảnh chụp `gc10_v2_ft_r3/r4_s0–s4` và mốc `gc10_e06_04_r3/r4_s*` đã có. N ghi làm số báo kèm, luật không đổi. r3, r4 đã dùng cho E09.06, E09.09, E11.01 nhưng chưa từng được chấm bằng N hay NL.
 
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
