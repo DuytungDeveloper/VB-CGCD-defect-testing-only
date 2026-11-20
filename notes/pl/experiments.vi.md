@@ -37,7 +37,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
 - E12.02: CUB t5, bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ (A3 hoặc A1, chọn bằng mô phỏng bỏ-một-lớp trên S0; ngưỡng p-value conformal α = 0.10) thay `keep` của bước 12, rồi khớp mô hình N của E14.06: lấy lại bao nhiêu phần khoảng lớp cũ giữa N và N sạch (tiền đăng ký 2026-11-17) — mục E12.02 dưới đây
 - E12.03: CUB t5, lọc cũ/mới bằng lề LOO (ngoài mẫu ở cả hai phía), nhánh NL, D1–D4, đọc dưới ràng buộc hai vế của QD28 (tiền đăng ký 2026-11-19; xong, Rito duyệt 2026-11-19: Đạt trên r0–r2, NL ΔM_d +2.726, ΔOld +1.334, ΔS5_S0test −0.162, ΔS5_All +1.611; AUROC lề LOO 0.956 so với 0.800 trong mẫu; XÁC NHẬN trên r3, r4: NL ΔM_d +2.741, ΔOld +1.310, ΔS5_S0test −0.137) — mục E12.03 dưới đây
-- E12.04: GC10 t1, lọc cũ/mới bằng lề LOO (NL của E12.03) trên 15 ảnh chụp r0–r2, luật như E09.06 (T = 0.0273, B = 0.615) (tiền đăng ký 2026-11-20; xong: ĐẠT theo luật, Δ = 0.032, Δ_Old = +1.22 điểm; phần thắng thuộc về NIW, không thuộc bộ lọc; chờ xác nhận r3, r4) — mục E12.04 dưới đây
+- E12.04: GC10 t1, lọc cũ/mới bằng lề LOO (NL của E12.03) trên 15 ảnh chụp r0–r2, luật như E09.06 (T = 0.0273, B = 0.615) (tiền đăng ký 2026-11-20; xong: dò hướng ĐẠT theo luật (Δ = 0.032), xác nhận r3, r4 KHÔNG XÁC NHẬN cho cả NL (Δ = −0.016) và N (Δ = −0.003); Old tăng là quan sát hậu kiểm; NL không báo như cải tiến trên GC10) — mục E12.04 dưới đây
 - E14.01: điểm lớp mới theo bốn quy ước ghép tên P0–P3 trên cùng dự đoán, CUB t5 (2026-11-16; xong, Rito duyệt tạm: P1–P3 cao hơn P0 0.75–0.79 điểm M_d; P3 trùng P2) — mục E14.01 dưới đây
 - E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
@@ -1337,6 +1337,43 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - N: xác suất XÁC NHẬN cao hơn NL một chút. Ở dò hướng N dương ở 3/3 FT seed, nhưng r2 chỉ +0.0111.
   - ΔOld của cả hai trên −B, vì ở dò hướng không nhánh nào mất Old quá 0.17 điểm.
 - Code (viết sau Sửa đổi này): tham số `fts` của `tier2_e1204` (tag `gc10_e12_04x` khi fts = 3, 4), nhánh `e1204` của `main` nhận `--fts`, nhánh đọc run xác nhận và hai luật của `e1204_summary`. Thử trên ảnh chụp giả: run dò hướng cho lại đúng từng khoá; run xác nhận qua cổng; `checks_ok` = 0 thì bị từ chối đọc.
+
+### Kết quả xác nhận (2026-11-20; run `20261120_122414__gc10_e12_04x`, code `900cd82`, Sửa đổi `90c3cbd`, commit run `387658b`; số in bằng `python lab/score.py e1204-summary`; 10/10 ảnh chụp qua G1–G4)
+
+- off chọn được: 10 ở cả 10 ảnh chụp; một luồng BLAS.
+- Trung bình 5 seed mỗi FT seed (balanced novel là tỉ lệ; Old, All là điểm %):
+
+| Nhánh | balanced novel TB | Old TB | All TB | Δ balanced r3 | Δ balanced r4 | Δ balanced TB | ΔOld TB | ΔAll TB |
+|---|---|---|---|---|---|---|---|---|
+| P (pipeline) | 0.3055 | 76.5975 | 60.5934 | – | – | – | – | – |
+| N | 0.3027 | 81.1203 | 62.8132 | +0.0075 | −0.0131 | −0.0028 | +4.5228 | +2.2198 |
+| NL | 0.2895 | 82.6971 | 62.4835 | −0.0063 | −0.0257 | −0.0160 | +6.0996 | +1.8901 |
+| Nc (oracle) | 0.3019 | 81.2448 | 62.8791 | +0.0087 | −0.0159 | −0.0036 | +4.6473 | +2.2857 |
+
+- NL − N: balanced −0.0138, −0.0126 (TB −0.0132); Old +1.9087, +1.2448 (TB +1.5768) điểm.
+- Chẩn đoán của luồng NL (TB r3, r4): D1 = 0.6234; D2 = 0.0379; D3 (AUROC) của m_loo 0.9715, của m_in 0.9556; D4: bỏ 0.7514 số ảnh cũ và 0.0379 số ảnh mới trong tập khớp. Mỗi ảnh chụp có 6.70 ảnh cũ và 687.80 ảnh mới trong tập khớp. D16: 0. Khe NL rỗng: 0 trên 50. S0 A3: 87.0124.
+- Luật xác nhận (Sửa đổi):
+  - Khẳng định 1 (NL − P): Δ_r3 = −0.0063, Δ_r4 = −0.0257, Δ = −0.0160 ≤ 0 → **KHÔNG XÁC NHẬN** (ΔOld +6.100 điểm).
+  - Khẳng định 2 (N − P): Δ_r3 = +0.0075, Δ_r4 = −0.0131, Δ = −0.0028 ≤ 0 → **KHÔNG XÁC NHẬN** (ΔOld +4.523 điểm).
+- Báo kèm, không dùng để quyết định: Δ balanced trên 5 FT seed r0–r4, NL +0.0129, N +0.0239. Cả hai dưới T; con số gộp còn thiên lệch lên, vì r0–r2 là các FT seed đã dùng để chọn phương pháp.
+- Số tính tay (kiểm bằng phép tính trong lệnh ghi mục này):
+  - NL − N balanced ở r0, r1, r2 (từ bảng dò hướng): −0.0154, +0.0003, −0.0135. Cùng với r3, r4: âm ở 4/5 FT seed, seed còn lại gần 0.
+  - Old của P: TB r3, r4 là 76.60, TB r0–r2 là 81.58 (chênh −4.98 điểm). S0 A3: 87.01 so với 87.28.
+- Dự đoán đã đăng ký:
+  - "NL: KHÔNG RÕ hoặc XÁC NHẬN": sai.
+  - "N có xác suất XÁC NHẬN cao hơn NL": đúng chiều (Δ của N ít âm hơn), nhưng vẫn KHÔNG XÁC NHẬN.
+  - "ΔOld của cả hai trên −B": đúng.
+
+### Kết luận xác nhận (Rito duyệt 2026-11-20)
+
+- **Không xác nhận: trên GC10 t1, cả NL lẫn N đều không tăng balanced novel so với pipeline. NL không được báo như cải tiến trên GC10.** Lợi thế ở r0–r2 gần như chỉ đến từ r1 và không lặp lại ở hai FT seed mới. Kết luận dò hướng giữ nguyên trong sổ, nhưng câu "phần thắng trên GC10 thuộc về NIW" chỉ đúng với Old, và Old không phải đại lượng quyết định.
+- Quan sát hậu kiểm (post hoc), không phải khẳng định:
+  - NIW giữ lớp cũ tốt hơn pipeline: ΔOld dương ở cả 5 FT seed với NL, và lớn ở r3, r4 (+6.10 với NL, +4.52 với N).
+  - Trên GC10, bộ lọc LOO tốn ảnh mới: NL − N âm ở 4/5 FT seed, đổi lại Old tăng khoảng 1.6 điểm ở r3, r4.
+  - Muốn khẳng định một trong hai điều này phải tiền đăng ký trên FT seed mới (r5 trở đi): Old của N và NL đã bị nhìn ở cả r0–r4.
+- [SUY LUẬN] Cơ chế: N, NL và pipeline dùng chung phân hoạch `ids` và bộ lọc `keep`. NIW thay cách mô tả khe, không thay việc khám phá lớp mới, trong khi điểm mất chính trên GC10 nằm ở khám phá (E03.02). Vì vậy NIW chủ yếu cứu ảnh test cũ bị pipeline đẩy sang khe mới. Ở r3, r4, Old của P thấp hơn r0–r2 khoảng 5 điểm, trong khi S0 A3 ngang nhau; điều này hợp với việc lợi Old lớn hơn ở đó. Chưa kiểm vì sao pipeline mất nhiều Old hơn ở hai seed này.
+- Phạm vi: GC10 t1, phân hoạch k-means mặc định, số laptop (QD27). Kết quả không nói gì về NL hay NIW trên phân hoạch `09a` + `09b`, và không đổi kết luận của E12.03 trên CUB.
+- Bước kế (Rito duyệt 2026-11-20): không làm tiếp NL trên GC10. Với dòng GC10, mũi nhọn vẫn ở phía khám phá (`09a` + `09b`, E09.06). Nếu thử NIW trên phân hoạch `09a` + `09b`, đó là thí nghiệm mới, cần FT seed mới. Hướng cụ thể để tài liệu chiến lược quyết định.
 
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
