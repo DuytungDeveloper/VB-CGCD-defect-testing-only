@@ -1081,6 +1081,49 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Code đã thử trên 25 chuỗi giả (r0–r4 × 5 seed; đặc trưng thô 24 chiều, PCA 6 chiều; 30 lớp gốc, 5 phiên × 6 lớp mới; ảnh cũ của pool lặp lại, có hàng trùng S0 để đường D16 có được dùng; `jax`, `sessions` giả; run E09.10 giả tạo bằng `tier2_e0910` đã commit, run E09.08 giả có c09 tính độc lập): G1–G6 OK ở checks-only, ở 15/15 chuỗi dò hướng và 10/10 chuỗi xác nhận. Sáu đối chứng âm cho DIFF đúng cổng: đổi `rng_in` của S2 → G1; c09 của E09.08 lệch 0.01 → G2; một số đếm NL của E09.10 lệch 1 → G3; `NL_KM_New` lệch 0.01 → G4; một id = 20 sau khi gom lại → G5 (dừng run); bỏ một hàng ở nhánh G6 → G6. Nhánh đọc run xác nhận của `e0912-summary` thử bằng cách nới B tạm thời. Không có số nào của dữ liệu thật.
 - Hậu kiểm, không phải cổng: ở phiên 1, c09 của FTR1 phải trùng c09 của FTR1-thử (`e0912_try_ft_l25.json`, ngoài repo), vì cùng khe cũ là khe gốc; đối chiếu bằng lệnh chỉ đọc sau run.
 
+### Kết quả (dò hướng, r0–r2; run `20261120_233816__cub_e09_12_ft_l25`, commit run `4984a79`; số do `e0912-summary` in ra)
+
+- Cổng: G1–G6 đạt ở 15/15 chuỗi; off chọn 250 ở mọi chuỗi. 30.6 phút, một luồng BLAS.
+- Hậu kiểm so với lần thử `e0912_try_ft_l25.json` (ngoài repo, không phải cổng): c09 của KM (75 phiên), c09 của Npre so với KMnew của bản thử (75 phiên) và c09 của FTR1 ở phiên 1 (15 phiên) trùng, max |diff| 0.0000.
+- Theo FT seed (P1; mỗi số là trung bình 5 chuỗi; New, Old là trung bình 5 phiên):
+
+| | r0 | r1 | r2 | Trung bình |
+|---|---|---|---|---|
+| New (M_d) P | 57.141 | 58.129 | 57.852 | 57.707 |
+| New NL | 59.683 | 60.443 | 60.863 | 60.330 |
+| New FTR1 | 69.582 | 69.092 | 70.051 | 69.575 |
+| New FTR2 | 69.833 | 68.416 | 68.923 | 69.057 |
+| New Npre (oracle) | 73.834 | 72.120 | 73.657 | 73.204 |
+| Old P | 74.150 | 74.278 | 74.077 | 74.168 |
+| Old NL | 75.268 | 75.489 | 75.840 | 75.532 |
+| Old FTR1 | 79.059 | 78.706 | 79.493 | 79.086 |
+| S5_S0test P | 78.621 | 78.443 | 78.129 | 78.398 |
+| S5_S0test FTR1 | 80.157 | 80.089 | 80.894 | 80.380 |
+| ΔM_d FTR1 − NL | 9.899 | 8.649 | 9.187 | 9.245 |
+| ΔS5_S0test FTR1 − P | 1.536 | 1.646 | 2.765 | 1.982 |
+| ΔOld FTR1 − P | 4.910 | 4.428 | 5.415 | 4.918 |
+| ΔOld FTR1 − NL | 3.791 | 3.218 | 3.653 | 3.554 |
+| ΔS5_S0test FTR1 − NL | 2.192 | 1.932 | 2.308 | 2.144 |
+| ΔM_d NL − P | 2.542 | 2.314 | 3.012 | 2.623 |
+
+- SD giữa các seed của Old trên P (trong FT seed): 0.612 / 0.301 / 0.398.
+- ΔNew(FTR1 − NL) theo phiên, trung bình ba FT seed: S1 7.477, S2 10.415, S3 7.249, S4 12.606, S5 8.480.
+- c09 (trung bình ba FT seed): KM 66.547, FTR1 72.285, FTR2 69.979, Npre 79.763.
+- FTR1: ảnh mới của pool được giữ trong G 0.896; tỉ lệ ảnh cũ trong G 0.096; NL lần hai bỏ 0.061 ảnh mới và 0.643 ảnh cũ.
+- Khe rỗng mỗi chuỗi (trên 100 khe mới): NL 4.800, FTR1 0.867, FTR2 0.333, Npre 0.000.
+- Tỉ lệ phần trần lấy được (New_FTR1 − New_NL)/(New_Npre − New_NL): 0.719. Npre còn hơn FTR1 3.629 New (tính tay).
+- FTR2 so với NL: ΔM_d 8.727, ΔOld 3.967, ΔS5_S0test 3.130 (báo kèm).
+- Kiểm chéo: ΔM_d(NL − P) dưới P1 là 2.623, trùng E09.10.
+
+### Kết luận (dò hướng)
+
+- Luật: **Đạt**. ΔM_d(FTR1 − NL) +9.245 ≥ T = 0.935, dương ở 3/3 FT seed; ΔS5_S0test(FTR1 − P) +1.982 và ΔOld(FTR1 − P) +4.918, cả hai ≥ −B = −0.376. Bước kế theo tiền đăng ký: luật xác nhận trên r3, r4. Chưa báo FTR1 như cải tiến.
+- Dự đoán của Claude sai về độ lớn: đoán ΔM_d từ +1 đến +4, đo được +9.245; đoán S5 có thể âm, đo được dương ở mọi phiên.
+- Lợi c09 chỉ +5.738 điểm (tính tay, 72.285 − 66.547), nhỏ hơn lợi M_d; ở phiên 1, c09 của FTR1 gần bằng KM (bản thử) mà ΔNew vẫn 7.477. [SUY LUẬN] Một phần lợi đi qua số khe dùng được: NL để lại 4.800 khe rỗng mỗi chuỗi (cụm KM gồm chủ yếu ảnh cũ bị NL bỏ hết hàng), FTR1 0.867. Chưa đo trực tiếp; cần thí nghiệm riêng nếu muốn khẳng định cơ chế.
+- ΔOld(FTR1 − NL) +3.554 là quan sát hậu kiểm, không phải khẳng định đã đăng ký. Khẳng định về Old so với NL được đăng ký ở Sửa đổi dưới đây, trước run xác nhận.
+- FTR2 không hơn FTR1 về M_d (69.057 so với 69.575) nhưng hơn về Old và S0test; chỉ báo kèm, không có khẳng định.
+- Giới hạn giữ nguyên như tiền đăng ký: r0–r2 đã dùng nhiều lần, c09 của FTR1-thử đã bị nhìn trên chính các seed này.
+
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
 ### Tiền đăng ký (2026-11-17; viết trước khi có code và trước mọi số của thí nghiệm)
