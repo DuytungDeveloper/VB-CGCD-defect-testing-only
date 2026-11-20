@@ -1,0 +1,46 @@
+{
+  "run_id": "20261120_105711__gc10_e12_04",
+  "tag": "gc10_e12_04",
+  "command": [
+    "python",
+    "lab/score.py",
+    "e1204"
+  ],
+  "cwd": "/home/rito/projects/VB-CGCD-defect",
+  "started": "2026-11-20T10:57:11+07:00",
+  "git": {
+    "commit": "2dd872c7e379b4fbdd14c4b1f3ea1478480dce47",
+    "dirty": false,
+    "dirty_files": []
+  },
+  "env": {
+    "id": "893900df6375",
+    "pip_freeze": "runs/envs/893900df6375.txt",
+    "conda_env": "vbcgcd",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU, 621.24"
+  },
+  "python": "3.12.14",
+  "host": "Rito",
+  "inputs_source": "cli",
+  "inputs": {
+    "runs/20261020_024405__gc10_v2_ft_r0_s0/snap": "ea0ae30a1f46a501",
+    "runs/20261020_083928__gc10_v2_ft_r0_s1/snap": "483894ef4a379333",
+    "runs/20261020_084204__gc10_v2_ft_r0_s2/snap": "1f470c3960b730a7",
+    "runs/20261020_084432__gc10_v2_ft_r0_s3/snap": "d5bb47be0e67bc9a",
+    "runs/20261020_084658__gc10_v2_ft_r0_s4/snap": "8065f40e02120805",
+    "runs/20261020_084925__gc10_v2_ft_r1_s0/snap": "0321691ed15ee6b6",
+    "runs/20261020_085149__gc10_v2_ft_r1_s1/snap": "1cb59eb8d4c36dee",
+    "runs/20261020_085418__gc10_v2_ft_r1_s2/snap": "ccc18cfdc08ab66b",
+    "runs/20261020_085643__gc10_v2_ft_r1_s3/snap": "9a419250575e7e6f",
+    "runs/20261020_085907__gc10_v2_ft_r1_s4/snap": "7afd7f6bc9709f33",
+    "runs/20261020_090130__gc10_v2_ft_r2_s0/snap": "b2784f0393b8bd57",
+    "runs/20261020_090354__gc10_v2_ft_r2_s1/snap": "8f228064130ec395",
+    "runs/20261020_090622__gc10_v2_ft_r2_s2/snap": "7aa063b7898c6c1d",
+    "runs/20261020_090846__gc10_v2_ft_r2_s3/snap": "d204f383e0dc4b27",
+    "runs/20261020_091107__gc10_v2_ft_r2_s4/snap": "77a5243f24790054"
+  },
+  "warnings": [],
+  "finished": "2026-11-20T10:57:37+07:00",
+  "duration_min": 0.4,
+  "exit_code": 0
+}
