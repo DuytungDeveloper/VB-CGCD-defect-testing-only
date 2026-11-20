@@ -1,0 +1,36 @@
+{
+  "run_id": "20261120_001856__cub_km_evhung_det_fz_s0",
+  "tag": "cub_km_evhung_det_fz_s0",
+  "command": [
+    "env",
+    "DD=features/20261105_183044__cub_fz_up",
+    "SEED=0",
+    "XLA_FLAGS=--xla_gpu_deterministic_ops=true",
+    "bash",
+    "-c",
+    "XLA_PYTHON_CLIENT_PREALLOCATE=false python -c \"import jax; d=str(jax.devices()); print(\\\"jax devices =\\\", d); assert \\\"Cuda\\\" in d, \\\"JAX not on GPU\\\"\" && python -u main.py --dataset cub200 --data_dir \"$DD\" --load_mode t5 --pretrained_model_name dino-vitb16 --base 100 --increment 20 --num_classes 200 --seed \"$SEED\" --trail_name \"$(basename \"$EXP_RUN_DIR\")\" --clustering_alg kmeans --kmeans_n_init 10 --hungarian_on eval --classifier_alg mngmm --num_dim 384 --with_early_stop --use_correct_scaling_factor --n_epochs 1000 --lr 4e-6 --batch-size 128 --scaling-factor 1.2 --early_stop_ratio 0 --print_confusion --print_cluster_xtab; rc=$?; python scripts/extract_vbcgcd.py \"$EXP_RUN_DIR\"; exit $rc"
+  ],
+  "cwd": "/home/rito/projects/VB-CGCD-defect",
+  "started": "2026-11-20T00:18:56+07:00",
+  "git": {
+    "commit": "d06e9b1a62be3e811ed6e82c5dd9cede0ffa53b9",
+    "dirty": false,
+    "dirty_files": []
+  },
+  "env": {
+    "id": "893900df6375",
+    "pip_freeze": "runs/envs/893900df6375.txt",
+    "conda_env": "vbcgcd",
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU, 621.24"
+  },
+  "python": "3.12.14",
+  "host": "Rito",
+  "inputs_source": "cli",
+  "inputs": {
+    "features/20261105_183044__cub_fz_up/dino-vitb16": "534d76a54627401d"
+  },
+  "warnings": [],
+  "finished": "2026-11-20T00:39:23+07:00",
+  "duration_min": 20.5,
+  "exit_code": 0
+}
