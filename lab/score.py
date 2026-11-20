@@ -42,6 +42,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e0910-summary                                  E09.10: c09 table, decision rule and report from the two runs
   python lab/score.py e0911 --prefix cub_chain_fz [--checks-only]    E09.11: KM and SSKM partitions on frozen DINO features (exp.py)
   python lab/score.py e0911-summary                                  E09.11: c09 table, decision rule and SSKM diagnostic from the run
+  python lab/score.py e1204 [--checks-only]                          E12.04: NL of E12.03 on the 15 GC10 snapshots (exp.py)
+  python lab/score.py e1204-summary                                  E12.04: table and decision rule from the run
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -4464,9 +4466,206 @@ def e0911_summary():
                                    "mainly the implementation" if pooled <= 0.3 else "unclear"))
 
 
+# ---- E12.04: GC10 t1, old/new filter by the LOO margin (NL of E12.03) (pre-registered 15724a5) ----
+BRANCHES_1204 = ("N", "NL", "Nc")
+
+
+def _sc_1204(L, y, tgt, off):
+    """Balanced novel (mean recall of the novel classes, fraction), Old and All (percent) and the counts of right
+    images of one log-density (or score) matrix over the 10 slots of GC10 t1; true slot = tgt (lut, pipeline naming)."""
+    ok = L.argmax(1) == tgt
+    new = y >= off
+    rec = [float(ok[y == c].mean()) for c in np.unique(y[new])]
+    return {"bal": float(np.mean(rec)), "Old": 100.0 * float(ok[~new].mean()), "All": 100.0 * float(ok.mean()),
+            "new_right": int(ok[new].sum()), "old_right": int(ok[~new].sum())}
+
+
+def tier2_e1204(checks_only=False):
+    """E12.04 (pre-registration 15724a5) on the 15 snapshots gc10_v2_ft_r<r>_s<N>, r = 0-2, N = 0-4: state after step
+    14 (replay.load), PCA-64 of step 05, partition ids (default k-means), keep and lut of the pipeline. Model N of
+    E14.06 with GC10 numbers: one NIW prior (m0 = mean of S0, kappa0 = niw.K0, Psi0 = off x pooled S0 covariance, off by
+    leave-one-out on S0), base slots from S0, new slot c from the kept pool images with id c (empty: the prior); Student-t,
+    argmax over the 10 slots. NL: for each kept row x of new slot c, m_loo = L_loo - L_old (L_loo: slot refitted without
+    x, _loo_1203; L_old: max over the base slots, a base slot holding a row equal to x uses its LOO density, D16), drop
+    m_loo < 0, refit once. Nc (oracle): kept rows of novel classes only (pool labels). P: the pipeline (params1).
+    Measures (_sc_1204): bal (balanced novel on the novel test set, QD25, lut naming), Old (old test set = S0 test set at
+    t1), All. D1-D4 of E12.03 on the NL flow; Mann-Whitney U and pairs within each snapshot.
+    Gates: G1 P recomputed (_predict with params1) = balanced novel and Old of column 14 of the loss ledger
+    (ledger_state; 1e-6). G2 off and the S0 test accuracy of the base slots under the Student-t = off and acc_A3 of the
+    run gc10_e06_04_r<r>_s<N> (1e-6). G3 L_loo of the last row of the first slot with >= 3 rows = niw.log_sequential(X)
+    - niw.log_sequential(X[:-1]) (relative 1e-8). G4 NL with threshold -inf (keep every row) gives N (bal, Old, All; 1e-6).
+    No SVI, no RNG; pool labels for Nc and D1-D4 only; test labels for scoring. Progress line: gates and time only.
+    Keys: r<r>_s<N>_<key>; G1_ok ... G4_ok, checks_ok. checks_only: snapshot r0 s0 only, no keys."""
+    import niw
+    from replay import _clf, _git
+    t0 = time.time()
+    if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
+        raise SystemExit("e1204: commit the code first (same dirty rule as scripts/exp.py)")
+    out, gates = {}, {f"G{k}": True for k in range(1, 5)}
+    for r, N in ((0, 0),) if checks_only else [(r, N) for r in range(3) for N in range(5)]:
+        tag, pre = f"gc10_v2_ft_r{r}_s{N}", f"r{r}_s{N}_"
+        st = load(tag, "14", check=False)              # new_state first: imports torch, jax, main in the order of the v2 runs
+        blobs = snapshots(tag)
+        _fresh(blobs, "14")
+        import jax
+        import jax.numpy as jnp
+        device = jax.default_backend()
+        assert device == "gpu" or os.environ.get("REPLAY_ALLOW_CPU") == "1", f"JAX runs on {device}, not on the GPU (A1)"
+        assert {b["meta"].get("device", "gpu") for b in blobs.values()} == {device}, "snapshots ran on another device"
+        a = st["args"]
+        assert a.dataset == "gc10" and a.seed == N, f"{tag}: not a GC10 snapshot of seed {N}"
+        base, inc, off, g, res = a.base, a.increment, int(st["offset"]), {f"G{k}": True for k in range(1, 5)}, {}
+        assert off == base and a.num_classes == base + inc, f"{tag}: t1 with {base} + {inc} classes"
+        # P and G1: the pipeline against column 14 of the loss ledger
+        clf = _clf(st)
+        _component(st["predict"])(clf)
+        clf.label_offset, clf.n_seen = off, off + inc
+        assert np.array_equal(st["test_old_x"], st["test0_x"]), "t1: the old test set is the S0 test set"
+        zt = np.concatenate([np.asarray(st["z_test1"], np.float64), np.asarray(st["z_test0"], np.float64)])
+        y = np.concatenate([np.asarray(st["true_test1_y"]).astype(int), np.asarray(st["true_test0_y"]).astype(int)])
+        lut = np.asarray(st["lut"])
+        tgt = lut[y]
+        Lp = np.concatenate([np.asarray(clf._predict(jnp.asarray(st[key]), _jnp(st["params1"]))[1], np.float64)
+                             for key in ("z_test1", "z_test0")])      # two calls, as ledger_state predicts the two sets
+        res.update({f"P_{q}": v for q, v in _sc_1204(Lp, y, tgt, off).items()})
+        led = ledger_state(st)
+        t, o = led["test1"], led["test_old"]
+        g["G1"] &= abs(res["P_bal"] - float(t.groupby("y")["14"].mean().mean())) <= 1e-6 \
+            and abs(res["P_Old"] - 100.0 * float(o["14"].mean())) <= 1e-6
+        # prior, base slots, G2
+        z0, y0 = np.asarray(st["z_s0"], np.float64), np.asarray(st["s0_y"]).astype(int)
+        d = z0.shape[1]
+        off0 = niw.choose(niw.loo_curve(z0, y0))
+        sts = niw.class_stats(z0, y0)
+        prior = (sts["m0"], niw.K0, d + 1 + off0, off0 * niw.prior_cov(sts, 0))
+        base_rows = [z0[y0 == k] for k in range(base)]
+        base_slots = [_post_1406(R, prior) for R in base_rows]
+        zt0, yt0 = np.asarray(st["z_test0"], np.float64), np.asarray(st["true_test0_y"]).astype(int)
+        acc_s0 = 100.0 * float((_logd_1202("A3", base_slots, zt0).argmax(1) == yt0).mean())
+        e64 = _ref_metrics(f"gc10_e06_04_r{r}_s{N}")
+        g["G2"] &= int(e64["off"]) == int(off0) and abs(float(e64["acc_A3"]) - acc_s0) <= 1e-6
+        res["off"], res["S0_A3"] = off0, acc_s0
+        # rows of the new slots
+        zp = np.asarray(st["z_pool"], np.float64)
+        ids, keep = np.asarray(st["ids"]).astype(int), np.asarray(st["keep"]).astype(bool)
+        yp = np.asarray(st["true_pool_y"]).astype(int)
+        idx = _index_1203(base_rows)
+        rows = {b: [] for b in BRANCHES_1204 + ("G4",)}
+        cnt = dict(n_old=0, n_new=0, d1=0, d2=0, drop_old=0, drop_new=0, match=0, empty_NL=0)
+        ml_all, mi_all, nw_all, g3_done = [], [], [], False
+        for c in range(inc):
+            sk = keep & (ids == c)
+            X, isnew = zp[sk], yp[sk] >= off
+            rows["N"].append(X)
+            rows["Nc"].append(zp[sk & (yp >= off)])
+            if len(X) == 0:
+                rows["NL"].append(X)
+                rows["G4"].append(X)
+                cnt["empty_NL"] += 1
+                continue
+            L_in = _logd_1202("A3", [_post_1406(X, prior)], X)[:, 0]
+            L_loo = _loo_1203(X, prior)
+            if not g3_done and len(X) >= 3:
+                sq = niw.log_sequential(X, *prior) - niw.log_sequential(X[:-1], *prior)
+                g["G3"] &= abs(L_loo[-1] - sq) <= 1e-8 * max(1.0, abs(sq))
+                g3_done = True
+            Lo = _old_max_1203(X, base_rows, base_slots, _logd_1202("A3", base_slots, X), prior, idx)
+            m_in, m_loo = L_in - Lo, L_loo - Lo
+            drop = m_loo < 0
+            rows["NL"].append(X[~drop])
+            rows["G4"].append(X[~(m_loo < -np.inf)])                 # G4: the NL step with threshold -inf
+            cnt["empty_NL"] += int(drop.all())
+            cnt["match"] += int(sum(1 for xr in X if xr.tobytes() in idx))   # rows equal to an S0 row (D16 path)
+            cnt["n_old"] += int((~isnew).sum())
+            cnt["n_new"] += int(isnew.sum())
+            cnt["d1"] += int(((~isnew) & (m_in > 0) & (m_loo < 0)).sum())
+            cnt["d2"] += int((isnew & drop).sum())
+            cnt["drop_old"] += int(((~isnew) & drop).sum())
+            cnt["drop_new"] += int((isnew & drop).sum())
+            ml_all.append(m_loo)
+            mi_all.append(m_in)
+            nw_all.append(isnew)
+        ml, mi, nw = (np.concatenate(v) if v else np.zeros(0) for v in (ml_all, mi_all, nw_all))
+        nw = nw.astype(bool)
+        U_loo, P_pairs = _mw_1203(ml[nw], ml[~nw])
+        U_in, _ = _mw_1203(mi[nw], mi[~nw])
+        res.update(cnt)
+        res.update(U_loo=U_loo, U_in=U_in, pairs=P_pairs, kept=int(keep.sum()))
+        # score every branch over the 10 slots
+        lb = _logd_1202("A3", base_slots, zt)
+        sc = {}
+        for b in rows:
+            L = np.concatenate([lb, _logd_1202("A3", [_post_1406(R, prior) for R in rows[b]], zt)], 1)
+            assert L.shape[1] == base + inc, f"{tag}: {L.shape[1]} slots"
+            sc[b] = _sc_1204(L, y, tgt, off)
+            if b != "G4":
+                res.update({f"{b}_{q}": v for q, v in sc[b].items()})
+        g["G4"] &= all(abs(sc["G4"][q] - sc["N"][q]) <= 1e-6 for q in ("bal", "Old", "All"))
+        for kk in gates:
+            gates[kk] = gates[kk] and g[kk]
+        out.update({pre + kk: round(v, 6) if isinstance(v, float) else v for kk, v in res.items()})
+        print(f"e1204 {tag}: " + " ".join(f"{kk} {'OK' if g[kk] else 'DIFF'}" for kk in g) + f" ({time.time() - t0:.0f} s)", flush=True)
+    chk = {f"{kk}_ok": int(v) for kk, v in gates.items()}
+    chk["checks_ok"] = int(all(gates.values()))
+    print(f"e1204: checks {'OK' if chk['checks_ok'] else 'FAILED'} ({time.time() - t0:.0f} s)")
+    return chk if checks_only else {**chk, **out}
+
+
+def e1204_summary(T=0.0273, B=0.615):
+    """Decision table of E12.04 from the run gc10_e12_04: per branch (P, N, NL, Nc) balanced novel (fraction), Old and
+    All (percent), the differences to P per FT seed (mean of the 5 seeds); Delta = mean of Delta_r over the 3 FT seeds;
+    the rule of the pre-registration (as E09.06): PASS if Delta >= T, Delta_r > 0 in >= 2/3 FT seeds and Delta_Old >= -B;
+    REJECT if Delta <= 0 or Delta_Old < -B; else NOT LARGE ENOUGH. Report: D1-D4 pooled over the 5 snapshots of an FT
+    seed, kept rows, D16 matches, off, empty NL slots, T and B recomputed from P (pooled SD over the seeds within an FT
+    seed, as 14-eval section 3.3). Refuses to read a run without checks_ok = 1."""
+    tag = "gc10_e12_04"
+    if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+        print(f"\n{tag}: no run yet")
+        return
+    m = _ref_metrics(tag)
+    assert m.get("checks_ok") == 1, f"{tag}: checks failed, results are not read"
+    per = lambda key: np.array([[m[f"r{r}_s{N}_{key}"] for N in range(5)] for r in range(3)], float)   # (3, 5)
+    ft = lambda key: per(key).mean(1)
+    tot = lambda key: per(key).sum(1)
+    line = lambda name, x, f=9.4: f"  {name:<34}" + "".join(f"{val:{f}f}" for val in x) + f"{x.mean():{f}f}{x.std(ddof=1):{f}f}"
+    head = f"  {'':<34}" + "".join(f"{x:>9}" for x in ("r0", "r1", "r2", "mean", "sd"))
+    print(f"\n{tag}: G1-G4 OK; off chosen: {sorted(set(int(x) for x in per('off').ravel()))}\n{head}")
+    for b in ("P",) + BRANCHES_1204:
+        print(line(f"{b} balanced novel", ft(f"{b}_bal")))
+        print(line(f"{b} Old (%)", ft(f"{b}_Old")))
+        print(line(f"{b} All (%)", ft(f"{b}_All")))
+        if b != "P":
+            print(line(f"{b} d balanced vs P", ft(f"{b}_bal") - ft("P_bal")))
+            print(line(f"{b} dOld vs P (points)", ft(f"{b}_Old") - ft("P_Old")))
+            print(line(f"{b} dAll vs P (points)", ft(f"{b}_All") - ft("P_All")))
+    print(line("S0 A3 (base test, %)", ft("S0_A3")))
+    print(line("D1 old flipped (m_in>0, m_loo<0)", tot("d1") / tot("n_old")))
+    print(line("D2 new with m_loo < 0", tot("d2") / tot("n_new")))
+    print(line("D3 AUROC of m_loo", tot("U_loo") / tot("pairs")))
+    print(line("D3 AUROC of m_in", tot("U_in") / tot("pairs")))
+    print(line("D4 old dropped by NL", tot("drop_old") / tot("n_old")))
+    print(line("D4 new dropped by NL", tot("drop_new") / tot("n_new")))
+    print(line("kept rows per snapshot: old", ft("n_old"), 9.2))
+    print(line("kept rows per snapshot: new", ft("n_new"), 9.2))
+    print(f"  kept rows equal to an S0 row (D16): {int(per('match').sum())}; empty NL slots: {int(per('empty_NL').sum())} of 75")
+    tr, br = float(np.sqrt(np.mean(per("P_bal").var(1, ddof=1)))), float(np.sqrt(np.mean(per("P_Old").var(1, ddof=1))))
+    print(f"  T, B recomputed from P (pooled SD): {tr:.5f}, {br:.5f}; round to the pre-registered values: "
+          f"{round(tr, 4) == T} {round(br, 3) == B}")
+    dr, do = ft("NL_bal") - ft("P_bal"), ft("NL_Old") - ft("P_Old")
+    delta, dold, npos = float(dr.mean()), float(do.mean()), int((dr > 0).sum())
+    if delta <= 0 or dold < -B:
+        dec = "REJECT (BÁC)"
+    elif delta >= T and npos >= 2:
+        dec = "PASS (ĐẠT) -> write the confirmation amendment on r3, r4 before reading their numbers"
+    else:
+        dec = "NOT LARGE ENOUGH (KHÔNG ĐỦ LỚN)"
+    print(f"  rule: Delta = {delta:+.4f} (T = {T}), Delta_r > 0 in {npos}/3 FT seeds, Delta_Old = {dold:+.3f} points "
+          f"(-B = {-B}) -> {dec}")
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary", "e1204", "e1204-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -4481,7 +4680,7 @@ def main(argv):
     p.add_argument("--fts", default="0,1,2", help="e1203: FT seeds, 0,1,2 (exploration) or 3,4 (confirmation)")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary", "e1204", "e1204-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -4542,6 +4741,14 @@ def main(argv):
         return
     if o.step == "e0911-summary":
         e0911_summary()
+        return
+    if o.step == "e1204-summary":
+        e1204_summary()
+        return
+    if o.step == "e1204":
+        out = tier2_e1204(o.checks_only)
+        if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
+            (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
     if o.step in ("e1401", "e1402", "e1402b", "e1403", "e1405", "e1406", "e1202", "e1407", "e0908", "e1408", "e1409", "e1203", "e0910", "e0911"):
         assert o.prefix, f"{o.step} needs --prefix"
