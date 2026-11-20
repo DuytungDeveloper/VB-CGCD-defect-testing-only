@@ -1312,6 +1312,32 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Tên gọi khi báo cáo: "NIW + lọc lề LOO vượt pipeline MLE tái lập trên GC10 r0–r2 (dò hướng, chờ xác nhận)", ghi kèm rằng phần lớn đến từ NIW.
 - Bước kế (Rito duyệt 2026-11-20): Sửa đổi xác nhận trên r3, r4, viết trước khi đọc số. Cùng code, cùng luật ĐẠT. Giữ đủ G1–G4, vì 10 ảnh chụp `gc10_v2_ft_r3/r4_s0–s4` và mốc `gc10_e06_04_r3/r4_s*` đã có. N ghi làm số báo kèm, luật không đổi. r3, r4 đã dùng cho E09.06, E09.09, E11.01 nhưng chưa từng được chấm bằng N hay NL.
 
+### Sửa đổi (2026-11-20; phần xác nhận, viết sau Kết luận dò hướng `75ed80f`, trước code của phần này và trước mọi số của N, NL, Nc trên r3, r4; tiền đăng ký `15724a5`, Sửa `2dd872c` giữ nguyên)
+
+- Run xác nhận: tag `gc10_e12_04x`, 10 ảnh chụp `gc10_v2_ft_r<r>_s<N>`, r = 3, 4, N = 0–4. Cùng hàm `tier2_e1204`, thêm tham số danh sách FT seed (mặc định 0, 1, 2, để run dò hướng cho lại đúng từng khoá); lệnh `e1204 --fts 3,4`. Cùng code nhánh, cùng off chọn bằng LOO trên S0, ngưỡng 0, một luồng BLAS.
+- Cổng: giữ đủ G1–G4 như tiền đăng ký. Các mốc đã có: `ledger_state` của 10 ảnh chụp và run `gc10_e06_04_r3_s*`, `gc10_e06_04_r4_s*` (2026-11-14). Chỉ đọc run khi mọi cổng đạt ở 10/10 ảnh chụp.
+- Với hai FT seed, vế "Δ_r > 0 ở ít nhất 2/3 FT seed" của luật ĐẠT không áp được. Kết luận dò hướng viết "cùng luật ĐẠT"; ở đây dùng khuôn xác nhận của E09.06 (lặp lại) và E12.03, cùng T = 0.0273, B = 0.615. Mỗi số là trung bình 5 ảnh chụp của một FT seed; Δ là trung bình hai FT seed.
+- Khẳng định 1, NL (luật quyết định của E12.04):
+  - XÁC NHẬN: Δ_r(NL − P) > 0 ở cả r3 và r4, Δ ≥ T, và ΔOld(NL − P) ≥ −B.
+  - KHÔNG XÁC NHẬN: Δ ≤ 0, hoặc ΔOld < −B.
+  - KHÔNG RÕ: còn lại.
+- Khẳng định 2, N (thêm theo Rito duyệt 2026-11-20; thay câu "N ghi làm số báo kèm" của Kết luận dò hướng). Cùng ba vế như khẳng định 1, với N thay cho NL.
+  - Vì sao thêm ở đây: r3, r4 là hai FT seed cuối chưa ai thấy số của N trên GC10. Sau run này, muốn khẳng định về N phải dùng FT seed mới (r5 trở đi).
+  - Luật của N viết sau khi đã thấy N trên r0–r2 (Δ +0.0417, ΔOld +0.4426). Vì vậy r0–r2 chỉ là dò hướng cho N; bằng chứng của N chỉ là r3, r4.
+- Hai khẳng định độc lập, báo cả hai dù ra sao. Không chọn khẳng định nào đạt để báo (tránh hai luật, thắng một). Nếu chỉ N XÁC NHẬN, câu báo cáo là "hậu nghiệm NIW vượt pipeline MLE tái lập trên GC10", không nhắc bộ lọc.
+- Báo kèm, không dùng để quyết định: NL − N (balanced và Old: bộ lọc có thêm gì không); Nc; All; D1–D4; số ảnh cũ và mới trong tập khớp; D16; khe NL rỗng; Δ của NL và N gộp trên 5 FT seed r0–r4 (tính tay, không gộp trong luật).
+- `e1204-summary` đọc thêm `gc10_e12_04x` khi có: cột r3, r4 và trung bình, kết luận theo hai luật trên. Không gộp r3, r4 với r0–r2.
+- Đã thấy trên r3, r4 trước Sửa đổi này:
+  - số của pipeline, qua E09.06 (lặp lại), E09.09, E11.01 và `runs/INDEX.txt`;
+  - Δ_r, Δ_Old_r của `09a` + `09b` so với pipeline (E09.06: r3 0.0328, −0.782; r4 0.0535, +0.937);
+  - có thể cả `off`, `acc_A3` của `gc10_e06_04_r3/r4_s*` (in ra lúc tạo mốc). Đây là độ chính xác S0 của khe gốc, không phải balanced novel.
+  - Chưa thấy số nào của N, NL, Nc trên r3, r4.
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp:
+  - NL: KHÔNG RÕ hoặc XÁC NHẬN, gần ngang nhau. Ở dò hướng, phần thắng gần như chỉ đến từ r1, và một FT seed âm (r2).
+  - N: xác suất XÁC NHẬN cao hơn NL một chút. Ở dò hướng N dương ở 3/3 FT seed, nhưng r2 chỉ +0.0111.
+  - ΔOld của cả hai trên −B, vì ở dò hướng không nhánh nào mất Old quá 0.17 điểm.
+- Code (viết sau Sửa đổi này): tham số `fts` của `tier2_e1204` (tag `gc10_e12_04x` khi fts = 3, 4), nhánh `e1204` của `main` nhận `--fts`, nhánh đọc run xác nhận và hai luật của `e1204_summary`. Thử trên ảnh chụp giả: run dò hướng cho lại đúng từng khoá; run xác nhận qua cổng; `checks_ok` = 0 thì bị từ chối đọc.
+
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
 ### Tiền đăng ký (2026-11-16; viết trước khi có code và trước mọi số)
