@@ -4937,7 +4937,7 @@ def e0912_summary(T=0.935, B=0.376):
     (P1) M_d, Old, S5_S0test, S5_All and the differences to P and to NL; dM_d(FTR1 - NL) per session; c09 of KM, FTR1,
     FTR2, Npre; share of novel pool rows in G and of old rows in G; second-NL drops; empty slots; ceiling share
     (New_FTR1 - New_NL) / (New_Npre - New_NL). Decision rule (exploration) and confirmation rule of the
-    pre-registration. Never pools r3, r4 with r0-r2. Refuses to read a run without checks_ok = 1."""
+    pre-registration (claim 1), and claim 2 (Old, FTR1 - NL) of the Sửa đổi 2026-11-21 on the confirmation run. Never pools r3, r4 with r0-r2. Refuses to read a run without checks_ok = 1."""
     expl_pass = False
     for tag, fts in (("cub_e09_12_ft_l25", (0, 1, 2)), ("cub_e09_12x_ft_l25", (3, 4))):
         if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
@@ -5002,8 +5002,16 @@ def e0912_summary(T=0.935, B=0.376):
                 verdict = "NOT CONFIRMED (KHONG XAC NHAN)"
             else:
                 verdict = "UNCLEAR (KHONG RO)"
-            print(f"  confirmation rule: dM_d(FTR1 - NL) r3 {dmd[0]:+.3f}, r4 {dmd[1]:+.3f}, mean {dmd.mean():+.3f}; mean "
+            print(f"  claim 1 (M_d, FTR1 - NL), confirmation rule: dM_d(FTR1 - NL) r3 {dmd[0]:+.3f}, r4 {dmd[1]:+.3f}, mean {dmd.mean():+.3f}; mean "
                   f"dS5_S0test(FTR1 - P) {dS.mean():+.3f}; mean dOld(FTR1 - P) {dO.mean():+.3f} -> {verdict}")
+            dO2 = ft("FTR1_Old") - ft("NL_Old")         # claim 2, Sửa đổi 2026-11-21 (after r0-r2, before the r3, r4 run)
+            if (dO2 > 0).all() and dO2.mean() >= B:
+                verdict2 = "CONFIRMED (XAC NHAN)"
+            elif dO2.mean() <= 0:
+                verdict2 = "NOT CONFIRMED (KHONG XAC NHAN)"
+            else:
+                verdict2 = "UNCLEAR (KHONG RO)"
+            print(f"  claim 2 (Old, FTR1 - NL): dOld(FTR1 - NL) r3 {dO2[0]:+.3f}, r4 {dO2[1]:+.3f}, mean {dO2.mean():+.3f} -> {verdict2}")
     print("\nE09.12: decision on cub_e09_12_ft_l25 (r0-r2); confirmation on cub_e09_12x_ft_l25 (r3, r4) only after PASS")
 
 
