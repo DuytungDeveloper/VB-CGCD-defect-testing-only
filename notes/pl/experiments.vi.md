@@ -1256,6 +1256,19 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Giới hạn: GC10 nhỏ (214 ảnh test lớp mới; lớp hiếm làm balanced novel nhiễu); một phiên; ảnh cũ trong pool ít hơn CUB nên phần NL sửa được có thể nhỏ; kết quả không nói được NL có cộng thêm vào `09a` + `09b` không. KHÔNG ĐỦ LỚN không chứng minh NL vô ích trên dữ liệu công nghiệp.
 - Đã thấy trước tiền đăng ký này: mọi số của E12.03, E06.04 trên GC10, E09.06. Chưa có số nào của N hay NL trên GC10.
 
+### Sửa (2026-11-20; viết sau code `0660cab`, trước checks-only và trước mọi số của thí nghiệm)
+
+- Các chỗ cài đặt trong `tier2_e1204` không ghi chữ-theo-chữ ở tiền đăng ký; không đổi đại lượng hay luật quyết định:
+  - P: dự đoán bằng `params1` qua `_predict`, gọi riêng cho tập test lớp mới (`z_test1`) và tập test cũ (`z_test0`), như `ledger_state`. G1 so balanced novel và Old của P với cột 14 của `ledger_state` (1e-6).
+  - Old là độ chính xác trên tập test S0: ở t1, tập test cũ của phiên 1 là tập test S0 (runner kiểm `test_old_x` = `test0_x`). All tính trên hợp hai tập (455 ảnh).
+  - Đơn vị: balanced novel là tỉ lệ (cùng đơn vị với T = 0.0273); Old và All là điểm % (cùng đơn vị với B = 0.615).
+  - Khe mới c đứng ở chỉ số offset + c; ảnh đúng khi argmax bằng `lut[y]` (bảng tên của pipeline, như cột 14).
+  - Khe mới không có hàng được giữ, hoặc bị NL bỏ hết hàng, nhận hậu nghiệm bằng tiên nghiệm (như E12.03); số khe NL bỏ hết hàng ghi ở khoá `empty_NL`.
+  - L_old là max trên 5 khe gốc (một phiên, không có khe đã khám phá). Đường D16 (khe gốc có hàng trùng từng giá trị với x thì dùng LOO của khe đó) vẫn chạy; số hàng trùng ghi ở khoá `match`. [SUY LUẬN] Dự kiến 0: ảnh cũ của pool GC10 rút từ phần reserve, không từ S0, và `z_pool` tính bằng `pca.transform` còn `z_s0` bằng `fit_transform`.
+  - D3: AUROC bằng thống kê Mann-Whitney U; cặp (mới, cũ) chỉ lập trong cùng một ảnh chụp, rồi cộng U và số cặp của 5 ảnh chụp một FT seed (như E12.03).
+  - Một run cho cả 15 ảnh chụp (tag `gc10_e12_04`), chạy với một luồng BLAS. `e1204-summary` in kèm T, B tính lại từ P (SD gộp giữa các seed trong FT seed) để kiểm; không dùng để quyết định.
+- Code đã thử trên 15 ảnh chụp giả (d = 8, 5 + 5 lớp, một hàng pool cũ trùng một hàng S0 để đường D16 có được dùng; `jax` giả; mốc E06.04 tính bằng `niw.fit` trên cùng dữ liệu giả): G1–G4 OK ở 15/15; balanced novel của P ở r0 s0 tính tay bằng đường độc lập khớp số của runner; ba đối chứng âm cho DIFF đúng cổng (`acc_A3` lệch 0.01 → G2; lật một ô cột 14 → G1; `log_sequential` lệch tương đối 1e-6 → G3); `checks_ok` = 0 thì `e1204-summary` từ chối đọc. G4 không có đối chứng âm riêng: nhánh G4 và nhánh NL dùng cùng một biểu thức bỏ hàng, chỉ khác ngưỡng. Không có số nào của dữ liệu thật.
+
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
 ### Tiền đăng ký (2026-11-16; viết trước khi có code và trước mọi số)
