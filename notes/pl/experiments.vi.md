@@ -1068,6 +1068,19 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - Tính mới: từng mảnh đã có (phát hiện-rồi-gom; LOO Bayes); phần mới chỉ ở cách ghép trong thiết lập lô của C-GCD.
 - Tag: `cub_e09_12_ft_l25`; xác nhận `cub_e09_12x_ft_l25`.
 
+### Sửa (2026-11-20; viết sau code `4b1d9fc`, trước checks-only và trước mọi số của thí nghiệm)
+
+- Các chỗ cài đặt trong `tier2_e0912` không ghi chữ-theo-chữ ở tiền đăng ký; không đổi đại lượng, nhánh hay luật quyết định:
+  - G5: một lần gom lại cho id ngoài [0, 20) thì runner dừng hẳn (SystemExit), không chỉ ghi DIFF: id ngoài khoảng làm hỏng phép chấm c09 và khe phía sau.
+  - Run xác nhận (r3, r4) giữ phần phiên 1 của G3 (tập G của FTR1, FTR2 trùng tập giữ của NL ở phiên 1): phần này không cần run tham chiếu, nên giữ làm kiểm chặt hơn; phần so với E09.10 bỏ như tiền đăng ký. Dòng tiến độ ghi "(n/a)" cho G2, "(session-1 part only)" cho G3, "(acc1 part only)" cho G4.
+  - G6 có chuỗi khe cũ riêng như mọi nhánh, và được so với NL (P1: New, Old, S0test; 1e-6) ở mọi phiên.
+  - `rng_in` của `S<i>_09` đọc bằng `sessions.snapshots_sessions`; lần gom lại gọi `s09_cluster` của `lab/replay.py` trên khung nhìn tối thiểu (`args`, `offset`, `pool_x` của các hàng), như `e0912_try.py`.
+  - c09 của FTR1 lấy sau lần gom lại thứ nhất, của FTR2 sau lần gom lại thứ hai; mẫu số là mọi ảnh mới của pool.
+  - `metrics.json` ghi thêm khoá `fts`; `e0912-summary` từ chối run có `fts` không khớp tag, và chỉ đọc run xác nhận khi dò hướng ra Đạt.
+  - Dòng "SD giữa các seed của Old trên P" là SD (ddof 1) qua 5 chuỗi trong mỗi FT seed của Old trung bình 5 phiên.
+- Code đã thử trên 25 chuỗi giả (r0–r4 × 5 seed; đặc trưng thô 24 chiều, PCA 6 chiều; 30 lớp gốc, 5 phiên × 6 lớp mới; ảnh cũ của pool lặp lại, có hàng trùng S0 để đường D16 có được dùng; `jax`, `sessions` giả; run E09.10 giả tạo bằng `tier2_e0910` đã commit, run E09.08 giả có c09 tính độc lập): G1–G6 OK ở checks-only, ở 15/15 chuỗi dò hướng và 10/10 chuỗi xác nhận. Sáu đối chứng âm cho DIFF đúng cổng: đổi `rng_in` của S2 → G1; c09 của E09.08 lệch 0.01 → G2; một số đếm NL của E09.10 lệch 1 → G3; `NL_KM_New` lệch 0.01 → G4; một id = 20 sau khi gom lại → G5 (dừng run); bỏ một hàng ở nhánh G6 → G6. Nhánh đọc run xác nhận của `e0912-summary` thử bằng cách nới B tạm thời. Không có số nào của dữ liệu thật.
+- Hậu kiểm, không phải cổng: ở phiên 1, c09 của FTR1 phải trùng c09 của FTR1-thử (`e0912_try_ft_l25.json`, ngoài repo), vì cùng khe cũ là khe gốc; đối chiếu bằng lệnh chỉ đọc sau run.
+
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
 ### Tiền đăng ký (2026-11-17; viết trước khi có code và trước mọi số của thí nghiệm)
