@@ -32,6 +32,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.09: dừng phép gộp của `09b` khi log Bayes factor lớn nhất không còn dương (k tự do, không dưới 5), biến thể `09f-merge-stop`, tầng 1, GC10 (2026-11-14; xong: KHÔNG RÕ, Δ ≈ 0; rolled_pit giữ được cụm con ở 98% số lần; rất nhạy với off) — Q09.14; mục E09.09 dưới đây
 - E09.10: CUB t5, phân hoạch trong nhóm mới trên đặc trưng hiện có: SSKM (semi-supervised k-means) và OCM (gom thừa K' = 60 rồi gộp bằng Bayes factor NIW), luật Δc09 ≥ 5 điểm (tiền đăng ký 2026-11-19; Sửa đổi 2026-11-19: báo kèm trên nền NL của E12.03, luật giữ nguyên; kết quả: Không, Δc09 SSKM −47.459, OCM −2.672; hướng (2) sang nhánh (a)) — mục E09.10 dưới đây
 - E09.11: CUB t5, phân hoạch nhóm mới trên đặc trưng DINO chưa fine-tune (nhánh (a) của E09.10): KMfz, SSKMfz so với KMft trên 5 chuỗi `cub_chain_fz_s<N>`, luật Δc09(KMfz − KMft) ≥ 5 điểm và dương ≥ 4/5 chuỗi (tiền đăng ký 2026-11-20; kết quả: Không, Δc09 KMfz − KMft −15.691, âm ở 5/5 chuỗi; hướng (2) dừng trên CUB) — mục E09.11 dưới đây
+- E09.12: CUB t5, lọc NL rồi gom lại (FTR1: bước NL của E12.03 trên phân hoạch KM, k-means K = 20 lại trên các hàng được giữ, khớp NIW, NL lần hai) so với NL dưới P1, ràng buộc hai vế của QD28 so với pipeline; FTR2, Npre báo kèm; dò hướng r0–r2, luật xác nhận r3, r4 (tiền đăng ký 2026-11-20; đã thấy c09 của lần thử ngoài repo) — mục E09.12 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
@@ -1002,6 +1003,70 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
 - Trên CUB, đặc trưng DINO đóng băng gom ảnh mới kém hơn đặc trưng đã fine-tune khoảng 15.7 điểm c09, ở cả 5 chuỗi; fine-tune có giám sát chỉ trên lớp gốc vẫn giúp gom lớp mới. Điều này bác giả thuyết nêu ở E09.10 rằng fine-tune kéo lớp mới về gần tâm gốc. Hướng (2) (đổi phân hoạch) dừng trên CUB với các đặc trưng hiện có; không tiền đăng ký thí nghiệm ghép.
 - Nhãn chẩn đoán "chủ yếu do cài đặt" là theo luật, nhưng suy luận yếu: luật ngầm giả định fz gom ít nhất ngang ft, và giả định này sai (fz kém hơn 15.691 điểm c09), nên SSKM hỏng trên fz phù hợp với cả hai giải thích. Điều chắc là SSKM hỏng cùng kiểu trên hai bộ đặc trưng (giữ ảnh cũ khoảng 0.97, hút ảnh mới vào cụm cũ). Sửa SSKM cần tiền đăng ký riêng; không làm.
 - Bước kế (Rito duyệt): (A) củng cố NL: chạy lại trên server (QD27), ghi `code-changes.vi.md` cho các runner E14.07, E09.08, E14.08, E14.09, E12.03, E09.10, E09.11, viết kết quả NL cho báo cáo. Ghi lại để làm sau (Rito): (D) dùng ít nhãn cho lớp mới (QD16), đánh thẳng vào khoảng Nc → Nlab; đổi bài toán nên cần bàn với thầy trước. NL trên GC10 (đề xuất B) chưa quyết.
+
+## E09.12 — CUB t5: lọc NL rồi gom lại có tăng M_d so với NL (E12.03) mà vẫn giữ ràng buộc hai vế của QD28 không? (QD27, QD28)
+
+### Tiền đăng ký (2026-11-20; viết trước khi có code và trước mọi số M_d của thí nghiệm; bốn điểm mở do Rito chốt 2026-11-20 23:08)
+
+- Câu hỏi: trên CUB t5, bỏ ảnh có lề LOO âm (NL của E12.03) trước, rồi chạy lại k-means K = 20 chỉ trên các ảnh còn lại; mô hình NIW khớp trên phân hoạch mới có tăng M_d so với NL không, mà ΔS5_S0test và ΔOld so với pipeline vẫn ≥ −B?
+- Tên: "lọc NL rồi gom lại" (tên làm việc FTR, filter-then-recluster). Nguồn: sơ đồ phát hiện-rồi-gom của C-GCD (CATEGORIZER, arXiv 2504.08550; PA-CGCD, ICCV 2023; Grow & Merge, NeurIPS 2022) với bộ lọc NL của E12.03. Tra tính mới (2026-11-20, ngoài repo): chưa thấy bài làm đúng cách này; từng mảnh đã có.
+- Vì sao:
+  - E14.07: Nlab hơn Nc 25.216 điểm New; chỗ hở lớn nhất là phân hoạch trong nhóm mới.
+  - E09.08, E09.10, E09.11 đổi thuật toán gom trên cùng pool, không mở được khoảng này; chưa thí nghiệm nào đổi tập ảnh đem gom.
+  - Pool có 50–64% ảnh cũ (E14.02, Sửa đổi), k-means K = 20 chạy trên toàn pool (`main.py`; D12: thiết kế của paper).
+  - Bộ lọc NL đã xác nhận: AUROC 0.956, bỏ 0.873 ảnh cũ và 0.114 ảnh mới trong `keep` (E12.03).
+- Đã tra trước khi viết: Kết quả và Kết luận của E09.08, E09.10 (cả Sửa đổi, Sửa), E09.11, E12.03 (cả phần xác nhận), E14.02 (cả Sửa đổi), E14.07; D12, D16; `s09_cluster`, `new_state` (`lab/replay.py`); `lab/sessions.py`; `tier2_e0910`, `_nl_keep_0910`, `_loo_1203`, `_old_max_1203`, `_post_1406`, `_hung_correct_1402`, `_p1_0908` (`lab/score.py`).
+- Đã thấy trước tiền đăng ký này (cách làm "chạy thử trước", bàn giao 2026-11-20 tối §3, ngoài repo):
+  - Script `e0912_try.py` (không commit, không qua `exp.py`) trên 15 chuỗi `cub_chain_ft_l25` r0–r2: c09 của KM, KMnew (k-means chỉ trên ảnh mới của pool, oracle) và FTR1-thử, theo phiên và theo chuỗi; cổng G1, G2, G3 của bản thử đạt ở 75/75 phiên.
+  - Trung bình ba FT seed: c09 KM 66.547, KMnew 79.763, FTR1-thử 72.168; Δ(KMnew − KM) +13.216, Δ(FTR1-thử − KM) +5.621, dương ở 3/3 FT seed. Ảnh cũ trong tập gom lại 4–15%; ảnh mới được giữ 0.80–0.87 ở S4–S5; ở S5, FTR1-thử thua KM ở 4/15 chuỗi.
+  - FTR1-thử lọc bằng khe cũ của chuỗi NL-KM, không khớp lại, không lọc lần hai, không chuyển khe sang phiên sau. Nó trùng nhánh FTR1 dưới đây chỉ ở phiên 1 (cùng khe cũ là khe gốc).
+  - Mọi số của E12.03 (P, N, Nc, NL) trên r0–r4 và của E09.10 (NL-KM dưới P1) trên r0–r2.
+  - Chưa thấy: M_d, Old, S5_S0test, S5_All của FTR1, FTR2, Npre trên chuỗi nào; c09 của FTR1 với chuỗi khe riêng ở phiên 2–5; mọi số của FTR1, FTR2, Npre trên r3, r4.
+- Loại: thí nghiệm cải tiến có luật quyết định (dò hướng trên r0–r2) và luật xác nhận (trên r3, r4), chốt cùng lúc.
+- Dữ liệu: 15 chuỗi `cub_chain_ft_l25_r<r>_s<N>`, r = 0–2, N = 0–4 (dò hướng); 10 chuỗi r = 3, 4 (xác nhận). Chỉ bộ không rò; bộ có rò không chạy. Khe NIW trong không gian PCA của S0 (`z_pool`); k-means trên `pool_x` thô, như bước 09. `ids`, `keep`, `rng_in` của `S<i>_09` lấy từ ảnh chụp. Không SVI; RNG toàn cục chỉ dùng trong k-means và được đặt về `rng_in` của `S<i>_09` trước mỗi lần gọi. Nhãn pool chỉ cho Npre và để chấm c09, các tỉ lệ giữ/bỏ; nhãn test chỉ để chấm và đặt tên. 1 luồng BLAS.
+- Mô hình: N của E14.06–E12.03 (một tiên nghiệm NIW: m0 = mean của `z_s0`, κ0 = `niw.K0`, Ψ0 = off0 × P, off0 = `niw.choose(niw.loo_curve(z_s0, s0_y))`; dự đoán Student-t, argmax trên mọi khe đã gặp; khe gốc là A3).
+- Bước NL: đúng `_nl_keep_0910`: giữ hàng có m_loo = L_loo − L_old ≥ 0; L_old là max trên các khe cũ của chính nhánh, khe cũ có hàng trùng (D16) dùng LOO của khe đó.
+- Nhánh, theo từng phiên i (tuần tự). Mỗi nhánh có chuỗi khe cũ riêng: khe gốc và các khe của chính nhánh ở các phiên trước (Rito chốt: FTR1 không dùng khe của chuỗi NL-KM như bản thử). Khe không còn hàng nào là tiên nghiệm, như NL của E12.03 (Rito chốt).
+  - P: pipeline (`params1`).
+  - NL (mốc): như E12.03 (= NL-KM của E09.10): hàng có `keep` và `ids == c` của mỗi cụm c, bước NL, khớp lại khe.
+  - FTR1 (nhánh chính):
+    1. Bước NL trên phân hoạch KM như nhánh NL, nhưng so với khe cũ của FTR1; G = hợp các hàng được giữ.
+    2. Đặt RNG toàn cục về `rng_in` của `S<i>_09`; `s09_cluster` (K = 20, `n_init` 10) trên `pool_x[G]` cho id mới của các hàng của G.
+    3. Mỗi cụm mới c′: khe NIW trên các hàng của c′, bước NL lần hai so với khe cũ của FTR1, khớp lại khe trên phần được giữ.
+    4. 20 khe này là khe cũ của FTR1 ở phiên sau.
+  - FTR2 (báo kèm): như FTR1, thêm một vòng: hợp các hàng mà bước 3 giữ lại, đặt RNG về `rng_in`, gom lại K = 20, rồi lặp bước 3. Khe cuối là khe cũ của FTR2 ở phiên sau.
+  - Npre (oracle, báo kèm): đặt RNG về `rng_in`, `s09_cluster` K = 20 chỉ trên ảnh mới của pool (nhãn pool), khe NIW trên mọi hàng của mỗi cụm, không lọc; khe cũ của Npre ở phiên sau.
+- Đặt tên khi chấm: P1 (E14.01) cho mọi nhánh, kể cả P và NL, vì bảng tên P0 dựng trên id k-means của pipeline không áp được cho phân hoạch mới; mọi hiệu lấy dưới P1. P0 chỉ giữ cho P và NL để làm cổng. Dưới P1, NL − P ở E09.10 là ΔM_d +2.623 (dưới P0, E12.03: +2.726).
+- Đại lượng chính: ΔM_d = M_d(FTR1) − M_d(NL), cả hai dưới P1; hiệu trong từng chuỗi, trung bình 5 chuỗi mỗi FT seed, rồi trung bình qua các FT seed.
+- Ràng buộc (QD28, Sửa 2026-11-19): ΔS5_S0test(FTR1 − P) ≥ −B và ΔOld(FTR1 − P) ≥ −B, B = 0.376. Rito chốt: ràng buộc so với P, không so với NL; ΔOld và ΔS5_S0test so với NL chỉ báo kèm. In kèm SD giữa các seed của Old trên P.
+- Quy tắc quyết định (dò hướng, r0–r2; T = 0.935):
+  - Đạt: ΔM_d(FTR1 − NL) ≥ T, dương ở 3/3 FT seed, và ràng buộc đạt → chạy luật xác nhận.
+  - Bác: ΔM_d ≤ 0, hoặc ràng buộc trượt.
+  - Không đủ lớn: các trường hợp còn lại.
+- Luật xác nhận (r3, r4; chốt cùng lúc; chỉ chạy khi dò hướng ra Đạt; khuôn E12.03), mỗi số là trung bình 5 chuỗi của một FT seed:
+  - XÁC NHẬN: ΔM_d(FTR1 − NL) > 0 ở cả r3 và r4, trung bình hai FT seed ≥ T, trung bình ΔS5_S0test(FTR1 − P) ≥ −B và trung bình ΔOld(FTR1 − P) ≥ −B.
+  - KHÔNG XÁC NHẬN: trung bình ΔM_d ≤ 0, hoặc trung bình ΔS5_S0test < −B, hoặc trung bình ΔOld < −B.
+  - KHÔNG RÕ: còn lại.
+  - Chỉ khi XÁC NHẬN mới báo FTR1 như cải tiến (số laptop; QD27: server chạy lại). Đây là khẳng định duy nhất đăng ký trên r3, r4 (Rito chốt); FTR2 và Npre không có khẳng định.
+- Báo kèm (không dùng để quyết định): New, Old, S5_S0test, S5_All của mọi nhánh, hiệu so với P và so với NL; ΔM_d(FTR1 − NL) theo phiên S1…S5; c09 của KM, FTR1 (sau bước 2), FTR2 (sau lần gom thứ hai) và Npre trên mọi ảnh mới của pool (ảnh mới bị bỏ tính là sai; có cho r3, r4); tỉ lệ ảnh mới được giữ và tỉ lệ ảnh cũ trong G; tỉ lệ ảnh mới và ảnh cũ bị bỏ ở NL lần hai; số khe rỗng của mỗi nhánh; tỉ lệ phần trần lấy được (New_FTR1 − New_NL)/(New_Npre − New_NL).
+- Cổng kiểm:
+  - G1: `s09_cluster` trên toàn `pool_x` với `rng_in` của `S<i>_09` cho lại `ids`, mọi phiên.
+  - G2: c09 của KM trùng `S<i>_N_c09` của run E09.08 (1e-4).
+  - G3: số ảnh cũ, ảnh mới trong tập khớp và số bị bỏ của nhánh NL trùng `S<i>_NL_KM_*` của run E09.10; ở phiên 1, G của FTR1 trùng tập giữ của NL.
+  - G4: NL dưới P1 trùng `NL_KM` của run E09.10 (New, Old, S0test; 1e-4); P dưới P1 trùng `P` của run E09.10 (1e-4); P dưới P0 trùng `acc1` (1e-6).
+  - G5: id của mọi lần gom lại là số nguyên trong [0, 20), mỗi hàng một id (như `_check_09`).
+  - G6 (đối chứng cấu trúc): đường tính của FTR1 với bước 2 thay bằng `ids` của KM trên G và không có NL lần hai cho lại New, Old, S0test của NL (1e-6).
+  - Run xác nhận: bỏ G2, G3 và phần E09.10 của G4 (r3, r4 không có run E09.08, E09.10); giữ G1, phần `acc1` của G4, G5, G6. Run chỉ được đọc khi mọi cổng giữ lại đạt ở mọi chuỗi.
+  - Runner chỉ in trạng thái cổng và thời gian. Trước run thật: thử trên chuỗi giả ngoài repo, có đối chứng âm cho từng cổng.
+- Code (viết sau tiền đăng ký): runner `tier2_e0912(prefix, checks_only, fts)` và `e0912-summary` trong `lab/score.py`, lệnh `e0912` qua `exp.py` (`--prefix cub_chain_ft_l25`, `--fts 0,1,2` hoặc `3,4`, `--checks-only`); logic gom lại lấy từ `e0912_try.py` (đặt RNG rồi gọi `s09_cluster` trên `pool_x` của các hàng). Không sửa `lab/niw.py`, `lab/sessions.py`, `lab/replay.py`. Chỗ cài đặt không ghi chữ-theo-chữ ở đây ghi vào mục Sửa sau code, trước checks-only.
+- Chi phí: đo bằng một lần checks-only có profile trước run thật (bản thử: 316 s cho 15 chuỗi với một lần NL; E12.03: khoảng 22 phút mỗi run; chỉ để tham khảo).
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp: ΔM_d(FTR1 − NL) từ +1 đến +4 (c09 tăng khoảng 5–6 điểm; khoảng Nc → Nlab cho khoảng 0.75 điểm New mỗi điểm c09, tính tay 25.216 / 33.453; NL lần hai bỏ thêm ảnh mới); ΔOld(FTR1 − P) dương nhưng nhỏ hơn của NL; lợi tập trung ở S2–S4, S5 có thể âm; dò hướng ra Đạt với xác suất khoảng 50%. Rủi ro chính: ảnh mới bị bỏ nhầm ở S4–S5.
+- Giới hạn:
+  - r0–r2 đã dùng ở E12.03, E09.08, E09.10, E14.01–E14.09, và c09 của FTR1-thử đã bị nhìn trên chính các seed này.
+  - Số của NL trên r3, r4 đã bị nhìn ở E12.03 xác nhận; số của FTR trên r3, r4 chưa. Sau run xác nhận không còn FT seed sạch (r5 trở đi cần fine-tune).
+  - Chỉ CUB t5, PCA-384, FT l25; K = 20 biết trước; GC10 không thuộc thí nghiệm này (hai trần trên GC10 ngoài repo: lọc ảnh cũ không giúp).
+  - Tính mới: từng mảnh đã có (phát hiện-rồi-gom; LOO Bayes); phần mới chỉ ở cách ghép trong thiết lập lô của C-GCD.
+- Tag: `cub_e09_12_ft_l25`; xác nhận `cub_e09_12x_ft_l25`.
 
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
