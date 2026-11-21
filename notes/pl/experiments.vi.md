@@ -1235,6 +1235,22 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - Chỉ CUB t5, PCA-384, FT l25, bộ không rò, K biết trước.
 - Tag: `cub_e09_13_ft_l25`.
 
+### Sửa (2026-11-21; viết sau code `tier2_e0913`, trước checks-only và trước mọi số của thí nghiệm; dữ liệu r5 đã dựng, chỉ mới thấy bảng pipeline của các chuỗi và C1 OK 48/48)
+
+- Các chỗ cài đặt trong `tier2_e0913` không ghi chữ-theo-chữ ở tiền đăng ký; không đổi đại lượng, nhánh, cổng hay luật:
+  - c09 của FTR1e: "hàng của khe bị cắt" là mọi hàng của cụm đó trong lần gom lại (cả hàng NL lần hai đã bỏ), bỏ khỏi phân hoạch; mẫu số vẫn là mọi ảnh mới của pool, nên các hàng đó tính sai. c09 của FTR1 giữ như E09.12 (sau lần gom lại, không trừ hàng NL lần hai bỏ).
+  - "Hàng `keep` của cụm KM mà NL bỏ hết": cụm có ít nhất một hàng `keep` và NL không giữ hàng nào; cụm không có hàng `keep` không góp hàng. Tỉ lệ ảnh mới gộp qua 5 phiên trong mỗi chuỗi; bảng in trung bình của 5 chuỗi.
+  - G7 có chuỗi khe cũ riêng như mọi nhánh và được so với FTR1 (P1: New, Old, S0test; 1e-6) ở mọi phiên; phần "ít nhất e_i khe rỗng" kiểm trên FTR1e.
+  - Phần phiên 1 của G3 kiểm cả FTR1, FTR1e và FTR1n.
+  - Khoá của `metrics.json` là `s<N>_...` (một FT seed); `e0913-summary` từ chối run không có `checks_ok` = 1.
+  - SD giữa các seed: cột `sd` (ddof 1, qua 5 chuỗi) của mọi dòng, gồm dòng Old của P. S của từng chuỗi in `nan` khi chuỗi đó có ΔM_d(FTR1 − NL) = 0; luật chỉ dùng S của trung bình.
+  - Báo kèm thêm tỉ lệ ảnh mới và ảnh cũ bị NL lần hai của FTR1 bỏ (như E09.12). FTR2 và Npre không chạy.
+- Code đã thử trên 5 chuỗi giả ngoài repo (8 chiều, 10 lớp gốc, 5 phiên × 4 lớp mới, ảnh cũ của pool dồn vào 3 lớp để NL có cụm bị bỏ hết; `jax`, `sessions`, `s09_cluster` giả):
+  - G1, G3–G7 OK ở checks-only và ở 5/5 chuỗi.
+  - Đối chiếu với `tier2_e0912` đã commit trên cùng dữ liệu giả: 500 giá trị của NL, FTR1, P, G6 (New, Old, S0test, All mọi phiên), c09 của KM, FTR1 và số khe rỗng của NL, FTR1 trùng tuyệt đối.
+  - Đối chứng âm cho DIFF đúng cổng: cắt một khe khi e_i = 0 → G7; không bao giờ cắt → G7; dịch `ids` của S3 → G1; `acc1` lệch 0.5 → G4; một id ngoài [0, 4) → G5 (dừng run); bớt hàng của G ở nhánh FTR → G3 (kéo theo G6).
+  - Mọi nhánh của luật trong `e0913-summary` (K1 LẶP LẠI, KHÔNG LẶP LẠI, KHÔNG RÕ; K2 cả ba; S ≤ 0.33, giữa, ≥ 0.67, "không đọc S") thử bằng cách sửa số trong `metrics.json` giả. Không có số nào của dữ liệu thật.
+
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
 ### Tiền đăng ký (2026-11-17; viết trước khi có code và trước mọi số của thí nghiệm)
