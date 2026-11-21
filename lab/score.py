@@ -48,6 +48,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e0912-summary                                  E09.12: tables, decision and confirmation rules
   python lab/score.py e0913 --prefix cub_chain_ft_l25 [--checks-only]   E09.13: FTR1e (FTR1 with NL's empty-slot count) on r5 (exp.py)
   python lab/score.py e0913-summary                                  E09.13: tables, diagnostic S, claims K1, K2
+  python lab/score.py e0914 --prefix cub_chain_ft_l25 [--checks-only]   E09.14: oracle ladder FTR1 -> FTR1c -> Npre -> Nlab on r0-r2 (exp.py)
+  python lab/score.py e0914-summary                                  E09.14: ladder steps, shares and reading rules
 """
 import argparse, contextlib, importlib, importlib.util, io, json, os, re, sys, time
 from pathlib import Path
@@ -5282,9 +5284,238 @@ def e0913_summary(T=0.935, B=0.376):
         print(f"  diagnostic S: dM_d(FTR1e - NL) {dE.mean():+.3f} / dM_d(FTR1 - NL) {dmd.mean():+.3f} = {S:.3f} -> {v}")
 
 
+# ---- E09.14: CUB t5, oracle ladder for NL filter then re-cluster: FTR1 -> FTR1c -> Npre -> Nlab (pre-registered ce814a0) ----
+ARMS_0914 = ("NL", "FTR1", "FTR1c", "Npre", "Nlab", "G3c")
+
+
+def tier2_e0914(prefix, checks_only=False):
+    """E09.14 (pre-registration ce814a0) on the 15 default chains <prefix>_r<r>_s<N>, r = 0-2, N = 0-4. Model N of
+    E14.06-E12.03 (one NIW prior, off0 by LOO on S0, Student-t, argmax over the seen slots), as E09.12. Per session, in
+    order; every arm has its own old slots (base slots + its slots of earlier sessions); an empty slot is the prior.
+    NL, FTR1, Npre: as E09.12 (NL step on KM; _ftr_0912 rounds 1; s09_cluster on the novel pool rows, slots on all rows
+    of each cluster). FTR1c (oracle step 1): the FTR1 steps on the FTR1c old slots, then the pool rows with an old true
+    label (< offset) are taken out of every new slot before the fit. Nlab (oracle ceiling): new slot c fitted on every
+    pool row with true label offset + c. G3c: the FTR1c path with the removal switched off, on its own old slots.
+    Naming P1 (E14.01) for every arm and P; P0 for P (gate). c09 (Hungarian over all novel pool rows, a row not in the
+    partition counts wrong): FTR1 (re-clustering), Npre.
+    Gates: G1 s09_cluster on the whole pool_x at rng_in = ids. G2 NL, FTR1, Npre (P1 New, Old, S0test every session) =
+    the cub_e09_12_ft_l25 run (1e-4) and P (P0) = acc1 (1e-6). G3 the G3c arm = FTR1 (P1 New, Old, S0test every session;
+    1e-6) and no FTR1c slot holds a pool row with an old label. G4 the Nlab slots of session i hold exactly the novel pool
+    rows of session i, each row in one slot. G5 every re-clustering gives integer ids in [0, increment), one per row
+    (else the run stops).
+    No SVI; global RNG only in the k-means calls, each preceded by the reset to rng_in of S<i>_09. Pool labels for FTR1c,
+    Npre, Nlab, c09 and the counts only; test labels for scoring and naming only. Progress line: gates and time only.
+    Keys: r<r>_s<N>_<key>; G1_ok ... G5_ok, checks_ok. checks_only: chain r0_s0 only, no keys."""
+    import niw
+    from replay import _clf, _git
+    from sessions import load as load_sessions, snapshots_sessions, _device
+    assert prefix == "cub_chain_ft_l25", "E09.14 is pre-registered on the leak-free chains only"
+    t0 = time.time()
+    if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
+        raise SystemExit("e0914: commit the code first (same dirty rule as scripts/exp.py)")
+    e12 = _ref_metrics("cub_e09_12_ft_l25")
+    assert e12.get("checks_ok") == 1, "E09.12 run: checks failed"
+    gk = ("G1", "G2", "G3", "G4", "G5")
+    out, gates = {}, {k: True for k in gk}
+    for r, N in ((0, 0),) if checks_only else [(r, N) for r in range(3) for N in range(5)]:
+        tag, pre = f"{prefix}_r{r}_s{N}", f"r{r}_s{N}_"
+        st, views = load_sessions(tag)                  # the workbench first: torch, main, then jax, as the chains
+        import jax.numpy as jnp
+        _device()
+        blobs = snapshots_sessions(tag)
+        rngs = {i: blobs[f"S{i}_09"]["rng_in"] for i in range(1, len(views) + 1)}
+        del blobs
+        a = st["args"]
+        assert a.dataset == "cub200" and a.load_mode == "t5" and len(views) == 5 and a.seed == N, f"{tag}: not a CUB t5 chain of seed {N}"
+        base, inc, res, g = a.base, a.increment, {}, {k: True for k in gk}
+        z0, y0 = np.asarray(st["z_s0"], np.float64), np.asarray(st["s0_y"]).astype(int)
+        d = z0.shape[1]
+        off0 = niw.choose(niw.loo_curve(z0, y0))
+        sts = niw.class_stats(z0, y0)
+        prior = (sts["m0"], niw.K0, d + 1 + off0, off0 * niw.prior_cov(sts, 0))
+        base_rows = [z0[y0 == k] for k in range(base)]
+        base_slots = [_post_1406(R, prior) for R in base_rows]
+        res["off"] = off0
+        rows = {b: [] for b in ARMS_0914}
+        post = {b: [] for b in ARMS_0914}
+        lut1 = {b: np.arange(a.num_classes) for b in ("P",) + ARMS_0914}
+        for i, v in enumerate(views, 1):
+            off = v["offset"]
+            n = off + inc
+            X = np.asarray(v["pool_x"])
+            zp = np.asarray(v["z_pool"], np.float64)
+            ids, keep = np.asarray(v["ids"]).astype(int), np.asarray(v["keep"]).astype(bool)
+            yp, lut0 = np.asarray(v["true_pool_y"]).astype(int), np.asarray(v["lut"])
+            pn = yp >= off
+            nn = int(pn.sum())
+            g5 = [True]
+
+            def recluster(ri, _X=X, _off=off, _rng=rngs[i]):
+                lab, ok = _km_0912(a, _off, _X[ri], _rng)
+                g5[0] &= ok
+                if not ok:                               # an id outside [0, inc) would break the scoring below
+                    raise SystemExit(f"e0914 {tag} S{i}: G5 DIFF (re-clustering ids outside [0, {inc}))")
+                return lab
+
+            ids_again, ok1 = _km_0912(a, off, X, rngs[i])
+            g["G1"] &= bool(ok1 and np.array_equal(ids_again, ids))
+            c09 = lambda ri, lab: 100.0 * _hung_correct_1402(lab[pn[ri]], yp[ri][pn[ri]] - off, inc) / nn
+            new_rows = {}
+            # NL (baseline)
+            old_r, old_s = base_rows + rows["NL"], base_slots + post["NL"]
+            idx = _index_1203(old_r)
+            nr = []
+            for c in range(inc):
+                rr = np.flatnonzero(keep & (ids == c))
+                kp = _nl_keep_0910(zp[rr], old_r, old_s, prior, idx) if len(rr) else np.zeros(0, bool)
+                nr.append(zp[rr[kp]])
+            new_rows["NL"] = nr
+            # FTR1
+            sr, G1, parts, kept = _ftr_0912(zp, keep, ids, inc, base_rows + rows["FTR1"], base_slots + post["FTR1"], prior,
+                                            recluster, 1, False)
+            new_rows["FTR1"] = sr
+            res[f"S{i}_FTR1_c09"] = c09(*parts[0])
+            # FTR1c and G3c: the FTR1 steps on their own old slots, then (FTR1c only) the old-label rows taken out
+            for b, clean in (("FTR1c", True), ("G3c", False)):
+                sr, G1, parts, kept = _ftr_0912(zp, keep, ids, inc, base_rows + rows[b], base_slots + post[b], prior,
+                                                recluster, 1, False)
+                ri, lab = parts[0]
+                sidx = [ri[lab == c][kept[0][ri[lab == c]]] for c in range(inc)]
+                assert all(len(s) == len(R) for s, R in zip(sidx, sr)), f"{tag} S{i} {b}: slot rows and indices differ"
+                assert all(np.array_equal(zp[s], R) for s, R in zip(sidx, sr)), f"{tag} S{i} {b}: slot rows are not zp[indices]"
+                if clean:
+                    sidx = [s[pn[s]] for s in sidx]
+                    g["G3"] &= all(bool(pn[s].all()) for s in sidx)
+                    nrow = sum(len(R) for R in sr)
+                    res.update({f"S{i}_FTR1c_old_out": int(nrow - sum(len(s) for s in sidx)), f"S{i}_FTR1c_rows_in": int(nrow)})
+                new_rows[b] = [zp[s] for s in sidx]
+            # Npre (oracle): as E09.12
+            ri = np.flatnonzero(pn)
+            lab = recluster(ri)
+            res[f"S{i}_Npre_c09"] = c09(ri, lab)
+            new_rows["Npre"] = [zp[ri[lab == c]] for c in range(inc)]
+            # Nlab (oracle ceiling)
+            nidx = [np.flatnonzero(yp == off + c) for c in range(inc)]
+            allidx = np.concatenate(nidx)
+            g["G4"] &= bool(len(allidx) == nn and len(np.unique(allidx)) == nn and np.array_equal(np.sort(allidx), np.flatnonzero(pn)))
+            new_rows["Nlab"] = [zp[s] for s in nidx]
+            g["G5"] &= g5[0]
+            res[f"S{i}_nn"], res[f"S{i}_pool_old"] = nn, int((~pn).sum())
+            for b in ARMS_0914:
+                res[f"S{i}_{b}_empty"] = int(sum(len(R) == 0 for R in new_rows[b]))
+                rows[b] += new_rows[b]
+                post[b] += [_post_1406(R, prior) for R in new_rows[b]]
+            # scoring
+            clf = _clf(v)
+            _component(v["predict"])(clf)
+            clf.label_offset, clf.n_seen = off, n
+            xt = clf.pca.transform(v["test_all_x"])
+            zt = np.asarray(xt, np.float64)
+            y = np.asarray(v["true_test_all_y"]).astype(int)
+            pr = np.asarray(clf._predict(jnp.array(xt), _jnp(v["params1"]))[0]).astype(int)
+            s0p = _sc_0910(pr, y, lut0, off, base)
+            res.update({f"S{i}_P_P0_{q}": val for q, val in s0p.items()})
+            g["G2"] &= abs(s0p["New"] - float(v["acc1"]["Novel"])) <= 1e-6 and abs(s0p["Old"] - float(v["acc1"]["Old"])) <= 1e-6
+            lut1["P"] = _p1_0908(pr, y, lut1["P"], off, n)
+            res.update({f"S{i}_P_{q}": val for q, val in _sc_0910(pr, y, lut1["P"], off, base).items()})
+            lb = _logd_1202("A3", base_slots, zt)
+            for b in ARMS_0914:
+                L = np.concatenate([lb, _logd_1202("A3", post[b], zt)], 1)
+                assert L.shape[1] == n, f"{tag} S{i} {b}: {L.shape[1]} slots"
+                pb = L.argmax(1)
+                lut1[b] = _p1_0908(pb, y, lut1[b], off, n)
+                res.update({f"S{i}_{b}_{q}": val for q, val in _sc_0910(pb, y, lut1[b], off, base).items()})
+            qs = ("New", "Old", "S0test")
+            g["G2"] &= all(abs(res[f"S{i}_{b}_{q}"] - float(e12[f"{pre}S{i}_{b}_{q}"])) <= 1e-4 for b in ("NL", "FTR1", "Npre") for q in qs)
+            g["G3"] &= all(abs(res[f"S{i}_G3c_{q}"] - res[f"S{i}_FTR1_{q}"]) <= 1e-6 for q in qs)
+        for kk in gates:
+            gates[kk] = gates[kk] and g[kk]
+        out.update({pre + kk: round(val, 4) if isinstance(val, float) else val for kk, val in res.items()})
+        print(f"e0914 {tag}: " + " ".join(f"{kk} {'OK' if g[kk] else 'DIFF'}" for kk in g)
+              + f" ({time.time() - t0:.0f} s)", flush=True)
+    chk = {f"{kk}_ok": int(v) for kk, v in gates.items()}
+    chk["checks_ok"] = int(all(gates.values()))
+    print(f"e0914 {prefix} r0-r2: checks {'OK' if chk['checks_ok'] else 'FAILED'} ({time.time() - t0:.0f} s)")
+    return chk if checks_only else {**chk, **out}
+
+
+def e0914_summary(T=0.935, B=0.376):
+    """Tables of E09.14 from the run cub_e09_14_ft_l25 (15 chains, r0-r2): per arm (P1) M_d, Old, S5_S0test, S5_All
+    and the differences to FTR1 and to P; the ladder steps b1 = FTR1c - FTR1, b2 = Npre - FTR1c, b3 = Nlab - Npre (M_d,
+    mean over the 15 chains of the within-chain difference), the gap Nlab - FTR1 and the share of each step, per FT seed
+    and per session; the reading rules of the pre-registration (gap < T; main step = largest b_k when >= T; a step
+    below -T = ladder not monotone; Old side: dOld(FTR1c - FTR1) >= B); old rows taken out by FTR1c; c09 of FTR1, Npre;
+    empty slots. Refuses to read a run without checks_ok = 1."""
+    tag = "cub_e09_14_ft_l25"
+    if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+        print(f"{tag}: no run yet")
+        return
+    m = _ref_metrics(tag)
+    assert m.get("checks_ok") == 1, f"{tag}: checks failed, results are not read"
+    chains = [(r, N) for r in range(3) for N in range(5)]
+    per = lambda key: np.array([m[f"r{r}_s{N}_{key}"] for r, N in chains], float)
+    md = lambda k: np.mean([per(f"S{i}_{k}") for i in range(1, 6)], axis=0)
+    s5 = lambda k: per(f"S5_{k}")
+    tot = lambda k: sum(per(f"S{i}_{k}") for i in range(1, 6))
+    byft = lambda x: np.array([x[5 * r:5 * r + 5].mean() for r in range(3)])
+    line = lambda name, x: (f"  {name:<40}" + "".join(f"{val:9.3f}" for val in byft(x)) + f"{x.mean():9.3f}"
+                            + f"{byft(x).std(ddof=1):9.3f}")
+    print(f"\n{tag}: gates OK; off chosen: {sorted(set(int(x) for x in per('off')))}\n  {'':<40}"
+          + "".join(f"{x:>9}" for x in ("r0", "r1", "r2", "mean", "sd(ft)")))
+    for b in ("P", "NL", "FTR1", "FTR1c", "Npre", "Nlab"):
+        print(line(f"{b} New (M_d, P1)", md(f"{b}_New")))
+        print(line(f"{b} Old", md(f"{b}_Old")))
+        print(line(f"{b} S5_S0test", s5(f"{b}_S0test")))
+        print(line(f"{b} S5_All", s5(f"{b}_All")))
+        if b not in ("P", "FTR1"):
+            print(line(f"{b} dM_d vs FTR1", md(f"{b}_New") - md("FTR1_New")))
+            print(line(f"{b} dOld vs FTR1", md(f"{b}_Old") - md("FTR1_Old")))
+            print(line(f"{b} dS5_S0test vs FTR1", s5(f"{b}_S0test") - s5("FTR1_S0test")))
+        if b != "P":
+            print(line(f"{b} dM_d vs P", md(f"{b}_New") - md("P_New")))
+            print(line(f"{b} dOld vs P", md(f"{b}_Old") - md("P_Old")))
+    b1 = md("FTR1c_New") - md("FTR1_New")
+    b2 = md("Npre_New") - md("FTR1c_New")
+    b3 = md("Nlab_New") - md("Npre_New")
+    gap = md("Nlab_New") - md("FTR1_New")
+    print(line("ladder b1 = FTR1c - FTR1", b1))
+    print(line("ladder b2 = Npre - FTR1c", b2))
+    print(line("ladder b3 = Nlab - Npre", b3))
+    print(line("gap = Nlab - FTR1", gap))
+    for i in range(1, 6):
+        print(line(f"S{i} b1", per(f"S{i}_FTR1c_New") - per(f"S{i}_FTR1_New")))
+        print(line(f"S{i} b2", per(f"S{i}_Npre_New") - per(f"S{i}_FTR1c_New")))
+        print(line(f"S{i} b3", per(f"S{i}_Nlab_New") - per(f"S{i}_Npre_New")))
+    print(line("FTR1c old rows taken out (per chain)", tot("FTR1c_old_out")))
+    print(line("FTR1c old share of FTR1c slot rows", tot("FTR1c_old_out") / tot("FTR1c_rows_in")))
+    for X in ("FTR1", "Npre"):
+        print(line(f"c09 {X}", md(f"{X}_c09")))
+    for b in ("NL", "FTR1", "FTR1c", "Npre", "Nlab"):
+        print(line(f"{b} empty slots (per chain)", tot(f"{b}_empty")))
+    G, steps = gap.mean(), {"b1": b1.mean(), "b2": b2.mean(), "b3": b3.mean()}
+    print(f"  steps: b1 {steps['b1']:+.3f}, b2 {steps['b2']:+.3f}, b3 {steps['b3']:+.3f}; gap {G:+.3f}"
+          + (f"; shares {steps['b1'] / G:.3f} / {steps['b2'] / G:.3f} / {steps['b3'] / G:.3f}" if G else ""))
+    if G < T:
+        print(f"  rule: gap {G:+.3f} < T = {T} -> FTR1 is close to the ceiling under this path; steps not read")
+    else:
+        low = [k for k, x in steps.items() if x < -T]
+        if low:
+            print(f"  rule: ladder not monotone at {', '.join(low)} (below -T); steps read as description only, not as shares")
+        k = max(steps, key=steps.get)
+        where = {"b1": "old rows left in the slots (better second filter)", "b2": "the filter before re-clustering",
+                 "b3": "k-means on the current features (representation)"}[k]
+        if steps[k] >= T:
+            print(f"  rule: main step {k} ({steps[k]:+.3f} >= T = {T}) -> {where}")
+        else:
+            print(f"  rule: largest step {k} ({steps[k]:+.3f}) below T = {T} -> no main step")
+    dO = (md("FTR1c_Old") - md("FTR1_Old")).mean()
+    print(f"  Old side: dOld(FTR1c - FTR1) {dO:+.3f} -> " + ("old rows left in the slots still hurt the old classes" if dO >= B
+                                                          else f"below B = {B}"))
+
+
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary", "e1204", "e1204-summary", "e0912", "e0912-summary", "e0913", "e0913-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary", "e1204", "e1204-summary", "e0912", "e0912-summary", "e0913", "e0913-summary", "e0914", "e0914-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -5299,7 +5530,7 @@ def main(argv):
     p.add_argument("--fts", default="0,1,2", help="e1203, e1204, e0912: FT seeds, 0,1,2 (exploration) or 3,4 (confirmation)")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary", "e1204", "e1204-summary", "e0912", "e0912-summary", "e0913", "e0913-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary", "e1204", "e1204-summary", "e0912", "e0912-summary", "e0913", "e0913-summary", "e0914", "e0914-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -5379,6 +5610,15 @@ def main(argv):
     if o.step == "e0913":
         assert o.prefix == "cub_chain_ft_l25", "e0913 needs --prefix cub_chain_ft_l25"
         out = tier2_e0913(o.prefix, o.checks_only)
+        if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
+            (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
+        return
+    if o.step == "e0914-summary":
+        e0914_summary()
+        return
+    if o.step == "e0914":
+        assert o.prefix == "cub_chain_ft_l25", "e0914 needs --prefix cub_chain_ft_l25"
+        out = tier2_e0914(o.prefix, o.checks_only)
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
