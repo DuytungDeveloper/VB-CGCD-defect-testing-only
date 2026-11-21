@@ -34,7 +34,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.11: CUB t5, phân hoạch nhóm mới trên đặc trưng DINO chưa fine-tune (nhánh (a) của E09.10): KMfz, SSKMfz so với KMft trên 5 chuỗi `cub_chain_fz_s<N>`, luật Δc09(KMfz − KMft) ≥ 5 điểm và dương ≥ 4/5 chuỗi (tiền đăng ký 2026-11-20; kết quả: Không, Δc09 KMfz − KMft −15.691, âm ở 5/5 chuỗi; hướng (2) dừng trên CUB) — mục E09.11 dưới đây
 - E09.12: CUB t5, lọc NL rồi gom lại (FTR1: bước NL của E12.03 trên phân hoạch KM, k-means K = 20 lại trên các hàng được giữ, khớp NIW, NL lần hai) so với NL dưới P1, ràng buộc hai vế của QD28 so với pipeline; FTR2, Npre báo kèm; dò hướng r0–r2, luật xác nhận r3, r4 (tiền đăng ký 2026-11-20; đã thấy c09 của lần thử ngoài repo; xong: dò hướng Đạt trên r0–r2, ΔM_d(FTR1 − NL) +9.245; XÁC NHẬN trên r3, r4 cả khẳng định 1, ΔM_d +8.968, và khẳng định 2, ΔOld(FTR1 − NL) +3.469; số laptop, server chưa chạy lại) — mục E09.12 dưới đây
 - E09.13: CUB t5, tách cơ chế của lọc NL rồi gom lại: lợi so với NL đến từ số khe dùng được hay từ phân hoạch đúng hơn; nhánh FTR1e (FTR1 với số khe rỗng ép bằng NL), FTR1n báo kèm; khẳng định lặp lại K1, K2 trên FT seed mới r5 (tiền đăng ký 2026-11-21); K1, K2 LẶP LẠI (ΔM_d +9.069, ΔOld +3.417); S = 1.040, luật ra (b) nhưng giả định ngầm 1 không giữ: lợi không đến từ số khe dùng được (số laptop) — mục E09.13 dưới đây
-- E09.14: CUB t5, thang oracle cho lọc NL rồi gom lại: FTR1 → FTR1c (bỏ ảnh cũ còn sót trong khe bằng nhãn pool) → Npre → Nlab; khoảng tới trần chia theo ba bậc, luật đọc chốt trước; chẩn đoán trên r0–r2, không có khẳng định (tiền đăng ký 2026-11-21) — mục E09.14 dưới đây
+- E09.14: CUB t5, thang oracle cho lọc NL rồi gom lại: FTR1 → FTR1c (bỏ ảnh cũ còn sót trong khe bằng nhãn pool) → Npre → Nlab; khoảng tới trần chia theo ba bậc, luật đọc chốt trước; chẩn đoán trên r0–r2, không có khẳng định (tiền đăng ký 2026-11-21); kết quả: khoảng tới trần +16.574, bậc chính b3 (k-means trên biểu diễn, +12.945), b1 +0.037, b2 +3.592 (số laptop) — mục E09.14 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
@@ -1397,6 +1397,78 @@ Lời thường: "lọc NL rồi gom lại" lặp lại được trên FT seed t
   - Đối chiếu với `tier2_e0912`: 1500 giá trị của NL, FTR1, Npre, P (New, Old, S0test, All mọi phiên), c09 của FTR1, Npre và số khe rỗng của NL, FTR1 trùng tuyệt đối.
   - Đối chứng âm: G1 (dịch `ids` ở phiên 3), G2 (tham chiếu FTR1 + 0.01; `acc1` + 0.5), G4 (khe Nlab lệch một lớp), G5 (id ngoài khoảng, run dừng) đều trượt ở checks-only. Hai đối chứng của G3 (FTR1c không bỏ ảnh cũ; G3c cũng bỏ ảnh cũ) trượt ở run 15 chuỗi giả, không trượt ở checks-only vì chuỗi giả s0 không có ảnh cũ nào trong khe FTR1 (0 ảnh bị bỏ; các chuỗi khác 8–9). Trên CUB, checks-only của G3 vì vậy chỉ là kiểm dương; sức kiểm của G3 nằm ở run đầy đủ.
   - `e0914-summary` chạy trên run giả và từ chối run giả có `checks_ok` = 0.
+
+### Kết quả (r0–r2; run `20261121_213613__cub_e09_14_ft_l25`, commit run `b552c44`; số do `e0914-summary` in ra; 15 chuỗi `cub_chain_ft_l25_r<r>_s<N>`)
+
+- Cổng: G1–G5 đạt ở 15/15 chuỗi (checks-only trên r0_s0 đạt trước run). off chọn được: 250 ở mọi chuỗi. G2 đạt nghĩa là NL, FTR1, Npre trùng E09.12 trên cùng chuỗi.
+- Các nhánh (M_d và Old là trung bình 5 phiên; S5_S0test ở phiên 5; cột r0–r2 là trung bình 5 chuỗi của mỗi FT seed; SD là SD của ba trung bình theo FT seed):
+
+| Đại lượng (P1) | r0 | r1 | r2 | TB | SD |
+|---|---|---|---|---|---|
+| New (M_d) của P | 57.141 | 58.129 | 57.852 | **57.707** | 0.509 |
+| New (M_d) của NL | 59.683 | 60.443 | 60.863 | **60.330** | 0.598 |
+| New (M_d) của FTR1 | 69.582 | 69.092 | 70.051 | **69.575** | 0.479 |
+| New (M_d) của FTR1c | 69.362 | 69.648 | 69.826 | **69.612** | 0.234 |
+| New (M_d) của Npre | 73.834 | 72.120 | 73.657 | **73.204** | 0.943 |
+| New (M_d) của Nlab | 86.652 | 85.585 | 86.209 | **86.149** | 0.536 |
+| Old của FTR1 | 79.059 | 78.706 | 79.493 | **79.086** | 0.394 |
+| ΔOld FTR1c − FTR1 | +0.381 | +0.486 | +0.312 | **+0.393** | 0.088 |
+| ΔOld Npre − FTR1 | +0.339 | −0.050 | +0.145 | **+0.145** | 0.194 |
+| ΔOld Nlab − FTR1 | +4.001 | +4.006 | +3.574 | **+3.860** | 0.248 |
+| ΔS5_S0test FTR1c − FTR1 | +1.133 | +0.683 | +0.813 | **+0.876** | 0.232 |
+| ΔS5_S0test Npre − FTR1 | −1.338 | −1.775 | −2.124 | **−1.746** | 0.393 |
+| ΔS5_S0test Nlab − FTR1 | −0.560 | −0.867 | −1.693 | **−1.040** | 0.586 |
+
+- Thang (M_d; trung bình 15 chuỗi của hiệu trong từng chuỗi):
+
+| Bậc | r0 | r1 | r2 | TB | SD |
+|---|---|---|---|---|---|
+| b1 = FTR1c − FTR1 (ảnh cũ sót trong khe) | −0.220 | +0.556 | −0.224 | **+0.037** | 0.449 |
+| b2 = Npre − FTR1c (lọc trước khi gom) | +4.472 | +2.472 | +3.831 | **+3.592** | 1.021 |
+| b3 = Nlab − Npre (k-means trên biểu diễn) | +12.818 | +13.465 | +12.552 | **+12.945** | 0.469 |
+| Khoảng = Nlab − FTR1 | +17.069 | +16.493 | +16.159 | **+16.574** | 0.461 |
+
+- Cơ chế:
+
+| Đại lượng | r0 | r1 | r2 | TB | SD |
+|---|---|---|---|---|---|
+| Ảnh cũ FTR1c bỏ khỏi khe, mỗi chuỗi (5 phiên) | 95.000 | 95.600 | 89.200 | **93.267** | 3.535 |
+| Tỉ lệ ảnh cũ trong hàng khe của FTR1c trước khi bỏ | 0.043 | 0.043 | 0.041 | **0.042** | 0.001 |
+| c09 FTR1 | 72.016 | 72.048 | 72.792 | **72.285** | 0.439 |
+| c09 Npre | 79.928 | 79.272 | 80.088 | **79.763** | 0.432 |
+| Khe rỗng mỗi chuỗi: NL | 3.800 | 7.200 | 3.400 | **4.800** | 2.088 |
+| Khe rỗng mỗi chuỗi: FTR1 | 1.200 | 0.800 | 0.600 | **0.867** | 0.306 |
+| Khe rỗng mỗi chuỗi: FTR1c | 1.200 | 1.600 | 1.000 | **1.267** | 0.306 |
+
+- Theo phiên (trung bình 15 chuỗi): b1 nằm trong khoảng −2.284 (S3) đến +1.076 (S5) và đổi dấu giữa các phiên; b2 dương ở cả 5 phiên (+1.702 đến +4.940); b3 từ +11.305 đến +14.120.
+- Dòng luật, nguyên văn output:
+
+```
+steps: b1 +0.037, b2 +3.592, b3 +12.945; gap +16.574; shares 0.002 / 0.217 / 0.781
+rule: main step b3 (+12.945 >= T = 0.935) -> k-means on the current features (representation)
+Old side: dOld(FTR1c - FTR1) +0.393 -> old rows left in the slots still hurt the old classes
+```
+
+- Đọc thêm (tính tay, kiểm bằng phép tính trong lệnh ghi mục này):
+  - c09 của Npre hơn FTR1 7.478 điểm (tính tay: 79.763 − 72.285).
+  - b1 + b2 = 3.629 (tính tay: 0.037 + 3.592), đúng bằng ΔM_d Npre − FTR1 của bảng.
+  - ΔOld FTR1c − FTR1 theo FT seed: +0.381, +0.486, +0.312; r2 dưới B. Trung bình vượt B 0.017 (tính tay: 0.393 − 0.376).
+
+### Kết luận
+
+Lời thường: FTR1 còn cách trần khoảng 16.6 điểm M_d. Khoảng này gần như không nằm ở ảnh cũ còn sót trong khe (bỏ hết chúng bằng nhãn thật không thêm điểm nào cho lớp mới). Khoảng một phần năm nằm ở bước lọc trước khi gom, gần bốn phần năm nằm ở giới hạn của k-means trên đặc trưng hiện tại. Theo luật đã chốt, hướng sửa phân hoạch trên đặc trưng này dừng ở laptop; muốn tiến gần trần phải đổi biểu diễn.
+
+- Khoảng Δ = +16.574 ≥ T, nên đọc các bậc. Bậc chính b3 = +12.945 ≥ T (phần 0.781): giới hạn của k-means trên biểu diễn hiện tại. Không bậc nào có trung bình dưới −T, nên thang đơn điệu theo luật.
+- b1 = +0.037 (phần 0.002): bỏ toàn bộ ảnh cũ còn sót trong khe FTR1 (0.042 số hàng của khe, khoảng 93 ảnh mỗi chuỗi) không đổi New.
+  - Câu E09.13 để mở ("độ sạch của khe là ứng viên") có trả lời: độ sạch của khe không phải nguồn của phần lợi M_d ngoài c09. Phần đó vẫn chưa giải thích.
+  - Hướng ứng với b1 (lọc lần hai tốt hơn) không đáng làm cho New.
+- Vế lớp cũ: ΔOld(FTR1c − FTR1) = +0.393 ≥ B, luật ra "ảnh cũ sót trong khe còn làm hại lớp cũ". Nhưng biên rất mỏng (vượt B 0.017), r2 dưới B; ΔS5_S0test +0.876 cùng chiều. Đọc đúng mức: có hại cho lớp cũ, độ lớn quanh ngưỡng.
+- b2 = +3.592 (phần 0.217), ≥ T ở cả ba FT seed nhưng không phải bậc chính; báo kèm. Đi kèm, Npre có S5_S0test thấp hơn FTR1 (−1.746).
+  - [SUY LUẬN] Bộ lọc trước khi gom bỏ cả những ảnh mới giống lớp cũ; gom đủ chúng (Npre) giúp lớp mới nhưng làm khe mới lấn sang vùng lớp cũ. Lấy lại b2 bằng lọc mềm hơn có thể phải đổi một phần lớp cũ.
+- Dự đoán của Claude: Δ khoảng 15 (đo 16.574), b3 bậc chính khoảng 10 (đo 12.945), b1 dưới T (đúng), b2 khoảng 2–3 (đo 3.592, hơi trên). Như đã ghi ở tiền đăng ký, "phần lớn khoảng nằm ở biểu diễn" gần như suy ra được từ E14.07 và E09.08; thông tin mới là b1 ≈ 0 và b2 ≈ 3.6.
+- Câu được phép báo: "Trên CUB t5 (số laptop, chẩn đoán oracle trên r0–r2), khoảng M_d từ FTR1 tới trần đúng lớp là 16.6 điểm; khoảng 78% nằm ở giới hạn phân hoạch k-means trên đặc trưng hiện tại, khoảng 22% ở bước lọc trước khi gom, gần 0 ở ảnh cũ còn sót trong khe." Không viết như ước lượng không thiên lệch: r0–r2 là dữ liệu đã dùng để chọn FTR1.
+- Giới hạn: chẩn đoán trên dữ liệu chọn phương pháp; bậc 2 gộp ảnh mới bị bỏ và ảnh cũ làm lệch k-means; thứ tự bậc là một lựa chọn; số laptop, số luận văn do server chạy lại sau khi chốt phương pháp (QD27).
+- Câu hỏi mới: lấy lại một phần b2 (lọc mềm hơn trước khi gom) mà không mất lớp cũ có được không? Trên CUB không còn FT seed sạch để kiểm, nên câu này cần dữ liệu khác. FTR1 có chuyển sang GC10 không (thí nghiệm kế, đã được duyệt)?
 
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
