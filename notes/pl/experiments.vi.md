@@ -34,6 +34,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.11: CUB t5, phân hoạch nhóm mới trên đặc trưng DINO chưa fine-tune (nhánh (a) của E09.10): KMfz, SSKMfz so với KMft trên 5 chuỗi `cub_chain_fz_s<N>`, luật Δc09(KMfz − KMft) ≥ 5 điểm và dương ≥ 4/5 chuỗi (tiền đăng ký 2026-11-20; kết quả: Không, Δc09 KMfz − KMft −15.691, âm ở 5/5 chuỗi; hướng (2) dừng trên CUB) — mục E09.11 dưới đây
 - E09.12: CUB t5, lọc NL rồi gom lại (FTR1: bước NL của E12.03 trên phân hoạch KM, k-means K = 20 lại trên các hàng được giữ, khớp NIW, NL lần hai) so với NL dưới P1, ràng buộc hai vế của QD28 so với pipeline; FTR2, Npre báo kèm; dò hướng r0–r2, luật xác nhận r3, r4 (tiền đăng ký 2026-11-20; đã thấy c09 của lần thử ngoài repo; xong: dò hướng Đạt trên r0–r2, ΔM_d(FTR1 − NL) +9.245; XÁC NHẬN trên r3, r4 cả khẳng định 1, ΔM_d +8.968, và khẳng định 2, ΔOld(FTR1 − NL) +3.469; số laptop, server chưa chạy lại) — mục E09.12 dưới đây
 - E09.13: CUB t5, tách cơ chế của lọc NL rồi gom lại: lợi so với NL đến từ số khe dùng được hay từ phân hoạch đúng hơn; nhánh FTR1e (FTR1 với số khe rỗng ép bằng NL), FTR1n báo kèm; khẳng định lặp lại K1, K2 trên FT seed mới r5 (tiền đăng ký 2026-11-21); K1, K2 LẶP LẠI (ΔM_d +9.069, ΔOld +3.417); S = 1.040, luật ra (b) nhưng giả định ngầm 1 không giữ: lợi không đến từ số khe dùng được (số laptop) — mục E09.13 dưới đây
+- E09.14: CUB t5, thang oracle cho lọc NL rồi gom lại: FTR1 → FTR1c (bỏ ảnh cũ còn sót trong khe bằng nhãn pool) → Npre → Nlab; khoảng tới trần chia theo ba bậc, luật đọc chốt trước; chẩn đoán trên r0–r2, không có khẳng định (tiền đăng ký 2026-11-21) — mục E09.14 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
@@ -1333,6 +1334,53 @@ Lời thường: "lọc NL rồi gom lại" lặp lại được trên FT seed t
 - Câu được phép báo: "Trên CUB t5 (số laptop, FT seed r5, 5 chuỗi), lọc NL rồi gom lại (NIW + lề LOO) lặp lại lợi khoảng 9 điểm M_d so với NL, không đổi lớp cũ lấy lớp mới; lợi này không đến từ số khe dùng được." Không viết "lợi đến từ phân hoạch đúng hơn" như kết quả đo.
 - Giới hạn: một FT seed; s3 không có khe bị cắt; sau run này không còn FT seed sạch trên CUB; số laptop, số luận văn do server chạy lại sau khi chốt phương pháp (QD27).
 - Câu hỏi mới: khe bị cắt có phải mảnh của lớp đã có khe khác không (đếm nhãn đa số và số hàng, chỉ đọc, không cần seed mới)? Phần lợi M_d ngoài c09 đến từ đâu? Có nên tiền đăng ký FTR1n hay một ngưỡng NL lần hai khác (cần seed mới)?
+
+## E09.14 — CUB t5: thang oracle cho lọc NL rồi gom lại: khoảng từ FTR1 tới trần Nlab mất ở khâu nào? (QD27, QD28)
+
+### Tiền đăng ký (2026-11-21; viết sau Kết luận E09.13 `1517208` và bảng số laptop `ec0ae84`, trước khi có code và trước mọi số của các nhánh mới; Rito duyệt làm 2026-11-21 21:04)
+
+- Câu hỏi: trên CUB t5, khoảng M_d giữa FTR1 và trần Nlab (khe mới khớp đúng lớp bằng nhãn pool) chia thế nào giữa ba khâu: (1) ảnh cũ còn sót trong khe của FTR1; (2) bộ lọc đứng trước bước gom lại (ảnh mới bị bỏ, ảnh cũ còn trong tập gom làm lệch phân hoạch); (3) giới hạn của k-means trên biểu diễn hiện tại?
+- Vì sao:
+  - Kết luận E09.13 để mở: c09 tăng 5.504 nhỏ hơn lợi M_d, "độ sạch của khe là ứng viên, chưa đo". Khâu (1) đo đúng điều này.
+  - Chọn hướng cải tiến kế tiếp cho FTR1 cần biết phần lợi còn lại nằm ở đâu: lọc lần hai tốt hơn (1), lọc trước khi gom khác đi (2), hay chỉ đổi được bằng biểu diễn (3). E09.10, E09.11 đã cho thấy đổi thuật toán phân hoạch trên đặc trưng hiện tại không giúp.
+- Đã tra trước khi viết: toàn mục E09.12, E09.13; E14.07 (Nlab); E09.08 (Nlab dưới P1); E09.10, E09.11; `_ftr_0912`, `_km_0912`, `_nl_keep_0910`, `tier2_e0912` (`lab/score.py`).
+- Đã thấy trước tiền đăng ký này: mọi số của E09.12 trên r0–r4, gồm Npre (oracle) trên r0–r2: New 73.204, so với FTR1 69.575; Nlab của E09.08 dưới P1 (New 86.149, trên r0–r2, chuỗi `cub_chain_ft_l25`, đường tính của E09.08); mọi số của E09.13. Chưa thấy số nào của FTR1c, và chưa thấy Nlab dưới đường tính của E09.12.
+- Loại: phép đo chẩn đoán có can thiệp oracle; luật đọc chốt trước. Không phải phương pháp, không có khẳng định cải tiến.
+- Dữ liệu: 15 chuỗi `cub_chain_ft_l25_r<r>_s<N>`, r = 0–2, N = 0–4 (bộ của E09.12 dò hướng). CUB không còn FT seed sạch (r0–r5 đã dùng); phép đo không cần seed mới vì không có khẳng định. Như E09.12: khe NIW trong PCA của S0 (`z_pool`), k-means trên `pool_x` thô; `ids`, `keep`, `rng_in` của `S<i>_09` từ ảnh chụp; không SVI; RNG toàn cục chỉ dùng trong k-means và đặt về `rng_in` của `S<i>_09` trước mỗi lần gọi; một luồng BLAS. Nhãn pool chỉ dùng cho nhánh oracle và để chấm; nhãn test chỉ để chấm và đặt tên.
+- Mô hình và bước NL: đúng như E09.12 (tiên nghiệm NIW của N, off0 bằng LOO trên S0, dự đoán Student-t; bước NL `_nl_keep_0910`).
+- Nhánh, theo từng phiên i (tuần tự); mỗi nhánh có chuỗi khe cũ riêng (khe gốc và khe của chính nhánh ở các phiên trước); khe không có hàng là tiên nghiệm:
+  - P: pipeline (`params1`), chỉ cho cổng và báo kèm.
+  - NL, FTR1, Npre: như E09.12, tính lại.
+  - FTR1c (oracle, bậc 1): chạy đúng các bước của FTR1 trên chuỗi khe cũ của FTR1c; trước khi khớp khe mới, bỏ khỏi hàng của mỗi khe các ảnh pool có nhãn thật là lớp cũ (nhãn < offset của phiên). Giữ nguyên phân hoạch của FTR1 và các ảnh mới mà FTR1 đã bỏ.
+  - Nlab (oracle, trần): khe mới thứ c khớp trên mọi ảnh pool có nhãn thật offset + c (kể cả ảnh `keep` bỏ). Thứ tự khe không quan trọng vì đặt tên P1.
+- Thang: FTR1 → FTR1c → Npre → Nlab. Ba bậc: b1 = FTR1c − FTR1 (khâu 1); b2 = Npre − FTR1c (khâu 2: Npre gom trên đúng tập ảnh mới của pool, không lọc); b3 = Nlab − Npre (khâu 3). Mỗi bậc là trung bình 15 chuỗi của hiệu trong từng chuỗi; M_d là trung bình 5 phiên, đặt tên P1 cho mọi nhánh (như E09.12); P0 chỉ cho P làm cổng. Khoảng Δ = Nlab − FTR1 = b1 + b2 + b3; phần của bậc k là b_k / Δ.
+- Luật đọc (chốt trước; T = 0.935, B = 0.376 như E09.12):
+  - Nếu Δ < T: "FTR1 đã sát trần dưới đường tính này"; không đọc các bậc.
+  - Nếu không: bậc chính là bậc có b_k lớn nhất, và chỉ gọi là bậc chính khi b_k ≥ T. Hướng ứng với bậc chính:
+    - b1: ảnh cũ còn sót trong khe là chỗ mất chính; hướng kế là lọc lần hai tốt hơn (cần tiền đăng ký và dữ liệu sạch riêng).
+    - b2: bộ lọc trước bước gom là chỗ mất chính; hướng kế là đổi bước lọc trước khi gom (ví dụ lọc mềm, nhiều vòng).
+    - b3: giới hạn của k-means trên biểu diễn hiện tại là chỗ mất chính; trên laptop với đặc trưng này, hướng sửa phân hoạch dừng (khớp E09.10, E09.11); muốn đi tiếp phải đổi biểu diễn.
+  - Bậc nào âm quá −T thì ghi "thang không đơn điệu ở bậc k" và chỉ đọc các bậc như mô tả, không như phần chia.
+  - Vế lớp cũ, đọc kèm: ΔOld và ΔS5_S0test của FTR1c, Npre, Nlab so với FTR1. Nếu ΔOld(FTR1c − FTR1) ≥ B: ảnh cũ sót trong khe còn làm hại lớp cũ.
+- Báo kèm (không quyết định): New, Old, S5_S0test, S5_All của mọi nhánh, hiệu so với FTR1 và với P; các bậc theo phiên và theo FT seed; số ảnh cũ bị bỏ ở FTR1c mỗi phiên (độ bẩn của khe FTR1) và tỉ lệ của chúng trong hàng của khe; c09 của FTR1, Npre (Nlab là 100 theo định nghĩa); số khe rỗng mỗi chuỗi của mọi nhánh.
+- Cổng kiểm:
+  - G1: `s09_cluster` trên toàn `pool_x` với `rng_in` cho lại `ids` (như E09.12).
+  - G2: NL, FTR1, Npre (P1 New, Old, S0test mọi phiên) trùng run `cub_e09_12_ft_l25` (1e-4, số đã làm tròn 4 chữ số); P dưới P0 trùng `acc1` (1e-6).
+  - G3: đường tính của FTR1c với bước bỏ ảnh cũ tắt cho lại FTR1 (New, Old, S0test mọi phiên, 1e-6); và khe của FTR1c không còn ảnh có nhãn lớp cũ.
+  - G4: khe Nlab của phiên i gồm đúng các ảnh pool có nhãn lớp mới của phiên i, mỗi ảnh một khe, không thiếu không thừa.
+  - G5: mọi lần gom lại cho id nguyên trong [0, 20), mỗi hàng một id; trượt thì dừng run.
+  - Chỉ đọc run khi mọi cổng đạt ở 15/15 chuỗi. Runner chỉ in trạng thái cổng và thời gian. Trước run thật: thử trên chuỗi giả ngoài repo, có đối chứng âm cho G3 (để một ảnh cũ trong khe FTR1c thì G3 phải trượt).
+- Code (viết sau tiền đăng ký): runner `tier2_e0914(prefix, checks_only)` và `e0914-summary` trong `lab/score.py`, lệnh `e0914 --prefix cub_chain_ft_l25` qua `exp.py`, một run (tag `cub_e09_14_ft_l25`); dùng lại `_ftr_0912`, `_km_0912`, `_nl_keep_0910`; không sửa `tier2_e0912`, `tier2_e0913`, `lab/niw.py`, `lab/sessions.py`, `lab/replay.py`. Chỗ cài đặt không ghi chữ-theo-chữ ở đây ghi vào mục Sửa sau code, trước checks-only.
+- Chi phí (tính tay): run khoảng 25–30 phút (E09.12 với sáu nhánh trên 15 chuỗi: 30.6 phút).
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp (hai dự đoán độ lớn gần nhất đều sai): Δ khoảng 15 điểm; b3 là bậc chính (Nlab − Npre khoảng 10 điểm); b1 dưới T; b2 khoảng 2–3 điểm.
+  - Nếu dự đoán đúng, thông tin mới chủ yếu là cách chia khoảng 3.6 điểm giữa FTR1 và Npre thành b1 và b2; kết luận "phần lớn khoảng còn lại nằm ở biểu diễn" đã gần như suy ra được từ E14.07 và E09.08. Ghi trước để khỏi đọc nó như phát hiện mới.
+- Giới hạn:
+  - r0–r2 đã dùng để chọn FTR1, nên các bậc là chẩn đoán trên chính dữ liệu chọn phương pháp, không phải ước lượng không thiên lệch.
+  - Bậc 2 gộp hai thứ: ảnh mới bị bộ lọc bỏ, và ảnh cũ trong tập gom làm lệch k-means; thang này không tách hai thứ đó.
+  - Thứ tự các bậc là một lựa chọn; đi theo thứ tự khác có thể chia khác nếu các khâu tương tác.
+  - Số laptop; theo QD27, số của luận văn do server chạy lại sau khi phương pháp đã chốt trên laptop.
+  - Chỉ CUB t5, PCA-384, FT l25, bộ không rò, K biết trước.
+- Tag: `cub_e09_14_ft_l25`.
 
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
