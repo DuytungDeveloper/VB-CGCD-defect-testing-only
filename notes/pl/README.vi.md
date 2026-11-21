@@ -252,6 +252,11 @@ QD01–QD15 (các dòng cũ) ở `notes/plan.vi.md` §4.
   - GC10 chỉ có 5 lớp mới và balanced novel nhiễu (QD25), nên kết luận về phương pháp cần thêm một dataset chuẩn.
   - E06.03 đổi dấu giữa các bộ đặc trưng (GC10 và NEU tăng, CIFAR-100 giảm), nên độ lớn của một cải tiến phụ thuộc bộ đặc trưng; vì vậy không so số giữa hai máy.
 - Hệ quả: danh mục `experiments.vi.md` thêm E06.04, E09.08 khi tiền đăng ký; `lab/README.vi.md` §3 thêm `06b`, `09e` khi có notebook; `notes/code-changes.vi.md` ghi sửa `no_grad` của `dino-cub200.py`; doc chiến lược trong Project cập nhật mục 5 theo QD này.
+- Sửa ngày 2026-11-21, sau E09.12 (`7db9ec8`): "VB phải có thật" ở mục Nội dung không làm đúng nguyên văn được (D26). Đọc chặt chữ "liên hợp, dạng đóng" của Eq. 7 thì phải dùng tiên nghiệm NIW; hậu nghiệm NIW dạng đóng không có quỹ đạo học, nên không còn cơ chế phình hiệp phương sai và dừng sớm theo det của paper (Hình 2, Eq. 10–11).
+  - Trạng thái hai biến thể xương sống: `06b-vb-s0` (hậu nghiệm NIW, dự đoán Student-t) còn sống trên CUB t5 khi kèm bộ lọc lề LOO (E12.03, E09.12), không phải cải tiến trên GC10 (E12.04); `09e-vbgmm` (VB-GMM với CAVI, phần biến phân duy nhất) thua (E09.08).
+  - Định vị giữ nguyên: một phương pháp cải tiến C-GCD (Rito chốt 2026-11-20, chiến lược 2026-11-20 tối trong Project). Phân tích "paper không làm VB" chỉ dùng làm phần động cơ.
+  - Cách gọi từ nay: "hậu nghiệm Bayes liên hợp (NIW), dự đoán Student-t", không gọi "VB" hay "VB thật"; trên CUB: "NIW + lọc lề LOO vượt pipeline MLE tái lập".
+  - Phần còn lại của QD27 (benchmark, phase 1 CUB, vai trò laptop và server, CUB vào `lab/` bằng biến thể bước 04) giữ nguyên.
 
 ### QD28 — Bàn mổ nhiều phiên (giao thức t5) cho CUB-200 và CIFAR-100; đại lượng quyết định trên CUB; bản CUB không rò (2026-11-13)
 
