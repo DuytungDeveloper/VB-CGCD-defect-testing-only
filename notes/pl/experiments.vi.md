@@ -33,7 +33,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.10: CUB t5, phân hoạch trong nhóm mới trên đặc trưng hiện có: SSKM (semi-supervised k-means) và OCM (gom thừa K' = 60 rồi gộp bằng Bayes factor NIW), luật Δc09 ≥ 5 điểm (tiền đăng ký 2026-11-19; Sửa đổi 2026-11-19: báo kèm trên nền NL của E12.03, luật giữ nguyên; kết quả: Không, Δc09 SSKM −47.459, OCM −2.672; hướng (2) sang nhánh (a)) — mục E09.10 dưới đây
 - E09.11: CUB t5, phân hoạch nhóm mới trên đặc trưng DINO chưa fine-tune (nhánh (a) của E09.10): KMfz, SSKMfz so với KMft trên 5 chuỗi `cub_chain_fz_s<N>`, luật Δc09(KMfz − KMft) ≥ 5 điểm và dương ≥ 4/5 chuỗi (tiền đăng ký 2026-11-20; kết quả: Không, Δc09 KMfz − KMft −15.691, âm ở 5/5 chuỗi; hướng (2) dừng trên CUB) — mục E09.11 dưới đây
 - E09.12: CUB t5, lọc NL rồi gom lại (FTR1: bước NL của E12.03 trên phân hoạch KM, k-means K = 20 lại trên các hàng được giữ, khớp NIW, NL lần hai) so với NL dưới P1, ràng buộc hai vế của QD28 so với pipeline; FTR2, Npre báo kèm; dò hướng r0–r2, luật xác nhận r3, r4 (tiền đăng ký 2026-11-20; đã thấy c09 của lần thử ngoài repo; xong: dò hướng Đạt trên r0–r2, ΔM_d(FTR1 − NL) +9.245; XÁC NHẬN trên r3, r4 cả khẳng định 1, ΔM_d +8.968, và khẳng định 2, ΔOld(FTR1 − NL) +3.469; số laptop, server chưa chạy lại) — mục E09.12 dưới đây
-- E09.13: CUB t5, tách cơ chế của lọc NL rồi gom lại: lợi so với NL đến từ số khe dùng được hay từ phân hoạch đúng hơn; nhánh FTR1e (FTR1 với số khe rỗng ép bằng NL), FTR1n báo kèm; khẳng định lặp lại K1, K2 trên FT seed mới r5 (tiền đăng ký 2026-11-21) — mục E09.13 dưới đây
+- E09.13: CUB t5, tách cơ chế của lọc NL rồi gom lại: lợi so với NL đến từ số khe dùng được hay từ phân hoạch đúng hơn; nhánh FTR1e (FTR1 với số khe rỗng ép bằng NL), FTR1n báo kèm; khẳng định lặp lại K1, K2 trên FT seed mới r5 (tiền đăng ký 2026-11-21); K1, K2 LẶP LẠI (ΔM_d +9.069, ΔOld +3.417); S = 1.040, luật ra (b) nhưng giả định ngầm 1 không giữ: lợi không đến từ số khe dùng được (số laptop) — mục E09.13 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
@@ -1250,6 +1250,89 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - Đối chiếu với `tier2_e0912` đã commit trên cùng dữ liệu giả: 500 giá trị của NL, FTR1, P, G6 (New, Old, S0test, All mọi phiên), c09 của KM, FTR1 và số khe rỗng của NL, FTR1 trùng tuyệt đối.
   - Đối chứng âm cho DIFF đúng cổng: cắt một khe khi e_i = 0 → G7; không bao giờ cắt → G7; dịch `ids` của S3 → G1; `acc1` lệch 0.5 → G4; một id ngoài [0, 4) → G5 (dừng run); bớt hàng của G ở nhánh FTR → G3 (kéo theo G6).
   - Mọi nhánh của luật trong `e0913-summary` (K1 LẶP LẠI, KHÔNG LẶP LẠI, KHÔNG RÕ; K2 cả ba; S ≤ 0.33, giữa, ≥ 0.67, "không đọc S") thử bằng cách sửa số trong `metrics.json` giả. Không có số nào của dữ liệu thật.
+
+### Kết quả (r5; run `20261121_151637__cub_e09_13_ft_l25`, commit run `b862318`; số do `e0913-summary` in ra; 5 chuỗi `cub_chain_ft_l25_r5_s<N>`)
+
+- Cổng: G1, phần phiên 1 của G3, phần `acc1` của G4, G5, G6, G7 đạt ở 5/5 chuỗi (checks-only trên s0 đạt trước run). off chọn được: 250 ở mọi chuỗi.
+- Nhánh chính (M_d là trung bình 5 phiên; Old là trung bình 5 phiên; S5_S0test ở phiên 5):
+
+| Đại lượng (P1) | s0 | s1 | s2 | s3 | s4 | TB | SD |
+|---|---|---|---|---|---|---|---|
+| New (M_d) của P | 59.871 | 58.123 | 57.232 | 55.011 | 56.058 | **57.259** | 1.875 |
+| New (M_d) của NL | 61.729 | 61.542 | 59.549 | 57.504 | 58.437 | **59.752** | 1.867 |
+| New (M_d) của FTR1 | 69.546 | 69.186 | 66.876 | 69.360 | 69.138 | **68.821** | 1.099 |
+| New (M_d) của FTR1e | 70.850 | 68.974 | 67.030 | 69.360 | 69.696 | **69.182** | 1.392 |
+| New (M_d) của FTR1n | 71.648 | 71.452 | 68.071 | 71.434 | 70.028 | **70.526** | 1.518 |
+| ΔM_d FTR1 − NL | +7.817 | +7.643 | +7.327 | +11.855 | +10.702 | **+9.069** | 2.065 |
+| ΔM_d FTR1e − NL | +9.122 | +7.432 | +7.481 | +11.855 | +11.259 | **+9.430** | 2.068 |
+| ΔM_d FTR1n − NL | +9.919 | +9.909 | +8.522 | +13.929 | +11.591 | **+10.774** | 2.072 |
+| ΔOld FTR1 − NL | +3.332 | +2.782 | +2.766 | +4.621 | +3.582 | **+3.417** | 0.760 |
+| ΔOld FTR1e − NL | +3.551 | +2.790 | +2.613 | +4.621 | +3.875 | **+3.490** | 0.821 |
+| ΔOld FTR1n − NL | +2.693 | +2.309 | +2.241 | +3.719 | +2.881 | **+2.769** | 0.594 |
+| ΔOld FTR1 − P | +5.417 | +4.872 | +4.418 | +5.974 | +5.379 | **+5.212** | 0.591 |
+| ΔS5_S0test FTR1 − P | +3.585 | +2.492 | +2.800 | +2.287 | +2.561 | **+2.745** | 0.504 |
+| ΔS5_S0test FTR1n − P | +1.639 | +0.990 | +1.161 | +0.171 | +1.093 | **+1.011** | 0.531 |
+| ΔM_d NL − P | +1.858 | +3.420 | +2.317 | +2.493 | +2.379 | **+2.493** | 0.571 |
+
+- Cơ chế:
+
+| Đại lượng (P1) | s0 | s1 | s2 | s3 | s4 | TB | SD |
+|---|---|---|---|---|---|---|---|
+| Khe rỗng mỗi chuỗi: NL | 7.000 | 6.000 | 4.000 | 1.000 | 7.000 | **5.000** | 2.550 |
+| Khe rỗng mỗi chuỗi: FTR1 | 0.000 | 0.000 | 0.000 | 1.000 | 1.000 | **0.400** | 0.548 |
+| Khe rỗng mỗi chuỗi: FTR1e | 7.000 | 6.000 | 4.000 | 1.000 | 7.000 | **5.000** | 2.550 |
+| Khe FTR1e bị cắt ở S2 | 2.000 | 1.000 | 1.000 | 0.000 | 1.000 | **1.000** | 0.707 |
+| Khe FTR1e bị cắt ở S3 | 2.000 | 0.000 | 1.000 | 0.000 | 1.000 | **0.800** | 0.837 |
+| Khe FTR1e bị cắt ở S4 | 2.000 | 3.000 | 1.000 | 0.000 | 2.000 | **1.600** | 1.140 |
+| Khe FTR1e bị cắt ở S5 | 1.000 | 2.000 | 0.000 | 0.000 | 2.000 | **1.000** | 1.000 |
+| Tỉ lệ ảnh mới trong hàng của khe bị cắt | 0.918 | 0.967 | 0.950 | 0.000 | 0.821 | **0.731** | 0.413 |
+| Tỉ lệ ảnh mới trong cụm KM mà NL bỏ hết | 0.033 | 0.122 | 0.016 | 0.000 | 0.053 | **0.045** | 0.048 |
+| c09 KM | 69.360 | 67.400 | 64.760 | 64.600 | 64.400 | **66.104** | 2.194 |
+| c09 FTR1 | 72.360 | 71.840 | 68.920 | 72.360 | 72.560 | **71.608** | 1.526 |
+| c09 FTR1e | 72.320 | 71.280 | 69.000 | 72.360 | 73.000 | **71.592** | 1.575 |
+| c09 FTR1n | 73.120 | 72.320 | 69.400 | 73.120 | 70.920 | **71.776** | 1.604 |
+| S theo chuỗi | 1.167 | 0.972 | 1.021 | 1.000 | 1.052 | **1.042** | 0.075 |
+
+- Theo phiên:
+
+| Đại lượng (P1) | s0 | s1 | s2 | s3 | s4 | TB | SD |
+|---|---|---|---|---|---|---|---|
+| ΔNew FTR1 − NL ở S1 | +5.458 | +3.873 | +1.937 | +10.035 | +7.923 | **+5.845** | 3.209 |
+| ΔNew FTR1 − NL ở S2 | +16.014 | +9.370 | +6.985 | +21.295 | +13.288 | **+13.390** | 5.625 |
+| ΔNew FTR1 − NL ở S3 | −2.098 | +0.524 | +11.189 | +3.497 | +9.790 | **+4.580** | 5.767 |
+| ΔNew FTR1 − NL ở S4 | +18.310 | +18.134 | +9.859 | +18.310 | +14.437 | **+15.810** | 3.715 |
+| ΔNew FTR1 − NL ở S5 | +1.404 | +6.316 | +6.667 | +6.140 | +8.070 | **+5.719** | 2.529 |
+
+- Dòng luật, nguyên văn output:
+
+```
+claim K1 (M_d, FTR1 - NL): dM_d +9.069, positive 5/5 (report only); dS5_S0test(FTR1 - P) +2.745; dOld(FTR1 - P) +5.212 -> REPLICATED (LAP LAI)
+claim K2 (Old, FTR1 - NL): dOld +3.417, positive 5/5 (report only) -> REPLICATED (LAP LAI)
+diagnostic S: dM_d(FTR1e - NL) +9.430 / dM_d(FTR1 - NL) +9.069 = 1.040 -> mainly a better partition (b)
+```
+
+- Đọc thêm (tính tay, kiểm bằng phép tính trong lệnh ghi mục này):
+  - FTR1e hơn FTR1 0.361 M_d (tính tay: 69.182 − 68.821): cắt khe không làm mất lợi, còn nhích lên.
+  - FTR1n so với FTR1: M_d +1.705 (tính tay: 70.526 − 68.821), nhưng S5_S0test −1.735 (tính tay: 78.832 − 80.567) và Old −0.649 (tính tay: 78.548 − 79.197).
+  - Chuỗi s3 không bị cắt khe nào (NL và FTR1 cùng 1 khe rỗng), nên tỉ lệ 0.000 và S = 1.000 của s3 là do không có gì để cắt. Trong bốn chuỗi có cắt, tỉ lệ ảnh mới trong hàng của khe bị cắt là 0.914 (tính tay: trung bình 0.918, 0.967, 0.950, 0.821).
+  - So với E09.12 (cùng phương pháp, FT seed khác): ΔM_d FTR1 − NL +9.245 (r0–r2), +8.968 (r3, r4), +9.069 (r5); ΔOld FTR1 − NL +3.554, +3.469, +3.417.
+
+### Kết luận
+
+Lời thường: "lọc NL rồi gom lại" lặp lại được trên FT seed thứ sáu, với độ lớn gần như y hệt r0–r4: hơn NL khoảng 9 điểm M_d, lớp cũ còn tăng hơn 3 điểm. Về cơ chế, ép FTR1 xuống đúng số khe rỗng của NL không làm mất chút lợi nào, nên lợi không đến từ việc có thêm khe dùng được. Luật đã đăng ký ra nhánh (b) "phân hoạch đúng hơn", nhưng giả định ngầm 1 của luật không giữ, nên (b) ở đây là phần còn lại sau khi loại (a), không phải điều được đo trực tiếp.
+
+- K1 LẶP LẠI: ΔM_d(FTR1 − NL) +9.069 ≥ T, dương 5/5; ràng buộc hai vế so với P đạt (ΔS5_S0test +2.745, ΔOld +5.212). K2 LẶP LẠI: ΔOld(FTR1 − NL) +3.417 ≥ B, dương 5/5.
+- Chẩn đoán: S = 1.040 (≥ 0.67), luật ra "lợi chủ yếu do phân hoạch đúng hơn (b)". S theo chuỗi nằm quanh 1 ở cả bốn chuỗi có cắt khe.
+- Giả định ngầm 1 không giữ: khe FTR1e bị cắt gần như toàn ảnh mới (0.914 ở bốn chuỗi có cắt), còn cụm KM mà NL bỏ hết gần như toàn ảnh cũ (0.045). FTR1e không bắt chước đúng loại khe NL mất.
+  - Hướng sai lệch đã nêu ở tiền đăng ký: cắt khe của lớp mới kéo S xuống. S vẫn quanh 1, nên kết luận "lợi không đến từ số khe dùng được" đứng được cả khi tính sai lệch này.
+  - Điều không khẳng định được: lợi đến từ phân hoạch đúng hơn theo nghĩa đo trực tiếp. c09 tăng 5.504 (tính tay: 71.608 − 66.104) nhỏ hơn lợi M_d, nên còn một phần lợi chưa giải thích (độ sạch của khe là ứng viên, chưa đo).
+- [SUY LUẬN] Vì sao cắt khe của lớp mới không làm hại: các khe ít hàng nhất có thể là mảnh của một lớp mới bị k-means chia đôi; khi đặt tên P1 một-một, mảnh nhỏ bị gán sai lớp, nên bỏ nó đi không mất gì, thậm chí lợi nhẹ (FTR1e hơn FTR1 0.361). Chưa đo số hàng hay nhãn chiếm đa số của khe bị cắt.
+- [SUY LUẬN] Trong NL, (a) và (b) không tách hẳn được: khe rỗng của NL sinh ra vì k-means dành cụm cho ảnh cũ (cụm NL bỏ hết chỉ 0.045 ảnh mới), tức là triệu chứng của phân hoạch kém, không phải nguyên nhân riêng.
+- FTR1n (báo kèm, không có khẳng định): M_d cao nhất nhưng S5_S0test và Old thấp hơn FTR1. NL lần hai đổi một phần lớp mới lấy lớp cũ. Muốn khẳng định cần tiền đăng ký và FT seed mới.
+- Dự đoán của Claude (S trong 0.3–0.6) sai lần thứ hai; dự đoán K1, K2 LẶP LẠI đúng.
+- Câu được phép báo: "Trên CUB t5 (số laptop, FT seed r5, 5 chuỗi), lọc NL rồi gom lại (NIW + lề LOO) lặp lại lợi khoảng 9 điểm M_d so với NL, không đổi lớp cũ lấy lớp mới; lợi này không đến từ số khe dùng được." Không viết "lợi đến từ phân hoạch đúng hơn" như kết quả đo.
+- Giới hạn: một FT seed; s3 không có khe bị cắt; sau run này không còn FT seed sạch trên CUB; số laptop, số luận văn do server chạy lại sau khi chốt phương pháp (QD27).
+- Câu hỏi mới: khe bị cắt có phải mảnh của lớp đã có khe khác không (đếm nhãn đa số và số hàng, chỉ đọc, không cần seed mới)? Phần lợi M_d ngoài c09 đến từ đâu? Có nên tiền đăng ký FTR1n hay một ngưỡng NL lần hai khác (cần seed mới)?
 
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
