@@ -33,6 +33,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E09.10: CUB t5, phân hoạch trong nhóm mới trên đặc trưng hiện có: SSKM (semi-supervised k-means) và OCM (gom thừa K' = 60 rồi gộp bằng Bayes factor NIW), luật Δc09 ≥ 5 điểm (tiền đăng ký 2026-11-19; Sửa đổi 2026-11-19: báo kèm trên nền NL của E12.03, luật giữ nguyên; kết quả: Không, Δc09 SSKM −47.459, OCM −2.672; hướng (2) sang nhánh (a)) — mục E09.10 dưới đây
 - E09.11: CUB t5, phân hoạch nhóm mới trên đặc trưng DINO chưa fine-tune (nhánh (a) của E09.10): KMfz, SSKMfz so với KMft trên 5 chuỗi `cub_chain_fz_s<N>`, luật Δc09(KMfz − KMft) ≥ 5 điểm và dương ≥ 4/5 chuỗi (tiền đăng ký 2026-11-20; kết quả: Không, Δc09 KMfz − KMft −15.691, âm ở 5/5 chuỗi; hướng (2) dừng trên CUB) — mục E09.11 dưới đây
 - E09.12: CUB t5, lọc NL rồi gom lại (FTR1: bước NL của E12.03 trên phân hoạch KM, k-means K = 20 lại trên các hàng được giữ, khớp NIW, NL lần hai) so với NL dưới P1, ràng buộc hai vế của QD28 so với pipeline; FTR2, Npre báo kèm; dò hướng r0–r2, luật xác nhận r3, r4 (tiền đăng ký 2026-11-20; đã thấy c09 của lần thử ngoài repo; xong: dò hướng Đạt trên r0–r2, ΔM_d(FTR1 − NL) +9.245; XÁC NHẬN trên r3, r4 cả khẳng định 1, ΔM_d +8.968, và khẳng định 2, ΔOld(FTR1 − NL) +3.469; số laptop, server chưa chạy lại) — mục E09.12 dưới đây
+- E09.13: CUB t5, tách cơ chế của lọc NL rồi gom lại: lợi so với NL đến từ số khe dùng được hay từ phân hoạch đúng hơn; nhánh FTR1e (FTR1 với số khe rỗng ép bằng NL), FTR1n báo kèm; khẳng định lặp lại K1, K2 trên FT seed mới r5 (tiền đăng ký 2026-11-21) — mục E09.13 dưới đây
 - E10.01: D13, Hungarian khi đánh giá (`--hungarian_on eval`) (2026-09-29 → 30; xong: trung bình gần như không đổi, lệch ở 1/25 phiên) — D13
 - E11.01: cột 11 và phản thực tế bước dừng trên nhánh `09a` + `09b`: điểm mất ở lượt F hay ở bộ lọc và lượt S; lớp cũ mất do bước dừng hay do phân hoạch; phép đo mô tả, GC10 (2026-11-14 → 15; xong: LƯỢT F, sát nút, 4/5 FT seed; BƯỚC DỪNG GIẢI THÍCH, D_old = +0.67 ảnh; phần mất thêm của cụm đã gộp nằm nhiều hơn ở bộ lọc và lượt S) — mục E11.01 dưới đây
 - E12.01: WSM của BSW (CVPR 2026; OT nới một biên cộng RSQ, chạy trên đặc trưng cố định) ở bước 12 (đề xuất 2026-11-05; chưa tiền đăng ký; thí nghiệm riêng hay ablation chốt khi tiền đăng ký E09.08) — QD27; tài liệu chiến lược 2026-11-05 §3, §7 (ngoài repo)
@@ -1181,6 +1182,58 @@ Mã đổi theo QD22 (2026-10-18); nội dung không đổi. Bản gốc: commit
   - Chỉ CUB t5, PCA-384, FT l25, bộ không rò, K biết trước. Không nói gì về GC10 (pool chỉ có khoảng 6.7% ảnh cũ; hai trần ngoài repo: lọc ảnh cũ không giúp).
   - Đặt tên P1 dùng nhãn test để đặt tên khe mới, như mọi nhánh và như E09.10.
   - Tính mới: từng mảnh đã có (phát hiện-rồi-gom; LOO Bayes); phần mới chỉ ở cách ghép trong thiết lập lô của C-GCD.
+
+## E09.13 — CUB t5: lợi của lọc NL rồi gom lại so với NL đến từ số khe dùng được hay từ phân hoạch đúng hơn? (QD27, QD28)
+
+### Tiền đăng ký (2026-11-21; viết sau Kết luận xác nhận E09.12 `7db9ec8`, trước khi dựng FT seed r5 và trước mọi số trên r5; Rito duyệt bản nháp 2026-11-21 11:55)
+
+- Câu hỏi: trên CUB t5, nếu giữ phân hoạch của FTR1 (E09.12) nhưng ép số khe rỗng của mỗi phiên bằng số khe rỗng của NL, thì còn lại bao nhiêu phần lợi M_d của FTR1 so với NL?
+- Vì sao:
+  - Kết luận E09.12: cơ chế chưa đo. NL để lại 4.800 (r0–r2) và 4.600 (r3, r4) khe rỗng mỗi chuỗi, FTR1 0.867 và 0.500; lợi c09 (+5.738, +5.768, tính tay) nhỏ hơn lợi M_d (+9.245, +8.968).
+  - Hai giải thích không loại trừ nhau: (a) FTR1 có thêm khe dùng được; (b) FTR1 chia nhóm đúng hơn.
+  - Ví dụ ở bàn giao 2026-11-21 ("NL, chỉ gom lại cho phần ảnh của các cụm bị bỏ hết") không đo được (a): cụm bị NL bỏ hết hàng không còn ảnh được giữ, còn ảnh bị bỏ chủ yếu là ảnh cũ (NL bỏ 0.873 ảnh cũ trong `keep`, E12.03). Vì vậy thiết kế đi theo chiều ngược: giữ phân hoạch của FTR1, bớt khe.
+- Đã tra trước khi viết: toàn mục E09.12; E12.03; E09.10; `_ftr_0912`, `_km_0912`, `tier2_e0912`, `e0912_summary`, `_nl_keep_0910` (`lab/score.py`); `lab/sessions.py`; `s09_cluster` (`lab/replay.py`); D12, D16.
+- Đã thấy trước tiền đăng ký này: mọi số của E09.12 trên r0–r4 và của E12.03, E09.10. Chưa có số nào trên r5 (FT seed r5 chưa được fine-tune).
+- Loại: phép đo cơ chế có luật chẩn đoán chốt trước, kèm hai khẳng định lặp lại trên một FT seed mới.
+- Dữ liệu (dựng sau khi commit tiền đăng ký này, thuộc thí nghiệm):
+  - phase 1 `cub_ft_l25_r5`: cùng lệnh với `cub_ft_l25_r0`–`r4`, chỉ đổi `FT_SEED=5`;
+  - mốc C1 `cub_km_evhung_det_ft_l25_r5_s0`: cùng lệnh với `cub_km_evhung_det_ft_l25_r0_s0`;
+  - 5 chuỗi `cub_chain_ft_l25_r5_s<N>`, N = 0–4 (`lab/sessions.py run`, giao thức QD28).
+  - Chỉ đọc số của thí nghiệm khi C1 của `cub_chain_ft_l25_r5_s0` đạt 48/48. Số của pipeline trên r5 (bảng S0–S5 của các chuỗi) sẽ thấy lúc dựng; không dùng cho luật nào ngoài vai trò P.
+  - Như E09.12: khe NIW trong PCA của S0 (`z_pool`), k-means trên `pool_x` thô; `ids`, `keep`, `rng_in` của `S<i>_09` từ ảnh chụp; không SVI; RNG toàn cục chỉ dùng trong k-means và đặt về `rng_in` của `S<i>_09` trước mỗi lần gọi; nhãn pool chỉ để chấm và cho các tỉ lệ báo kèm; nhãn test chỉ để chấm và đặt tên; một luồng BLAS.
+- Mô hình và bước NL: đúng như E09.12 (tiên nghiệm NIW của N, off0 bằng LOO trên S0, dự đoán Student-t; bước NL `_nl_keep_0910`).
+- Nhánh, theo từng phiên i (tuần tự); mỗi nhánh có chuỗi khe cũ riêng (khe gốc và khe của chính nhánh ở các phiên trước); khe không có hàng là tiên nghiệm:
+  - P: pipeline (`params1`).
+  - NL: như E12.03, E09.12.
+  - FTR1: như E09.12 (`_ftr_0912`, một vòng).
+  - FTR1e (nhánh chẩn đoán chính): chạy đúng các bước của FTR1 trên chuỗi khe cũ của FTR1e. Gọi e_i là số khe rỗng của NL ở cùng chuỗi, cùng phiên, và e0 là số khe rỗng của FTR1e sau bước 3. Nếu e_i > e0: trong các khe còn hàng, đặt (e_i − e0) khe có ít hàng nhất về tiên nghiệm (hoà thì lấy chỉ số khe nhỏ hơn); hàng của các khe này không vào khe nào. Nếu e_i ≤ e0: không đổi. Không dùng nhãn.
+  - FTR1n (báo kèm): như FTR1 nhưng bỏ bước NL lần hai (khe khớp trên mọi hàng của mỗi cụm mới).
+- Đặt tên khi chấm: P1 cho mọi nhánh (như E09.12); P0 chỉ cho P và NL để làm cổng.
+- Đại lượng chẩn đoán: S = ΔM_d(FTR1e − NL) / ΔM_d(FTR1 − NL), mỗi ΔM_d là trung bình 5 chuỗi của hiệu trong từng chuỗi (M_d là trung bình 5 phiên, P1). Báo kèm S của từng chuỗi.
+- Luật chẩn đoán (chốt trước):
+  - Chỉ đọc S khi ΔM_d(FTR1 − NL) ≥ T = 0.935; nếu không, ghi "không đọc S".
+  - S ≥ 0.67: lợi chủ yếu do phân hoạch đúng hơn (b).
+  - S ≤ 0.33: lợi chủ yếu do số khe dùng được (a).
+  - Còn lại: cả hai.
+  - Giả định ngầm: (1) các khe ít hàng nhất của FTR1e tương ứng loại khe NL để rỗng (cụm chủ yếu ảnh cũ); nếu chúng là lớp mới hiếm, S bị kéo xuống thấp hơn thật. Kiểm bằng báo kèm: tỉ lệ ảnh mới trong các hàng của khe bị cắt, đặt cạnh tỉ lệ ảnh mới trong các hàng `keep` của cụm KM mà NL bỏ hết. (2) Hai cơ chế cộng được; nếu chúng tương tác, S chỉ đọc như hướng, không như tỉ lệ.
+- Khẳng định lặp lại trên r5 (đăng ký trước mọi số trên r5; r5 là FT seed sạch duy nhất; mỗi số là trung bình 5 chuỗi; khuôn E12.03 cho một FT seed):
+  - K1 (M_d, FTR1 − NL): LẶP LẠI khi ΔM_d(FTR1 − NL) ≥ T, ΔS5_S0test(FTR1 − P) ≥ −B và ΔOld(FTR1 − P) ≥ −B (B = 0.376); KHÔNG LẶP LẠI khi ΔM_d ≤ 0, hoặc ΔS5_S0test < −B, hoặc ΔOld < −B; còn lại KHÔNG RÕ.
+  - K2 (Old, FTR1 − NL): LẶP LẠI khi ΔOld(FTR1 − NL) ≥ B; KHÔNG LẶP LẠI khi ≤ 0; còn lại KHÔNG RÕ.
+  - Một FT seed, nên gọi là "lặp lại", không phải "xác nhận"; dương ở 5/5 chuỗi báo kèm, không thuộc luật.
+- Báo kèm (không quyết định): New, Old, S5_S0test, S5_All của mọi nhánh, hiệu so với P và với NL; ΔM_d theo phiên; c09 của KM, FTR1 (sau lần gom lại), FTR1e (hàng của khe bị cắt tính sai), FTR1n; số khe rỗng mỗi chuỗi của mọi nhánh; số khe bị cắt của FTR1e theo phiên; tỉ lệ ảnh mới trong G và NL lần hai như E09.12; SD giữa các seed của Old trên P.
+- Cổng kiểm:
+  - Như run xác nhận của E09.12: G1 (`s09_cluster` trên toàn `pool_x` với `rng_in` cho lại `ids`), phần phiên 1 của G3 (G của FTR1, FTR1e, FTR1n ở phiên 1 trùng tập giữ của NL), phần `acc1` của G4 (P dưới P0 trùng `acc1`, 1e-6), G5 (id của mọi lần gom lại trong [0, 20), mỗi hàng một id; trượt thì dừng run), G6 (đối chứng cấu trúc của E09.12 cho lại NL, 1e-6).
+  - G7: đường tính của FTR1e với mọi e_i ép bằng 0 cho lại FTR1 (New, Old, S0test mọi phiên, 1e-6); và ở mọi phiên, FTR1e có ít nhất e_i khe rỗng.
+  - Chỉ đọc run khi mọi cổng đạt ở 5/5 chuỗi. Runner chỉ in trạng thái cổng và thời gian. Trước run thật: thử trên chuỗi giả ngoài repo, có đối chứng âm cho G7.
+- Code (viết sau tiền đăng ký và sau khi dựng r5): runner `tier2_e0913(prefix, checks_only)` và `e0913-summary` trong `lab/score.py`, lệnh `e0913 --prefix cub_chain_ft_l25` qua `exp.py`, một run (tag `cub_e09_13_ft_l25`); dùng lại `_ftr_0912`, `_km_0912`, `_nl_keep_0910`; không sửa `tier2_e0912`, `lab/niw.py`, `lab/sessions.py`, `lab/replay.py`. Chỗ cài đặt không ghi chữ-theo-chữ ở đây ghi vào mục Sửa sau code, trước checks-only.
+- Chi phí (tính tay): dựng r5 khoảng 22 + 18 + 5 × 18 = 130 phút; run khoảng 12–15 phút (E09.12: 120–140 s mỗi chuỗi với bốn nhánh).
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp (dự đoán độ lớn ở E09.12 đã sai): S trong 0.3–0.6; K1 LẶP LẠI; K2 LẶP LẠI.
+- Giới hạn:
+  - Một FT seed (5 chuỗi); sau run này không còn FT seed sạch.
+  - FTR1e cắt khe theo số hàng, nên trả lời câu hỏi "nếu FTR1 mất đúng số khe như NL"; không phải phân tách nhân quả đầy đủ.
+  - Số laptop; theo QD27, số của luận văn do server chạy lại sau khi phương pháp đã chốt trên laptop.
+  - Chỉ CUB t5, PCA-384, FT l25, bộ không rò, K biết trước.
+- Tag: `cub_e09_13_ft_l25`.
 
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
