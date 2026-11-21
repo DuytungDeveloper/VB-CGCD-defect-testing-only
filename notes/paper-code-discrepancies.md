@@ -489,6 +489,35 @@ measured (lab/14-eval.ipynb, 58a698e, 2026-11-05, final classifier): the sign fl
         1-9 test images per chain towards novel slots: -14 old test images and +0.57 balanced novel points over 15 chains.
 status: CANDIDATE: the paper does not say which formula was run; the code is the released implementation.
 
+## D26. The paper's VB cannot be implemented as written; what survives is exact conjugate Bayes (NIW), not variational
+paper:  Sec 3.2.2-3.2.3: an ELBO (Eq. 7) over z = (mu, Sigma) with a N(0, I) prior called "conjugate, ensuring closed-form
+        updates", optimised by SVI; Fig. 2b: det(Sigma) grows over the steps; Eq. 10-11: stop early on the det ratio.
+code:   MLE by Adam with an empty guide and no KL (D11); the parameters barely leave their initialisation (D23); the stop
+        rule is neither Eq. 11 nor Alg. 1 (D14); the unlabeled step filters instead of re-labeling (D12).
+analysis:
+        1. N(0, I) is not a conjugate prior for (mu, Sigma) (D20.3); the conjugate prior is Normal-Inverse-Wishart
+           (Murphy 2012, Sec 4.6.3). Read literally, "conjugate, closed form" gives the NIW posterior, as QD27 did
+           (lab/niw.py, E06.04).
+        2. A closed-form posterior has no learning trajectory. 1-D example (by hand): sigma^2 = 1 known, mu ~ N(0, 1),
+           n = 25, xbar = 2: posterior mean n xbar / (n + 1) = 50/26 ~ 1.923, variance 1/26 ~ 0.038, in one computation.
+           The code's 1000 Adam steps move mu by at most ~0.0334 from 0 (D23).
+        3. [INFERENCE, from 1 and 2] Fig. 2 and Eq. 10-11 (covariance inflation, then a det-based early stop) only make
+           sense for an iterative estimate that moves away from its initialisation. VB exactly as written and the
+           det-based early stop cannot coexist; the code keeps the second and names it after the first.
+measured: the paper's own Fig. 5 shows "VI" covariances in [1.0075, 1.0175] (D20.4). CUB: median r_mu 0.0107 in the E06.04
+        runs (key d23_rmu_med). GC10: the det of the new slots falls monotonically from 1 (Q07.01, lab/13-gauss-s.ipynb).
+        The four components of the team's "true VB" (QD27; E09.08, Conclusion): (1) NIW posterior with Student-t predictive:
+        alive on CUB t5 with the LOO-margin filter (NL, E12.03, confirmed on r3, r4; E09.12), not an improvement on GC10
+        (E12.04); (2) hierarchical prior for the new slots: no branch passed (E14.09); (3) soft responsibilities (VB-GMM,
+        CAVI): lost (E09.08); (4) Dirichlet weights: no help (E09.08). The only variational parts, (3) and (4), lost.
+impact: what the team runs is not VB. Report the surviving part as "conjugate Bayesian posterior (NIW), Student-t
+        predictive" (CUB: "NIW + LOO-margin filter beats the reproduced MLE pipeline"), never as "VB" or "true VB" (QD27,
+        amended 2026-11-21).
+open:   Table 7 ("VI beats PE") has no verified explanation. [INFERENCE] implicit shrinkage of Sigma towards I (D23;
+        lab/08-classifier.ipynb: the off-diagonal signs of Sigma - I match the class data at 93-96% of entries); needs a
+        direct test. Eq. 10-11 were never implemented as written (D14).
+status: points 1-2 CONFIRMED (math, with sources); point 3 is inference.
+
 ## Additional notes on the fine-tuning implementation
 - BOFT config declared: boft_block_size=4, boft_n_butterfly_factor=2, boft_dropout=0.1,
   bias="boft_only", target_modules=["output.dense","mlp.fc1","mlp.fc2"].
