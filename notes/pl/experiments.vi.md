@@ -41,6 +41,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E12.02: CUB t5, bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ (A3 hoặc A1, chọn bằng mô phỏng bỏ-một-lớp trên S0; ngưỡng p-value conformal α = 0.10) thay `keep` của bước 12, rồi khớp mô hình N của E14.06: lấy lại bao nhiêu phần khoảng lớp cũ giữa N và N sạch (tiền đăng ký 2026-11-17) — mục E12.02 dưới đây
 - E12.03: CUB t5, lọc cũ/mới bằng lề LOO (ngoài mẫu ở cả hai phía), nhánh NL, D1–D4, đọc dưới ràng buộc hai vế của QD28 (tiền đăng ký 2026-11-19; xong, Rito duyệt 2026-11-19: Đạt trên r0–r2, NL ΔM_d +2.726, ΔOld +1.334, ΔS5_S0test −0.162, ΔS5_All +1.611; AUROC lề LOO 0.956 so với 0.800 trong mẫu; XÁC NHẬN trên r3, r4: NL ΔM_d +2.741, ΔOld +1.310, ΔS5_S0test −0.137) — mục E12.03 dưới đây
 - E12.04: GC10 t1, lọc cũ/mới bằng lề LOO (NL của E12.03) trên 15 ảnh chụp r0–r2, luật như E09.06 (T = 0.0273, B = 0.615) (tiền đăng ký 2026-11-20; xong: dò hướng ĐẠT theo luật (Δ = 0.032), xác nhận r3, r4 KHÔNG XÁC NHẬN cho cả NL (Δ = −0.016) và N (Δ = −0.003); Old tăng là quan sát hậu kiểm; NL không báo như cải tiến trên GC10) — mục E12.04 dưới đây
+- E12.05: GC10 t1, lọc NL rồi gom lại (FTR1 của E09.12) trên 15 ảnh chụp r0–r2, so với pipeline, luật như E12.04 (T = 0.0273, B = 0.615); Npre báo kèm (tiền đăng ký 2026-11-22) — mục E12.05 dưới đây
 - E14.01: điểm lớp mới theo bốn quy ước ghép tên P0–P3 trên cùng dự đoán, CUB t5 (2026-11-16; xong, Rito duyệt tạm: P1–P3 cao hơn P0 0.75–0.79 điểm M_d; P3 trùng P2) — mục E14.01 dưới đây
 - E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
@@ -1841,6 +1842,48 @@ Lời thường: FTR1 còn cách trần khoảng 16.6 điểm M_d. Khoảng này
 - [SUY LUẬN] Cơ chế: N, NL và pipeline dùng chung phân hoạch `ids` và bộ lọc `keep`. NIW thay cách mô tả khe, không thay việc khám phá lớp mới, trong khi điểm mất chính trên GC10 nằm ở khám phá (E03.02). Vì vậy NIW chủ yếu cứu ảnh test cũ bị pipeline đẩy sang khe mới. Ở r3, r4, Old của P thấp hơn r0–r2 khoảng 5 điểm, trong khi S0 A3 ngang nhau; điều này hợp với việc lợi Old lớn hơn ở đó. Chưa kiểm vì sao pipeline mất nhiều Old hơn ở hai seed này.
 - Phạm vi: GC10 t1, phân hoạch k-means mặc định, số laptop (QD27). Kết quả không nói gì về NL hay NIW trên phân hoạch `09a` + `09b`, và không đổi kết luận của E12.03 trên CUB.
 - Bước kế (Rito duyệt 2026-11-20): không làm tiếp NL trên GC10. Với dòng GC10, mũi nhọn vẫn ở phía khám phá (`09a` + `09b`, E09.06). Nếu thử NIW trên phân hoạch `09a` + `09b`, đó là thí nghiệm mới, cần FT seed mới. Hướng cụ thể để tài liệu chiến lược quyết định.
+
+## E12.05 — GC10 t1: lọc NL rồi gom lại (FTR1 của E09.12) có tăng balanced novel so với pipeline mà không mất lớp cũ không? (QD25, QD27)
+
+### Tiền đăng ký (2026-11-22; viết sau Kết luận E09.14 `355786a`, trước khi có code và trước mọi số của FTR1 hay Npre trên GC10; Rito duyệt làm 2026-11-21 21:04)
+
+- Câu hỏi: trên GC10 t1, FTR1 (bước NL trên ảnh `keep` của từng cụm, gom lại bằng k-means của bước 09 trên các ảnh còn lại, NL lần hai, khe NIW) có tăng balanced novel so với pipeline mà không mất lớp cũ không?
+- Vì sao:
+  - Trên CUB, FTR1 lặp lại được ở ba lần (ΔM_d so với NL +9.245, +8.968, +9.069). Đề tài là phát hiện khuyết tật công nghiệp, nên cần biết FTR1 có chuyển sang GC10 không.
+  - Cơ chế khác NL: NL chỉ bỏ hàng; FTR1 gom lại sau khi bỏ, nên đổi được phân hoạch. Phân hoạch `ids` của pipeline gom trên toàn `pool_x`, gồm cả ảnh mà `keep` bỏ. Trên GC10, điểm mất chính nằm ở khám phá lớp mới (E03.02), và E09.14 cho thấy phân hoạch là chỗ mất chính trên CUB.
+- Đã tra trước khi viết: toàn mục E12.04 (cả phần xác nhận), E09.12, E09.13, E09.14, E09.06, E09.07; `tier2_e1204`, `_sc_1204`, `_nl_keep_0910`, `_km_0912`, `_ftr_0912` (`lab/score.py`), `s09_cluster`, `s10_naming` (`lab/replay.py`).
+- Đã thấy trước tiền đăng ký này: mọi số của E12.04 trên r0–r4 (P, N, NL, Nc; balanced novel, Old, All; D1–D4: mỗi ảnh chụp khoảng 6.7 ảnh cũ và 688 ảnh mới trong tập khớp), của E09.06, E09.07, E06.04 trên GC10, và mọi số của FTR1 trên CUB. Chưa thấy số nào của FTR1 hay Npre trên GC10, chưa thấy số ảnh cũ trong toàn pool GC10.
+- Loại: dò hướng có luật quyết định, như E12.04. Nếu ĐẠT, viết Sửa đổi xác nhận trên r3, r4 trước khi đọc số của chúng.
+- Dữ liệu: 15 ảnh chụp `gc10_v2_ft_r<r>_s<N>`, r = 0–2, N = 0–4; trạng thái sau bước 14 (`replay.load`), PCA-64 của bước 05, `ids`, `keep`, `lut` của pipeline. r3, r4 để dành cho xác nhận: đã dùng cho E09.06, E09.09, E11.01, E12.04 nhưng chưa từng được chấm bằng FTR1.
+- Mô hình: như N của E12.04 (một tiên nghiệm NIW, m0 của S0, κ0 = `niw.K0`, off chọn bằng LOO trên S0; khe gốc từ S0; dự đoán Student-t, argmax trên 10 khe; khe không có hàng là tiên nghiệm). Bước NL như E12.04 (`_nl_keep_0910`, bỏ hàng có m_loo < 0; L_old là max trên 5 khe gốc).
+- Nhánh:
+  - P, N, NL: như E12.04, tính lại.
+  - FTR1: G = ảnh `keep` mà bước NL giữ, theo cụm `ids`; gom lại G bằng `s09_cluster` (K = 5, n_init của pipeline, trên `pool_x` thô) với RNG toàn cục đặt về `rng_in` của bước 09 của ảnh chụp; với mỗi cụm mới, bước NL lần hai rồi khớp khe NIW trên các hàng còn lại.
+  - Npre (oracle, báo kèm): gom lại bằng cùng `s09_cluster` và cùng `rng_in` trên mọi ảnh pool có nhãn lớp mới; khe trên mọi hàng của cụm, không lọc.
+- Đặt tên khe: như pipeline (bước 10, D13). Mỗi phân hoạch dùng bảng tên của chính nó: Hungarian giữa `predict_raw` của k-means trên tập test lớp mới và nhãn thật. P, N, NL dùng `lut` của pipeline (phân hoạch `ids`); FTR1, Npre dùng bảng tên tính từ k-means của lần gom lại tương ứng. Ảnh đúng khi argmax bằng bảng tên của nhãn thật (`_sc_1204`).
+- Đại lượng: balanced novel (tỉ lệ, QD25); Old (điểm %, tập test cũ là tập test S0 ở t1). Báo kèm: All; Npre; FTR1 − N và FTR1 − NL; độ đúng phân hoạch trên ảnh pool lớp mới (Hungarian, ảnh không nằm trong phân hoạch tính sai, như c09) của `ids`, FTR1, Npre; số ảnh cũ và mới trong toàn pool, trong `keep`, và bị NL lần một, lần hai bỏ; số khe rỗng.
+- Luật quyết định (cách so như E12.04): Δ_r = trung bình trên 5 seed của (balanced novel FTR1 − P); Δ = trung bình Δ_r trên 3 FT seed; ΔOld tính cùng cách.
+  - ĐẠT: Δ ≥ T = 0.0273, Δ_r > 0 ở ít nhất 2/3 FT seed, và ΔOld ≥ −B = −0.615 điểm → viết Sửa đổi xác nhận trên r3, r4 trước khi đọc số của chúng.
+  - BÁC: Δ ≤ 0, hoặc ΔOld < −B.
+  - KHÔNG ĐỦ LỚN: còn lại.
+  - FTR1 − N và FTR1 − NL là số báo kèm, không quyết định. Lý do so với P chứ không với NL như trên CUB: trên GC10 cả N lẫn NL đều không xác nhận được so với P (E12.04).
+- Cổng:
+  - G1: P, N, NL (balanced novel, Old, All) trùng run `gc10_e12_04` (1e-6; số đã làm tròn 6 chữ số).
+  - G2: `s09_cluster` trên toàn `pool_x` với `rng_in` của bước 09 cho lại `ids`; và bảng tên tính từ k-means đó cho lại `lut` của pipeline.
+  - G3: đường tính của FTR1 với cả hai bước NL tắt và không gom lại (dùng `ids`) cho lại N (balanced novel, Old, All; 1e-6).
+  - G4: mọi lần gom lại cho id nguyên trong [0, 5), mỗi hàng một id; trượt thì dừng run.
+  - Chỉ đọc run khi mọi cổng đạt ở 15/15 ảnh chụp. Runner chỉ in trạng thái cổng và thời gian. Trước run thật: thử trên ảnh chụp giả ngoài repo, có đối chứng âm cho từng cổng.
+- Code (viết sau tiền đăng ký): `tier2_e1205(checks_only, fts)` và `e1205-summary` trong `lab/score.py`, lệnh `e1205` qua `exp.py`, một run (tag `gc10_e12_05`); dùng lại `_post_1406`, `_nl_keep_0910`, `_index_1203`, `_logd_1202`, `_sc_1204`; không sửa `tier2_e1204`, `lab/replay.py`, `lab/niw.py`. Chỗ cài đặt không ghi chữ-theo-chữ ở đây ghi vào mục Sửa sau code, trước checks-only.
+- Dự đoán của Claude [SUY LUẬN], độ tin thấp:
+  - KHÔNG ĐỦ LỚN là khả năng cao nhất; ĐẠT ở dò hướng có thể xảy ra nhờ một FT seed như E12.04 (r1), nhưng xác nhận khó.
+  - Lý do: trên GC10, tập khớp chỉ có khoảng 6.7 ảnh cũ mỗi ảnh chụp, nên NL lần một gần như không đổi tập G; nếu FTR1 có lợi, lợi đến từ việc gom lại trên `keep` thay vì toàn pool, và độ lớn phụ thuộc số ảnh cũ trong toàn pool (chưa thấy).
+  - Npre hơn P rõ, vì E09.06 cho thấy phân hoạch tốt hơn tăng balanced novel trên GC10.
+- Giới hạn:
+  - GC10 nhỏ (214 ảnh test lớp mới; một ảnh lớp hiếm bằng 0.0182–0.0333 balanced novel); một phiên.
+  - Bảng tên dùng nhãn test (như pipeline, D13); mỗi phân hoạch có bảng tên riêng nên so được với nhau, nhưng không phải điểm triển khai được.
+  - Kết quả không nói được FTR1 có cộng thêm vào `09a` + `09b` (E09.06) không.
+  - Số laptop (QD27). KHÔNG ĐỦ LỚN không chứng minh FTR1 vô ích trên dữ liệu công nghiệp.
+- Tag: `gc10_e12_05`.
 
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
