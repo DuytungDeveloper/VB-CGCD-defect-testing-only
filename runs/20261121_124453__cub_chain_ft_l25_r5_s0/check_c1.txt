@@ -1,0 +1,50 @@
+  saved models of the baseline: /home/rito/projects/VB-CGCD-defect/logs/20261121_122630__cub_km_evhung_det_ft_l25_r5_s0_20261121-1226/saved_models
+  OK   metrics.json (all sessions)
+  OK   S0 params0 class_means
+  OK   S0 params0 class_covs
+  OK   S1 pi_test
+  OK   S1 contingency train
+  OK   S1 contingency test
+  OK   S1 inertia (relative < 1e-6)
+  OK   S1 confusion
+  OK   S1 kept
+  OK   S1 params1 class_means
+  OK   S1 params1 class_covs
+  OK   S1 C5 changed slots in [100, 120)
+  OK   S2 pi_test
+  OK   S2 contingency train
+  OK   S2 contingency test
+  OK   S2 inertia (relative < 1e-6)
+  OK   S2 confusion
+  OK   S2 kept
+  OK   S2 params1 class_means
+  OK   S2 params1 class_covs
+  OK   S2 C5 changed slots in [120, 140)
+  OK   S3 pi_test
+  OK   S3 contingency train
+  OK   S3 contingency test
+  OK   S3 inertia (relative < 1e-6)
+  OK   S3 confusion
+  OK   S3 kept
+  OK   S3 params1 class_means
+  OK   S3 params1 class_covs
+  OK   S3 C5 changed slots in [140, 160)
+  OK   S4 pi_test
+  OK   S4 contingency train
+  OK   S4 contingency test
+  OK   S4 inertia (relative < 1e-6)
+  OK   S4 confusion
+  OK   S4 kept
+  OK   S4 params1 class_means
+  OK   S4 params1 class_covs
+  OK   S4 C5 changed slots in [160, 180)
+  OK   S5 pi_test
+  OK   S5 contingency train
+  OK   S5 contingency test
+  OK   S5 inertia (relative < 1e-6)
+  OK   S5 confusion
+  OK   S5 kept
+  OK   S5 params1 class_means
+  OK   S5 params1 class_covs
+  OK   S5 C5 changed slots in [180, 200)
+C1 OK: 20261121_124453__cub_chain_ft_l25_r5_s0 = 20261121_122630__cub_km_evhung_det_ft_l25_r5_s0 (48/48)
