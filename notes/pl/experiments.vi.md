@@ -1885,6 +1885,22 @@ Lời thường: FTR1 còn cách trần khoảng 16.6 điểm M_d. Khoảng này
   - Số laptop (QD27). KHÔNG ĐỦ LỚN không chứng minh FTR1 vô ích trên dữ liệu công nghiệp.
 - Tag: `gc10_e12_05`.
 
+### Sửa (2026-11-22; viết sau code `tier2_e1205`, trước checks-only và trước mọi số của thí nghiệm)
+
+- Các chỗ cài đặt trong `tier2_e1205` không ghi chữ-theo-chữ ở tiền đăng ký; không đổi đại lượng, nhánh, cổng hay luật:
+  - Bước NL lần một chạy trên ảnh `keep` của từng cụm `ids` (khe cũ là 5 khe gốc); G là hợp các hàng được giữ. Gom lại trên `pool_x` thô của G.
+  - Mỗi lần gọi k-means (G2, FTR1, Npre) đều đặt lại RNG toàn cục về `rng_in` của bước 09 ngay trước khi gọi, nên kết quả không phụ thuộc thứ tự gọi.
+  - Bảng tên của FTR1 và Npre: gọi `s10_naming` của `lab/replay.py` trên k-means của lần gom lại tương ứng (`_lut_1205`). G2 kiểm chính đường này trên k-means toàn pool: nó phải cho lại `lut` của pipeline.
+  - Khe không có hàng (cụm rỗng, hoặc NL bỏ hết hàng) nhận hậu nghiệm bằng tiên nghiệm, như E12.04; số khe rỗng ghi ở khoá `<nhánh>_empty`.
+  - c09 của FTR1: mẫu số là mọi ảnh pool lớp mới; ảnh lớp mới không nằm trong G tính sai.
+  - Đếm: `drop1_*` là ảnh `keep` không vào G; `drop2_*` là ảnh bị NL lần hai bỏ.
+  - G1 so với số đã làm tròn 6 chữ số trong `metrics.json` của `gc10_e12_04`; sai số làm tròn tối đa 5e-7, dưới ngưỡng 1e-6.
+  - Khoá là `r<r>_s<N>_...`. `e1205-summary` từ chối run không có `checks_ok` = 1 và in dòng luật (FTR1 − P).
+- Code đã thử trên 15 ảnh chụp giả ngoài repo (6 chiều, 5 + 5 lớp, 60 ảnh cũ trong pool mỗi ảnh chụp, `keep` bỏ khoảng 85% số đó; `jax`, `load`, `snapshots`, `s09_cluster` giả, `hungarian_map` thật). Số tham chiếu E12.04 lấy từ `tier2_e1204` đã commit chạy trên cùng dữ liệu giả.
+  - G1–G4 OK ở checks-only và ở 15/15 ảnh chụp.
+  - Đối chứng âm: G1 (tham chiếu NL lệch 2e-6), G2 (dịch `ids`; đổi chỗ hai ô của `lut`), G4 (id ngoài khoảng, run dừng) trượt ở checks-only. G3 có hai đối chứng: đường G3 có gom lại thì trượt ở checks-only; đường G3 bật NL lần một chỉ trượt ở run 15 ảnh chụp, vì trên ảnh chụp giả r0_s0 các hàng NL bỏ không đổi kết quả chấm.
+  - `e1205-summary` chạy trên run giả và từ chối run giả có `checks_ok` = 0.
+
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
 ### Tiền đăng ký (2026-11-16; viết trước khi có code và trước mọi số)
