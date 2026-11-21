@@ -1382,6 +1382,22 @@ Lời thường: "lọc NL rồi gom lại" lặp lại được trên FT seed t
   - Chỉ CUB t5, PCA-384, FT l25, bộ không rò, K biết trước.
 - Tag: `cub_e09_14_ft_l25`.
 
+### Sửa (2026-11-21; viết sau code `tier2_e0914`, trước checks-only và trước mọi số của thí nghiệm)
+
+- Các chỗ cài đặt trong `tier2_e0914` không ghi chữ-theo-chữ ở tiền đăng ký; không đổi đại lượng, nhánh, cổng hay luật:
+  - FTR1c chạy các bước của FTR1 trên chuỗi khe cũ của chính FTR1c (như FTR1e của E09.13). "Giữ nguyên phân hoạch của FTR1" hiểu trong một phiên: từ phiên 2, khe cũ của FTR1c sạch hơn của FTR1 nên bước NL và phân hoạch của FTR1c có thể khác nhánh FTR1. Bậc b1 vì vậy gồm cả phần lợi tích luỹ qua các phiên do khe cũ sạch hơn.
+  - Ảnh cũ bị bỏ khỏi hàng của khe sau lần NL thứ hai (trên các hàng FTR1 giữ của mỗi cụm mới), ngay trước khi khớp khe; ảnh bị bỏ không vào khe nào.
+  - G3c là nhánh có chuỗi khe cũ riêng, chạy đúng đường tính của FTR1c với bước bỏ ảnh cũ tắt. Phần "khe FTR1c không còn ảnh lớp cũ" của G3 đúng theo cách dựng; phần có sức kiểm là G3c = FTR1.
+  - Nlab: khe mới thứ c của phiên i khớp trên mọi ảnh pool có nhãn offset + c, kể cả ảnh `keep` bỏ.
+  - Npre gọi k-means sau các lần gom lại của FTR1, FTR1c, G3c; mỗi lần gọi đặt lại RNG về `rng_in`, nên Npre trùng E09.12 (G2 kiểm).
+  - G2 so với số đã làm tròn 4 chữ số trong `metrics.json` của `cub_e09_12_ft_l25`, ngưỡng 1e-4.
+  - c09 chỉ cho FTR1 và Npre. Khoá là `r<r>_s<N>_...`. `e0914-summary` từ chối run không có `checks_ok` = 1; cột `sd(ft)` là SD (ddof 1) của ba trung bình theo FT seed.
+- Code đã thử trên 5 chuỗi giả ngoài repo (harness của E09.13: 8 chiều, 10 lớp gốc, 5 phiên × 4 lớp mới; `jax`, `sessions`, `s09_cluster` giả; số tham chiếu E09.12 lấy từ `tier2_e0912` đã commit chạy trên cùng dữ liệu giả):
+  - G1–G5 OK ở checks-only và ở 15/15 chuỗi.
+  - Đối chiếu với `tier2_e0912`: 1500 giá trị của NL, FTR1, Npre, P (New, Old, S0test, All mọi phiên), c09 của FTR1, Npre và số khe rỗng của NL, FTR1 trùng tuyệt đối.
+  - Đối chứng âm: G1 (dịch `ids` ở phiên 3), G2 (tham chiếu FTR1 + 0.01; `acc1` + 0.5), G4 (khe Nlab lệch một lớp), G5 (id ngoài khoảng, run dừng) đều trượt ở checks-only. Hai đối chứng của G3 (FTR1c không bỏ ảnh cũ; G3c cũng bỏ ảnh cũ) trượt ở run 15 chuỗi giả, không trượt ở checks-only vì chuỗi giả s0 không có ảnh cũ nào trong khe FTR1 (0 ảnh bị bỏ; các chuỗi khác 8–9). Trên CUB, checks-only của G3 vì vậy chỉ là kiểm dương; sức kiểm của G3 nằm ở run đầy đủ.
+  - `e0914-summary` chạy trên run giả và từ chối run giả có `checks_ok` = 0.
+
 ## E12.02 — CUB t5: bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ lấy lại bao nhiêu lớp cũ cho mô hình N? (QD27, QD28)
 
 ### Tiền đăng ký (2026-11-17; viết trước khi có code và trước mọi số của thí nghiệm)
