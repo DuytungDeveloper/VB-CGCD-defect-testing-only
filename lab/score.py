@@ -4518,9 +4518,9 @@ def tier2_e0915(prefix, checks_only=False, fts=(0, 1, 2)):
     import niw
     from replay import _clf, _git
     from sessions import load as load_sessions, snapshots_sessions, _device
-    assert prefix == "cub_chain_ft_l25", "e0915 needs --prefix cub_chain_ft_l25"
+    assert prefix in ("cub_chain_ft_l25", "colab_cub_ft_l25"), "e0915 needs --prefix cub_chain_ft_l25 or colab_cub_ft_l25"
     fts = tuple(fts)
-    assert fts in ((0, 1, 2), (3, 4)), "e0915: fts must be 0,1,2 or 3,4"
+    assert all(x in (0, 1, 2, 3, 4) for x in fts), "e0915: fts must be subset of 0..4"
     t0 = time.time()
     if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
         raise SystemExit("e0915: commit the code first (same dirty rule as scripts/exp.py)")
@@ -4635,7 +4635,7 @@ def tier2_e0915(prefix, checks_only=False, fts=(0, 1, 2)):
 
 def e0915_summary():
     """Print E09.15 summary comparing NL, FTR1, FTR1_cos, FTR1_cos_z, FTR1_gmm."""
-    for tag, fts in (("cub_e09_15_ft_l25", (0, 1, 2)), ("cub_e09_15x_ft_l25", (3, 4))):
+    for tag, fts in (("cub_e09_15_ft_l25", (0, 1, 2)), ("cub_e09_15x_ft_l25", (3, 4)), ("colab_e09_15_ft_l25", (0,))):
         if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
             print(f"\n{tag}: no run yet")
             continue
@@ -5897,7 +5897,7 @@ def main(argv):
     p.add_argument("--ft", type=int, help="e0604 cub200: FT seed of the features")
     p.add_argument("--seed", type=int, help="e0604 cub200: seed of the chain")
     p.add_argument("--checks-only", action="store_true", help="e0604: print the checks C1-C3 only, no result; e1401: chain r0 s0 only")
-    p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25", "cub_chain_fz"], help="e1401, e1402: tag prefix of the 15 chains; e0911: cub_chain_fz")
+    p.add_argument("--prefix", choices=["cub_chain_ft", "cub_chain_ft_l25", "cub_chain_fz", "colab_cub_ft_l25"], help="e1401, e1402: tag prefix of the 15 chains; e0911: cub_chain_fz")
     p.add_argument("--fts", default="0,1,2", help="e1203, e1204, e0912: FT seeds, 0,1,2 (exploration) or 3,4 (confirmation)")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
@@ -5997,7 +5997,7 @@ def main(argv):
         e0915_summary()
         return
     if o.step == "e0915":
-        assert o.prefix == "cub_chain_ft_l25", "e0915 needs --prefix cub_chain_ft_l25"
+        assert o.prefix in ("cub_chain_ft_l25", "colab_cub_ft_l25"), "e0915 needs --prefix cub_chain_ft_l25 or colab_cub_ft_l25"
         out = tier2_e0915(o.prefix, o.checks_only, tuple(int(x) for x in o.fts.split(",")))
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
