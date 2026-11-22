@@ -41,7 +41,7 @@ Số theo thứ tự thời gian trong mỗi bước (QD22). Mỗi dòng: mã: n
 - E12.02: CUB t5, bộ lọc cũ/mới không nhãn dựa trên mô hình lớp cũ (A3 hoặc A1, chọn bằng mô phỏng bỏ-một-lớp trên S0; ngưỡng p-value conformal α = 0.10) thay `keep` của bước 12, rồi khớp mô hình N của E14.06: lấy lại bao nhiêu phần khoảng lớp cũ giữa N và N sạch (tiền đăng ký 2026-11-17) — mục E12.02 dưới đây
 - E12.03: CUB t5, lọc cũ/mới bằng lề LOO (ngoài mẫu ở cả hai phía), nhánh NL, D1–D4, đọc dưới ràng buộc hai vế của QD28 (tiền đăng ký 2026-11-19; xong, Rito duyệt 2026-11-19: Đạt trên r0–r2, NL ΔM_d +2.726, ΔOld +1.334, ΔS5_S0test −0.162, ΔS5_All +1.611; AUROC lề LOO 0.956 so với 0.800 trong mẫu; XÁC NHẬN trên r3, r4: NL ΔM_d +2.741, ΔOld +1.310, ΔS5_S0test −0.137) — mục E12.03 dưới đây
 - E12.04: GC10 t1, lọc cũ/mới bằng lề LOO (NL của E12.03) trên 15 ảnh chụp r0–r2, luật như E09.06 (T = 0.0273, B = 0.615) (tiền đăng ký 2026-11-20; xong: dò hướng ĐẠT theo luật (Δ = 0.032), xác nhận r3, r4 KHÔNG XÁC NHẬN cho cả NL (Δ = −0.016) và N (Δ = −0.003); Old tăng là quan sát hậu kiểm; NL không báo như cải tiến trên GC10) — mục E12.04 dưới đây
-- E12.05: GC10 t1, lọc NL rồi gom lại (FTR1 của E09.12) trên 15 ảnh chụp r0–r2, so với pipeline, luật như E12.04 (T = 0.0273, B = 0.615); Npre báo kèm (tiền đăng ký 2026-11-22) — mục E12.05 dưới đây
+- E12.05: GC10 t1, lọc NL rồi gom lại (FTR1 của E09.12) trên 15 ảnh chụp r0–r2, so với pipeline, luật như E12.04 (T = 0.0273, B = 0.615); Npre báo kèm (tiền đăng ký 2026-11-22); kết quả: BÁC, Δ(FTR1 − P) −0.0107, gom lại cho phân hoạch kém hơn `ids` kể cả với Npre (số laptop) — mục E12.05 dưới đây
 - E14.01: điểm lớp mới theo bốn quy ước ghép tên P0–P3 trên cùng dự đoán, CUB t5 (2026-11-16; xong, Rito duyệt tạm: P1–P3 cao hơn P0 0.75–0.79 điểm M_d; P3 trùng P2) — mục E14.01 dưới đây
 - E14.02: CUB t5, quên theo đợt lớp và sổ mất điểm theo phiên, kèm Sửa đổi (bảng 4, 5) (2026-11-16; xong, Rito duyệt: L_10 = 10.10 điểm; quên là ảnh cũ bị khe mới giành, 30/30 chuỗi) — mục E14.02 dưới đây
 - E14.03: CUB t5, L_10 mất bao nhiêu vì khe cũ giành ảnh test lớp mới, khe cũ thắng nhờ số hạng nào, pipeline gán theo tâm, đường cong đánh đổi theo độ lệch b (tiền đăng ký 2026-11-17; xong, Rito duyệt tạm: L_comp = 10.18 điểm, gần bằng L_10; khe cũ thắng nhờ số hạng Mahalanobis) — mục E14.03 dưới đây
@@ -1900,6 +1900,67 @@ Lời thường: FTR1 còn cách trần khoảng 16.6 điểm M_d. Khoảng này
   - G1–G4 OK ở checks-only và ở 15/15 ảnh chụp.
   - Đối chứng âm: G1 (tham chiếu NL lệch 2e-6), G2 (dịch `ids`; đổi chỗ hai ô của `lut`), G4 (id ngoài khoảng, run dừng) trượt ở checks-only. G3 có hai đối chứng: đường G3 có gom lại thì trượt ở checks-only; đường G3 bật NL lần một chỉ trượt ở run 15 ảnh chụp, vì trên ảnh chụp giả r0_s0 các hàng NL bỏ không đổi kết quả chấm.
   - `e1205-summary` chạy trên run giả và từ chối run giả có `checks_ok` = 0.
+
+### Kết quả (r0–r2; run `20261122_023312__gc10_e12_05`, commit run `fd1ba73`; số do `e1205-summary` in ra; 15 ảnh chụp `gc10_v2_ft_r<r>_s<N>`)
+
+- Cổng: G1–G4 đạt ở 15/15 ảnh chụp (checks-only trên r0_s0 đạt trước run). off chọn được: 10 hoặc 25. G1 đạt nghĩa là P, N, NL trùng E12.04.
+- Mỗi cột FT seed là trung bình 5 seed; TB là trung bình 3 FT seed. Balanced novel là tỉ lệ; Old, All là điểm %:
+
+| Đại lượng | r0 | r1 | r2 | TB |
+|---|---|---|---|---|
+| balanced novel của P | 0.3941 | 0.2924 | 0.3616 | **0.3494** |
+| balanced novel của N | 0.4155 | 0.3850 | 0.3727 | **0.3911** |
+| balanced novel của NL | 0.4001 | 0.3853 | 0.3592 | **0.3815** |
+| balanced novel của FTR1 | 0.3640 | 0.3380 | 0.3139 | **0.3386** |
+| balanced novel của Npre (oracle) | 0.3842 | 0.4010 | 0.3421 | **0.3758** |
+| Δ balanced FTR1 − P (quyết định) | −0.0301 | +0.0456 | −0.0477 | **−0.0107** |
+| ΔOld FTR1 − P | +1.2448 | +1.3278 | +2.2407 | **+1.6044** |
+| ΔAll FTR1 − P | +0.3956 | +7.0769 | −1.6703 | **+1.9341** |
+| Δ balanced FTR1 − N | −0.0515 | −0.0470 | −0.0588 | **−0.0524** |
+| Δ balanced FTR1 − NL | −0.0360 | −0.0474 | −0.0453 | **−0.0429** |
+| ΔOld FTR1 − N | +1.3278 | +1.4938 | +0.6639 | **+1.1618** |
+| Δ balanced Npre − P | −0.0099 | +0.1086 | −0.0195 | **+0.0264** |
+| ΔOld Npre − P | +0.6639 | −1.0788 | +1.3278 | **+0.3043** |
+
+- Cơ chế (mỗi ảnh chụp):
+
+| Đại lượng | r0 | r1 | r2 | TB |
+|---|---|---|---|---|
+| c09 của `ids` (pipeline) | 51.519 | 46.648 | 49.226 | **49.131** |
+| c09 của FTR1 (sau gom lại) | 40.086 | 42.063 | 42.665 | **41.605** |
+| c09 của Npre (gom trên đúng ảnh mới) | 42.579 | 44.814 | 44.499 | **43.964** |
+| Ảnh cũ trong toàn pool | 50.000 | 50.000 | 50.000 | **50.000** |
+| Ảnh cũ trong `keep` | 6.400 | 6.800 | 6.800 | **6.667** |
+| NL lần một bỏ: ảnh cũ | 4.600 | 5.000 | 5.200 | **4.933** |
+| NL lần một bỏ: ảnh mới | 24.200 | 27.000 | 29.800 | **27.000** |
+| NL lần hai bỏ: ảnh cũ | 0.400 | 0.000 | 0.800 | **0.400** |
+| NL lần hai bỏ: ảnh mới | 12.800 | 9.000 | 12.000 | **11.267** |
+
+- Khe rỗng: 0 ở mọi nhánh, mọi ảnh chụp.
+- Dòng luật, nguyên văn output:
+
+```
+rule (FTR1 - P): Delta -0.0107 (T = 0.0273), Delta_r > 0 in 1/3 FT seeds, dOld +1.6044 (-B = -0.615) -> REJECT (BAC)
+```
+
+- Đọc thêm (tính tay, kiểm bằng phép tính trong lệnh ghi mục này):
+  - c09 của FTR1 thấp hơn `ids` 7.526 điểm (tính tay: 49.131 − 41.605); của Npre thấp hơn 5.167 điểm (tính tay: 49.131 − 43.964). Thấp hơn ở cả ba FT seed với cả hai nhánh.
+  - Hai bước NL của FTR1 bỏ tổng cộng khoảng 38.267 ảnh mới (tính tay: 27.000 + 11.267) để bỏ khoảng 5.333 ảnh cũ (tính tay: 4.933 + 0.400) mỗi ảnh chụp.
+
+### Kết luận
+
+Lời thường: FTR1 không chuyển được sang GC10. Trên GC10, nó còn kém hơn pipeline ở balanced novel, và kém N, NL ở cả ba FT seed. Thứ hỏng là bước gom lại: gom lại trên GC10 cho phân hoạch kém hơn phân hoạch gốc của pipeline, kể cả khi gom trên đúng tập ảnh mới bằng nhãn thật (Npre). Lớp cũ thì tăng, nhưng lớp cũ không phải đại lượng quyết định.
+
+- BÁC theo luật: Δ(FTR1 − P) = −0.0107 ≤ 0; dương ở 1/3 FT seed; ΔOld +1.6044 ≥ −B. Không viết Sửa đổi xác nhận; r3, r4 không bị chạm.
+- FTR1 kém N (−0.0524) và NL (−0.0429) ở cả ba FT seed (báo kèm).
+- Bộ lọc trên GC10 tốn ảnh mới: tập khớp chỉ có khoảng 6.7 ảnh cũ mỗi ảnh chụp, nên hai bước NL bỏ khoảng 38 ảnh mới để bỏ khoảng 5 ảnh cũ.
+- Bước gom lại là chỗ mất: c09 tụt 7.526 điểm ở FTR1 và 5.167 điểm ở Npre so với `ids`. Npre không có ảnh cũ nào và không lọc gì, nhưng vẫn kém `ids`, nên lỗi không nằm ở bộ lọc.
+  - [SUY LUẬN] k-means trên GC10 không ổn định (E09.07 phải chọn trong 1000 khởi tạo): bỏ khoảng 50 ảnh cũ khỏi pool đủ làm k-means rơi vào nghiệm khác. Việc cả 15 ảnh chụp đều tụt (không chỉ dao động quanh 0) chưa giải thích được; có thể phân hoạch gốc tình cờ tốt, có thể ảnh cũ giúp k-means tách cụm. Chưa đo.
+- ΔOld +1.6044 và Old cao nhất trong các nhánh là quan sát hậu kiểm, không phải khẳng định (Old của GC10 r0–r2 đã bị nhìn ở E12.04).
+- Dự đoán của Claude: "KHÔNG ĐỦ LỚN khả năng cao nhất" sai, ra BÁC; "Npre hơn P rõ" sai (Npre − P +0.0264, dưới T, âm ở r0, r2).
+- Câu được phép báo: "Trên GC10 t1 (số laptop, dò hướng r0–r2), lọc NL rồi gom lại không chuyển được từ CUB: kém pipeline về balanced novel (−0.0107), vì gom lại cho phân hoạch kém hơn phân hoạch gốc." Không viết FTR1 là cải tiến chung cho hai bộ dữ liệu.
+- Giới hạn: GC10 nhỏ, một phiên; chỉ phân hoạch k-means mặc định, chưa thử gom lại bằng `09a` + `09b` (E09.06); số laptop (QD27).
+- Câu hỏi mới: vì sao gom lại trên GC10 luôn kém `ids` dù tập gom sạch hơn (đo bằng nhiều lần rút k-means như E09.07, chỉ đọc)? FTR1 với bước gom lại thay bằng `09a` + `09b` có giữ được lợi của E09.06 không (thí nghiệm mới, cần tiền đăng ký)?
 
 ## E14.01 — Điểm lớp mới đổi bao nhiêu theo quy ước ghép tên? (QD15, QD28, D13)
 
