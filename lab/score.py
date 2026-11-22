@@ -50,6 +50,8 @@ Apart from the check commands of replay.py, this is the only place in lab/ that 
   python lab/score.py e0913-summary                                  E09.13: tables, diagnostic S, claims K1, K2
   python lab/score.py e0914 --prefix cub_chain_ft_l25 [--checks-only]   E09.14: oracle ladder FTR1 -> FTR1c -> Npre -> Nlab on r0-r2 (exp.py)
   python lab/score.py e0914-summary                                  E09.14: ladder steps, shares and reading rules
+  python lab/score.py e0915 --prefix cub_chain_ft_l25 [--fts 0,1,2] [--checks-only]  E09.15: FTR1 Euclidean vs Cosine vs GMM
+  python lab/score.py e0915-summary                                  E09.15: summary of FTR1 clustering variants
   python lab/score.py e1205 [--checks-only]                          E12.05: FTR1 on the GC10 snapshots r0-r2 against the pipeline (exp.py)
   python lab/score.py e1205-summary                                  E12.05: tables and the decision rule
 """
@@ -4488,6 +4490,174 @@ def _sc_1204(L, y, tgt, off):
             "new_right": int(ok[new].sum()), "old_right": int(ok[~new].sum())}
 
 
+
+ARMS_0915 = ("NL", "FTR1", "FTR1_cos", "FTR1_cos_z", "FTR1_gmm")
+
+
+def _l2_norm_0915(A):
+    A = np.asarray(A, dtype=np.float64)
+    return A / np.maximum(np.linalg.norm(A, axis=1, keepdims=True), 1e-12)
+
+
+def _gmm_0915(inc, Z, seed):
+    from sklearn.mixture import GaussianMixture
+    Z = np.asarray(Z, dtype=np.float64)
+    if len(Z) < inc:
+        return (np.arange(len(Z), dtype=int) % inc), True
+    gm = GaussianMixture(n_components=inc, covariance_type="diag", reg_covar=1e-4, n_init=5, random_state=seed)
+    lab = np.asarray(gm.fit_predict(Z), dtype=int)
+    ok = bool(lab.shape == (len(Z),) and lab.min() >= 0 and lab.max() < inc)
+    return lab, ok
+
+
+def tier2_e0915(prefix, checks_only=False, fts=(0, 1, 2)):
+    """E09.15: Compare FTR1 re-clustering variants on cub_chain_ft_l25 (r0-r2 exploration or r3, r4 confirmation):
+    NL (no re-clustering), FTR1 (Euclidean k-means on X), FTR1_cos (Cosine/L2 k-means on X),
+    FTR1_cos_z (Cosine/L2 k-means on PCA zp), FTR1_gmm (diag GMM on PCA zp).
+    Gates: G1 replay s09_cluster == ids; G2 all re-cluster ids valid in [0, inc); G3 P matches acc1 (1e-6)."""
+    import niw
+    from replay import _clf, _git
+    from sessions import load as load_sessions, snapshots_sessions, _device
+    assert prefix == "cub_chain_ft_l25", "e0915 needs --prefix cub_chain_ft_l25"
+    fts = tuple(fts)
+    assert fts in ((0, 1, 2), (3, 4)), "e0915: fts must be 0,1,2 or 3,4"
+    t0 = time.time()
+    if os.environ.get("EXP_RUN_DIR") and _git()["dirty"]:
+        raise SystemExit("e0915: commit the code first (same dirty rule as scripts/exp.py)")
+    out, gates = {}, {f"G{k}": True for k in range(1, 4)}
+    for r, N in ((fts[0], 0),) if checks_only else [(r, N) for r in fts for N in range(5)]:
+        tag, pre = f"{prefix}_r{r}_s{N}", f"r{r}_s{N}_"
+        st, views = load_sessions(tag)
+        import jax.numpy as jnp
+        _device()
+        blobs = snapshots_sessions(tag)
+        rngs = {i: blobs[f"S{i}_09"]["rng_in"] for i in range(1, len(views) + 1)}
+        del blobs
+        a = st["args"]
+        assert a.dataset == "cub200" and a.load_mode == "t5" and len(views) == 5 and a.seed == N
+        base, inc, res, g = a.base, a.increment, {}, {f"G{k}": True for k in range(1, 4)}
+        z0, y0 = np.asarray(st["z_s0"], np.float64), np.asarray(st["s0_y"]).astype(int)
+        d = z0.shape[1]
+        off0 = niw.choose(niw.loo_curve(z0, y0))
+        sts = niw.class_stats(z0, y0)
+        prior = (sts["m0"], niw.K0, d + 1 + off0, off0 * niw.prior_cov(sts, 0))
+        base_rows = [z0[y0 == k] for k in range(base)]
+        base_slots = [_post_1406(R, prior) for R in base_rows]
+        res["off"] = off0
+        rows = {b: [] for b in ARMS_0915}
+        post = {b: [] for b in ARMS_0915}
+        lut1 = {b: np.arange(a.num_classes) for b in ("P",) + ARMS_0915}
+        for i, v in enumerate(views, 1):
+            off = v["offset"]
+            n = off + inc
+            X = np.asarray(v["pool_x"])
+            zp = np.asarray(v["z_pool"], np.float64)
+            ids, keep = np.asarray(v["ids"]).astype(int), np.asarray(v["keep"]).astype(bool)
+            yp, lut0 = np.asarray(v["true_pool_y"]).astype(int), np.asarray(v["lut"])
+            pn = yp >= off
+            nn = int(pn.sum())
+
+            ids_again, ok1 = _km_0912(a, off, X, rngs[i])
+            g["G1"] &= bool(ok1 and np.array_equal(ids_again, ids))
+            c09 = lambda ri, lab: 100.0 * _hung_correct_1402(lab[pn[ri]], yp[ri][pn[ri]] - off, inc) / nn
+            new_rows = {}
+            # NL baseline
+            old_r, old_s = base_rows + rows["NL"], base_slots + post["NL"]
+            idx = _index_1203(old_r)
+            nr = []
+            for c in range(inc):
+                rr = np.flatnonzero(keep & (ids == c))
+                kp = _nl_keep_0910(zp[rr], old_r, old_s, prior, idx) if len(rr) else np.zeros(0, bool)
+                nr.append(zp[rr[kp]])
+            new_rows["NL"] = nr
+
+            def _mk_recluster(mode, _X=X, _zp=zp, _off=off, _rng=rngs[i], _seed=100 * r + 10 * N + i):
+                def _fn(ri):
+                    if mode == "euclid":
+                        lab, ok = _km_0912(a, _off, _X[ri], _rng)
+                    elif mode == "cos":
+                        lab, ok = _km_0912(a, _off, _l2_norm_0915(_X[ri]), _rng)
+                    elif mode == "cos_z":
+                        lab, ok = _km_0912(a, _off, _l2_norm_0915(_zp[ri]), _rng)
+                    elif mode == "gmm":
+                        lab, ok = _gmm_0915(inc, _zp[ri], _seed)
+                    else:
+                        raise ValueError(mode)
+                    g["G2"] &= ok
+                    if not ok:
+                        raise SystemExit(f"e0915 {tag} S{i} {mode}: G2 DIFF (invalid cluster ids)")
+                    return lab
+                return _fn
+
+            for b, mode in (("FTR1", "euclid"), ("FTR1_cos", "cos"), ("FTR1_cos_z", "cos_z"), ("FTR1_gmm", "gmm")):
+                sr, G1, parts, _ = _ftr_0912(zp, keep, ids, inc, base_rows + rows[b], base_slots + post[b],
+                                             prior, _mk_recluster(mode), rounds=1, swap_ids=False)
+                new_rows[b] = sr
+                res[f"S{i}_{b}_c09"] = c09(*parts[-1])
+
+            for b in ARMS_0915:
+                res[f"S{i}_{b}_empty"] = int(sum(len(R) == 0 for R in new_rows[b]))
+                rows[b] += new_rows[b]
+                post[b] += [_post_1406(R, prior) for R in new_rows[b]]
+
+            clf = _clf(v)
+            _component(v["predict"])(clf)
+            clf.label_offset, clf.n_seen = off, n
+            xt = clf.pca.transform(v["test_all_x"])
+            zt = np.asarray(xt, np.float64)
+            y = np.asarray(v["true_test_all_y"]).astype(int)
+            pr = np.asarray(clf._predict(jnp.array(xt), _jnp(v["params1"]))[0]).astype(int)
+            s0p = _sc_0910(pr, y, lut0, off, base)
+            g["G3"] &= abs(s0p["New"] - float(v["acc1"]["Novel"])) <= 1e-6 and abs(s0p["Old"] - float(v["acc1"]["Old"])) <= 1e-6
+            lut1["P"] = _p1_0908(pr, y, lut1["P"], off, n)
+            res.update({f"S{i}_P_{q}": val for q, val in _sc_0910(pr, y, lut1["P"], off, base).items()})
+            lb = _logd_1202("A3", base_slots, zt)
+            for b in ARMS_0915:
+                L = np.concatenate([lb, _logd_1202("A3", post[b], zt)], 1)
+                pb = L.argmax(1)
+                lut1[b] = _p1_0908(pb, y, lut1[b], off, n)
+                res.update({f"S{i}_{b}_{q}": val for q, val in _sc_0910(pb, y, lut1[b], off, base).items()})
+
+        for kk in gates:
+            gates[kk] = gates[kk] and g[kk]
+        out.update({pre + kk: round(val, 4) if isinstance(val, float) else val for kk, val in res.items()})
+        print(f"e0915 {tag}: " + " ".join(f"{kk} {'OK' if g[kk] else 'DIFF'}" for kk in g) + f" ({time.time() - t0:.0f} s)", flush=True)
+    chk = {f"{kk}_ok": int(v) for kk, v in gates.items()}
+    chk["checks_ok"] = int(all(gates.values()))
+    if checks_only:
+        print(f"e0915 {prefix}: checks {'OK' if chk['checks_ok'] else 'FAILED'} ({time.time() - t0:.0f} s)")
+        return chk
+    out.update(chk)
+    out["fts"] = list(fts)
+    print(f"e0915 {prefix} r{fts[0]}-r{fts[-1]}: checks {'OK' if chk['checks_ok'] else 'FAILED'} ({time.time() - t0:.0f} s)")
+    return out
+
+
+def e0915_summary():
+    """Print E09.15 summary comparing NL, FTR1, FTR1_cos, FTR1_cos_z, FTR1_gmm."""
+    for tag, fts in (("cub_e09_15_ft_l25", (0, 1, 2)), ("cub_e09_15x_ft_l25", (3, 4))):
+        if not sorted((ROOT / "runs").glob(f"*__{tag}/metrics.json")):
+            print(f"\n{tag}: no run yet")
+            continue
+        m = _ref_metrics(tag)
+        assert m.get("checks_ok") == 1, f"{tag}: checks failed"
+        per = lambda key: np.array([[m[f"r{r}_s{N}_{key}"] for N in range(5)] for r in fts], float)
+        ft = lambda k: np.mean([per(f"S{i}_{k}") for i in range(1, 6)], axis=0).mean(1)
+        s5 = lambda k: per(f"S5_{k}").mean(1)
+        sd = len(fts) > 2
+        line = lambda name, x: f"  {name:<30}" + "".join(f"{val:9.3f}" for val in x) + f"{x.mean():9.3f}" + (f"{x.std(ddof=1):9.3f}" if sd else "")
+        head = f"  {'':<30}" + "".join(f"{x:>9}" for x in [f"r{r}" for r in fts] + ["mean"] + (["sd"] if sd else []))
+        print(f"\n{tag}: gates OK\n{head}")
+        for b in ("P", "NL", "FTR1", "FTR1_cos", "FTR1_cos_z", "FTR1_gmm"):
+            print(line(f"{b} New (M_d)", ft(f"{b}_New")))
+            print(line(f"{b} Old", ft(f"{b}_Old")))
+            print(line(f"{b} S5_All", s5(f"{b}_All")))
+            if b not in ("P", "NL", "FTR1"):
+                print(line(f"  dM_d ({b} - FTR1)", ft(f"{b}_New") - ft("FTR1_New")))
+                print(line(f"  dOld ({b} - FTR1)", ft(f"{b}_Old") - ft("FTR1_Old")))
+        for b in ("FTR1", "FTR1_cos", "FTR1_cos_z", "FTR1_gmm"):
+            print(line(f"c09 {b}", ft(f"{b}_c09")))
+
 def tier2_e1204(checks_only=False, fts=(0, 1, 2)):
     """E12.04 (pre-registration 15724a5) on the 15 snapshots gc10_v2_ft_r<r>_s<N>, r = 0-2, N = 0-4: state after step
     14 (replay.load), PCA-64 of step 05, partition ids (default k-means), keep and lut of the pipeline. Model N of
@@ -5716,7 +5886,7 @@ def e1205_summary(T=0.0273, B=0.615):
 
 def main(argv):
     p = argparse.ArgumentParser(prog="score.py", description="tier-1 scores of one step of a replay v2 run")
-    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary", "e1204", "e1204-summary", "e0912", "e0912-summary", "e0913", "e0913-summary", "e0914", "e0914-summary", "e1205", "e1205-summary"])
+    p.add_argument("step", choices=["03", "09", "e0907", "e0907-summary", "e0604", "e0604-summary", "e0906", "e0906-summary", "e0909", "e0909-summary", "e1101", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary", "e1204", "e1204-summary", "e0912", "e0912-summary", "e0913", "e0913-summary", "e0914", "e0914-summary", "e0915", "e0915-summary", "e1205", "e1205-summary"])
     p.add_argument("--from", dest="run", help="09: run id or tag of a v2 run (runs/<run>/snap)")
     p.add_argument("--ks", type=int, nargs="+", default=[5, 10, 15, 20, 30], help="numbers of clusters K'")
     p.add_argument("--k-first", type=int, default=0, help="e0907, e0906: first draw")
@@ -5731,7 +5901,7 @@ def main(argv):
     p.add_argument("--fts", default="0,1,2", help="e1203, e1204, e0912: FT seeds, 0,1,2 (exploration) or 3,4 (confirmation)")
     o = p.parse_args(argv)
     assert Path("main.py").exists(), "run from the repo root (relative paths: features/, splits/)"
-    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary", "e1204", "e1204-summary", "e0912", "e0912-summary", "e0913", "e0913-summary", "e0914", "e0914-summary", "e1205", "e1205-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
+    assert o.step in ("03", "e0907-summary", "e0604-summary", "e0906-summary", "e0909-summary", "e1101-summary", "cub-tb", "e1401", "e1401-summary", "e1402", "e1402-summary", "e1402b", "e1402b-summary", "e1403", "e1403-summary", "e1405", "e1405-summary", "e1406", "e1406-summary", "e1202", "e1202-summary", "e1407", "e1407-summary", "e0908", "e0908-summary", "e1408", "e1408-summary", "e1409", "e1409-summary", "e1203", "e1203-summary", "e0910", "e0910-summary", "e0911", "e0911-summary", "e1204", "e1204-summary", "e0912", "e0912-summary", "e0913", "e0913-summary", "e0914", "e0914-summary", "e0915", "e0915-summary", "e1205", "e1205-summary") or o.run or (o.step == "e0604" and o.dataset == "cub200"), \
         "steps 09, e0907, e0906 and e0604 (gc10) need --from <run>"
     if o.step == "e0907-summary":
         e0907_summary()
@@ -5820,6 +5990,15 @@ def main(argv):
     if o.step == "e0914":
         assert o.prefix == "cub_chain_ft_l25", "e0914 needs --prefix cub_chain_ft_l25"
         out = tier2_e0914(o.prefix, o.checks_only)
+        if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
+            (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
+        return
+    if o.step == "e0915-summary":
+        e0915_summary()
+        return
+    if o.step == "e0915":
+        assert o.prefix == "cub_chain_ft_l25", "e0915 needs --prefix cub_chain_ft_l25"
+        out = tier2_e0915(o.prefix, o.checks_only, tuple(int(x) for x in o.fts.split(",")))
         if os.environ.get("EXP_RUN_DIR") and not o.checks_only:
             (Path(os.environ["EXP_RUN_DIR"]) / "metrics.json").write_text(json.dumps(out, indent=2) + "\n")
         return
