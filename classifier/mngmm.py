@@ -280,8 +280,16 @@ class MNGMMClassifier():
         class_covs = params["class_covs"]
         log_probs = []
 
+        d = class_covs.shape[-1]
+        eye = jnp.eye(d, dtype=class_covs.dtype)
         for i in range(class_means.shape[0]):
-            mvn = dist.MultivariateNormal(class_means[i], class_covs[i])
+            cov = 0.5 * (class_covs[i] + class_covs[i].T)
+            try:
+                mvn = dist.MultivariateNormal(class_means[i], cov)
+            except ValueError:
+                min_eig = jnp.min(jnp.linalg.eigvalsh(cov))
+                jitter = jnp.maximum(0.0, -min_eig) + 1e-5
+                mvn = dist.MultivariateNormal(class_means[i], cov + jitter * eye)
             log_probs.append(mvn.log_prob(X))
         
         log_probs = jnp.stack(log_probs, axis=-1)
