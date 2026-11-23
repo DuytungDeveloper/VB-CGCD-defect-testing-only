@@ -97,7 +97,8 @@ class MNGMMClassifier():
             y_batch = y[ind] if y is not None else None
             
             if y_batch is not None:
-                base_dist = dist.MultivariateNormal(class_means[y_batch], class_covs[y_batch])
+                cov_batch = 0.5 * (class_covs[y_batch] + jnp.swapaxes(class_covs[y_batch], -1, -2))
+                base_dist = dist.MultivariateNormal(class_means[y_batch], cov_batch, validate_args=False)
                 numpyro.sample("obs", base_dist, obs=X_batch)
 
 
