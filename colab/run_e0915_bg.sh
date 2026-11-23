@@ -3,7 +3,8 @@ set -euo pipefail
 
 STAGE="${1:-auto}"
 WORK_DIR="${WORK_DIR:-/content/drive/MyDrive/VB_CGCD_Work}"
-REPO_DIR="${REPO_DIR:-$WORK_DIR/VB-CGCD-defect-testing-only}"
+DRIVE_REPO="${DRIVE_REPO:-$WORK_DIR/VB-CGCD-defect-testing-only}"
+REPO_DIR="${REPO_DIR:-/content/VB-CGCD-defect-testing-only}"
 SUMMARY_OUT="${SUMMARY_OUT:-$WORK_DIR/e0915_summary.txt}"
 
 trap 'rc=$?; echo "=== FINISHED (stage=$STAGE, exit=$rc) at $(date) ==="' EXIT
@@ -17,6 +18,45 @@ export MKL_NUM_THREADS=1
 echo "=== START E09.15 RUN (stage=$STAGE) at $(date) ==="
 python -c "import jax; print('JAX devices:', jax.devices())"
 
+sync_from_drive() {
+  mkdir -p features runs "$DRIVE_REPO/features" "$DRIVE_REPO/runs"
+  for d in "$DRIVE_REPO"/features/*__colab_cub_ft_l25_r0; do
+    [ -d "$d" ] || continue
+    b=$(basename "$d")
+    if [ ! -d "features/$b" ]; then
+      echo ">>> Đồng bộ features từ Drive: $b"
+      cp -r "$d" "features/$b"
+    fi
+  done
+  for d in "$DRIVE_REPO"/runs/*__colab_cub_ft_l25* "$DRIVE_REPO"/runs/*__colab_e09_15_ft_l25*; do
+    [ -d "$d" ] || continue
+    b=$(basename "$d")
+    if [ ! -d "runs/$b" ]; then
+      echo ">>> Đồng bộ run từ Drive: $b"
+      cp -r "$d" "runs/$b"
+    fi
+  done
+}
+
+backup_to_drive() {
+  mkdir -p "$DRIVE_REPO/features" "$DRIVE_REPO/runs"
+  for d in features/*__colab_cub_ft_l25_r0; do
+    [ -d "$d" ] || continue
+    b=$(basename "$d")
+    [ -d "$DRIVE_REPO/features/$b" ] || cp -r "$d" "$DRIVE_REPO/features/$b"
+  done
+  for d in runs/*__colab_*; do
+    [ -d "$d" ] || continue
+    b=$(basename "$d")
+    rm -rf "$DRIVE_REPO/runs/$b.tmp"
+    cp -r "$d" "$DRIVE_REPO/runs/$b.tmp"
+    rm -rf "$DRIVE_REPO/runs/$b"
+    mv "$DRIVE_REPO/runs/$b.tmp" "$DRIVE_REPO/runs/$b"
+  done
+}
+
+sync_from_drive
+
 run_phase1() {
   local feat
   feat=$(ls -d features/*__colab_cub_ft_l25_r0/dino-vitb16-sl 2>/dev/null | sort | tail -n 1 || true)
@@ -28,6 +68,7 @@ run_phase1() {
   FT_SEED=0 FT_EPOCHS=10 FT_BATCH_SIZE=32 FT_ACCUM=4 FT_LABELED_IDX=splits/cub_labeled_hf_idx.npy \
     python scripts/exp.py run colab_cub_ft_l25_r0 --inputs - -- bash -c \
     'O="features/$(basename "$EXP_RUN_DIR")"; mkdir -p "$O" && FT_CKPT_PATH="$O/ft_ckpt.pt" python -u feature_extractor/dino-cub200.py --finetuned --output_dir "$O" --batch-size 128 --seed "$FT_SEED"'
+  backup_to_drive
 }
 
 run_seed() {
@@ -59,6 +100,7 @@ run_seed() {
     python scripts/exp.py run "$tag" --inputs "$feat" -- \
       python lab/sessions.py run --features "$feat" --seed "$s" --dataset cub200
   fi
+  backup_to_drive
 }
 
 commit_logs() {
@@ -85,6 +127,7 @@ run_e0915() {
   echo ">>> Chạy chính thức E09.15 ($(date))..."
   python scripts/exp.py run colab_e09_15_ft_l25 -- \
     python lab/score.py e0915 --prefix colab_cub_ft_l25 --fts 0
+  backup_to_drive
 }
 
 run_summary() {
