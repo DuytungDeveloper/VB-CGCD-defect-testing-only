@@ -104,9 +104,25 @@ run_seed() {
 }
 
 commit_logs() {
+  for s in 0 1 2 3 4; do
+    local tag="colab_cub_ft_l25_r0_s${s}"
+    local keep
+    keep=$(ls -d runs/*__"${tag}"/snap/S5_14.pkl 2>/dev/null | sort | tail -n 1 || true)
+    if [ -n "$keep" ]; then
+      local keep_dir
+      keep_dir=$(dirname "$(dirname "$keep")")
+      for d in runs/*__"${tag}"; do
+        [ -d "$d" ] || continue
+        if [ "$d" != "$keep_dir" ]; then
+          echo ">>> Xóa thư mục trùng chưa hoàn thành: $d"
+          rm -rf "$d" "$DRIVE_REPO/$d"
+        fi
+      done
+    fi
+  done
   git config user.name 'Colab Runner'
   git config user.email 'colab@example.com'
-  git add notes/LOG.md runs/INDEX.txt runs/*__colab_cub_ft_l25* 2>/dev/null || true
+  git add -A notes/LOG.md runs/INDEX.txt runs/*__colab_cub_ft_l25* 2>/dev/null || true
   git diff --cached --quiet || git commit -m "colab: luu log colab_cub_ft_l25_r0"
 }
 
