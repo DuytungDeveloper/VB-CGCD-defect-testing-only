@@ -166,6 +166,85 @@ def run_all(st, save=None):
     return sess, views, logs
 
 
+def _resume_from(prev_run, args, hashes, snap, sizes):
+    """Copy valid contiguous prefix of snapshots from prev_run into snap and return (st, views, done_set) or None."""
+    try:
+        blobs = snapshots_sessions(prev_run)
+    except Exception as e:
+        print(f"sessions resume: ignore {prev_run} ({e})")
+        return None
+    n = N_SESSIONS[args.load_mode]
+    ordered = list(S0_STEPS) + [f"S{i}_{k}" for i in range(1, n + 1) for k in S_STEPS]
+    done = []
+    for idx, name in enumerate(ordered):
+        b = blobs.get(name)
+        if b is None or b.get("meta", {}).get("dirty") or b.get("hash") != hashes[name]:
+            break
+        has_rng = "rng_out" in b or (idx + 1 < len(ordered) and ordered[idx + 1] in blobs)
+        if not has_rng:
+            break
+        done.append(name)
+    if not done:
+        print(f"sessions resume: no valid matching snapshots in {prev_run}, starting fresh")
+        return None
+    last = done[-1]
+    for name in done:
+        data = pickle.dumps(blobs[name], protocol=pickle.HIGHEST_PROTOCOL)
+        (snap / f"{name}.pkl").write_bytes(data)
+        sizes[name] = len(data)
+    st, views = load(prev_run, upto=last, check=False)
+    last_idx = ordered.index(last)
+    rng_state = blobs[last]["rng_out"] if "rng_out" in blobs[last] else blobs[ordered[last_idx + 1]]["rng_in"]
+    np.random.set_state(rng_state)
+    print(f"sessions resume: restored {len(done)}/{len(ordered)} snapshots from {prev_run} (upto {last})")
+    return st, views, set(done)
+
+
+def run_all_resume(st, views, done, save=None):
+    """Resume S0 and sessions 1..n from the first step not in done."""
+    a = st["args"]
+    if not all(k in done for k in S0_STEPS):
+        if "04" not in done:
+            sess = run_s0(st, save)
+        else:
+            sess = st["sessions"]
+            for k in S0_STEPS[1:]:
+                if k not in done:
+                    rng_in, log = _step(st, k)
+                    if save:
+                        save(k, {x: st[x] for x in OWNS[k]}, rng_in, log)
+    else:
+        sess = st["sessions"]
+    prev = None
+    for i in range(1, len(sess) + 1):
+        if all(f"S{i}_{k}" in done for k in S_STEPS):
+            prev = views[i - 1]
+            continue
+        if i <= len(views):
+            view = views[i - 1]
+            off = view["offset"]
+            for k in S_STEPS:
+                if f"S{i}_{k}" in done:
+                    continue
+                rng_in, log = _step(view, k, live=k != "10")
+                if k == "10":
+                    lut = prev["lut"].copy() if prev is not None else np.arange(a.num_classes)
+                    for c, t in view["pi_test"].items():
+                        lut[off + t] = off + c
+                    view["lut"] = lut
+                    assert log.count(STAGE_LINE) == 1
+                    sys.stdout.write(log.replace(STAGE_LINE, f"hungarian stage {i}:"))
+                if save:
+                    out = {x: view[x] for x in OWNS[k]}
+                    if k in PACKED:
+                        out[PACKED[k]] = _pack(out[PACKED[k]], view["params0"], a.num_classes)
+                    save(f"S{i}_{k}", out, rng_in, log)
+            prev = view
+        else:
+            prev, _ = run_session(st, sess, i, prev, save)
+    return sess
+
+
 # ---------------------------------------------------------------- snapshots: packing, hashes, load
 def _pack(p, ref, n_classes):
     """Arrays of p whose first axis is the class slot keep only the slots that differ from ref; the rest whole.
@@ -289,6 +368,7 @@ def cmd_run(argv):
     p.add_argument("--features", required=True, help="features/<run_id>/<model>")
     p.add_argument("--seed", type=int, required=True)
     p.add_argument("--dataset", default="cub200", choices=sorted(PRESETS))
+    p.add_argument("--resume", default=None, help="previous run id/dir to resume from")
     o = p.parse_args(argv)
     if not os.environ.get("EXP_RUN_DIR"):
         sys.exit("sessions run: run it through scripts/exp.py (the run folder holds the snapshots)")
@@ -307,7 +387,8 @@ def cmd_run(argv):
     sizes = {}
 
     def save(name, out, rng_in, log):
-        blob = dict(step=name, out=out, rng_in=rng_in, log=log, hash=hashes[name], meta=meta)
+        blob = dict(step=name, out=out, rng_in=rng_in, rng_out=np.random.get_state(),
+                    log=log, hash=hashes[name], meta=meta)
         data = pickle.dumps(blob, protocol=pickle.HIGHEST_PROTOCOL)
         (snap / f"{name}.pkl").write_bytes(data)
         sizes[name] = len(data)
@@ -315,7 +396,12 @@ def cmd_run(argv):
     print(f"sessions: {run_dir.name} | commit {git['commit'][:7]} | {o.dataset} {args.load_mode} | seed {o.seed} | "
           f"device {device}")
     t0 = time.time()
-    run_all(st, save)
+    resumed = _resume_from(o.resume, args, hashes, snap, sizes) if o.resume else None
+    if resumed is not None:
+        st_r, views_r, done_r = resumed
+        run_all_resume(st_r, views_r, done_r, save)
+    else:
+        run_all(st, save)
     print(f"sessions: {len(sizes)} snapshots, {sum(sizes.values()) / 2 ** 20:.1f} MiB, largest "
           f"{max(sizes, key=sizes.get)} {max(sizes.values()) / 2 ** 20:.1f} MiB; {time.time() - t0:.0f} s")
     _metrics(run_dir)
