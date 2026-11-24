@@ -16,12 +16,11 @@ from replay import _clf, _component, _jnp, s09_cluster
 
 def eval_tag(tag):
     """Return dict of P, NL, FTR1 metrics (bal, Old, All) for one gc10 sessions run."""
-    import jax.numpy as jnp
-
     blobs = sessions.snapshots_sessions(tag)
     rng = blobs["S1_09"]["rng_in"]
     del blobs
     st, views = sessions.load(tag, check=False)
+    import jax.numpy as jnp
     v = views[0]
     a = st["args"]
     base, inc, off = a.base, a.increment, int(v["offset"])
