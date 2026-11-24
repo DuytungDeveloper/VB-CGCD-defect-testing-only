@@ -55,7 +55,7 @@ def _xml_crop_box(img_path, pad_frac=0.15, min_side=64.0):
 
 
 @torch.no_grad()
-def compute_auto_roi_boxes(paths, device="cuda", img_size=448, pad_frac=0.15, min_side=64.0):
+def compute_auto_roi_boxes(paths, device="cuda", img_size=336, batch_size=8, pad_frac=0.15, min_side=64.0):
     """Unsupervised AnomalyNCD-style ROI: frozen DINO patch deviation + CLS attention + MEBin sweep."""
     from PIL import Image
     from scipy.ndimage import label, uniform_filter
@@ -70,10 +70,11 @@ def compute_auto_roi_boxes(paths, device="cuda", img_size=448, pad_frac=0.15, mi
     ])
     g = img_size // 16
     norm01 = lambda t: (t - t.min(dim=1, keepdim=True).values) / (t.max(dim=1, keepdim=True).values - t.min(dim=1, keepdim=True).values + 1e-6)
+    use_amp = str(device).startswith("cuda") and torch.cuda.is_available()
 
     boxes = {}
-    for i in range(0, len(uniq), 32):
-        batch_p = uniq[i:i + 32]
+    for i in range(0, len(uniq), batch_size):
+        batch_p = uniq[i:i + batch_size]
         imgs, sizes = [], []
         for p in batch_p:
             with Image.open(p) as im:
@@ -81,9 +82,11 @@ def compute_auto_roi_boxes(paths, device="cuda", img_size=448, pad_frac=0.15, mi
                 sizes.append(im.size)
                 imgs.append(tfm(im))
         x = torch.stack(imgs).to(device)
-        out = model(x, interpolate_pos_encoding=True, output_attentions=True)
-        attn = norm01(out.attentions[-1][:, :, 0, 1:].mean(dim=1))
-        pt = torch.nn.functional.normalize(out.last_hidden_state[:, 1:, :], dim=-1)
+        with torch.autocast("cuda", dtype=torch.float16, enabled=use_amp):
+            out = model(x, interpolate_pos_encoding=True, output_attentions=True)
+            attn = norm01(out.attentions[-1][:, :, 0, 1:].mean(dim=1).float())
+            pt = torch.nn.functional.normalize(out.last_hidden_state[:, 1:, :].float(), dim=-1)
+        del out, x
         bg = torch.nn.functional.normalize(pt.median(dim=1, keepdim=True).values, dim=-1)
         dev = norm01(1.0 - (pt * bg).sum(dim=-1))
         smaps = (0.5 * attn + 0.5 * dev).reshape(-1, g, g).cpu().numpy()
