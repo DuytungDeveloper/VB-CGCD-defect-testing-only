@@ -198,6 +198,8 @@ def main():
                     help="oracle ROI: crop largest XML defect bbox (+15% pad) before resize")
     ap.add_argument("--roi_auto", action="store_true",
                     help="unsupervised ROI: frozen DINO patch deviation + CLS attention + MEBin crop")
+    ap.add_argument("--roi_fusion", action="store_true",
+                    help="Step A1c: fine-tune on full images, then L2-fuse Full + Auto-ROI features")
     a = ap.parse_args()
     torch.manual_seed(a.seed)                      # every seed works, including 0 (cf. D4)
     if torch.cuda.is_available():
@@ -213,10 +215,11 @@ def main():
         torchvision.transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 
     roi_map = None
-    if a.roi_auto:
+    if a.roi_auto or a.roi_fusion:
         all_p = build(split, "train")[0] + build(split, "test")[0]
         roi_map = compute_auto_roi_boxes(all_p, device=a.device)
 
+    ft_roi_map = None if a.roi_fusion else roi_map
     if a.no_finetune:                              # label-free: no label is used anywhere here
         from transformers import ViTModel
         model = ViTModel.from_pretrained("facebook/dino-vitb16")
@@ -225,16 +228,25 @@ def main():
     else:
         p, l = build(split, "train", rows=n_use)
         keep = [i for i, y in enumerate(l) if y < n_base]
-        ft = to_dataset([p[i] for i in keep], [l[i] for i in keep], tfm, roi_xml=a.roi_xml, roi_map=roi_map)
-        print(f"dino-neudet: fine-tune on {len(ft)} labeled images of {n_base} base classes")
+        ft = to_dataset([p[i] for i in keep], [l[i] for i in keep], tfm, roi_xml=a.roi_xml, roi_map=ft_roi_map)
+        print(f"dino-neudet: fine-tune on {len(ft)} labeled images of {n_base} base classes"
+              + (" (full-image FT for --roi_fusion)" if a.roi_fusion else ""))
         model = finetune_dino(ft, len(split["classes"]), model_name=a.model)
         name = a.model.replace("_", "-") + "-sl"
     out = f"{a.output_dir}/{name}"
     os.makedirs(out, exist_ok=True)
+    interp = (a.resize == "full" and a.img_size != [224, 224])
     for part, pre in (("train", ""), ("test", "test_")):
-        x, y = extract(model, to_dataset(*build(split, part), tfm, roi_xml=a.roi_xml, roi_map=roi_map),
-                       a.device, a.batch_size, cls=a.no_finetune,
-                       interp=(a.resize == "full" and a.img_size != [224, 224]))
+        if a.roi_fusion:
+            xf, y = extract(model, to_dataset(*build(split, part), tfm), a.device, a.batch_size,
+                            cls=a.no_finetune, interp=interp)
+            xr, _ = extract(model, to_dataset(*build(split, part), tfm, roi_map=roi_map), a.device, a.batch_size,
+                            cls=a.no_finetune, interp=interp)
+            l2 = lambda z: z / np.maximum(np.linalg.norm(z, axis=1, keepdims=True), 1e-8)
+            x = l2(0.5 * l2(xf) + 0.5 * l2(xr)).astype(np.float32)
+        else:
+            x, y = extract(model, to_dataset(*build(split, part), tfm, roi_xml=a.roi_xml, roi_map=roi_map),
+                           a.device, a.batch_size, cls=a.no_finetune, interp=interp)
         np.save(f"{out}/{pre}features-{name}.npy", x)
         np.save(f"{out}/{pre}labels-{name}.npy", y)
         print(f"dino-neudet: {part} features {x.shape}, per class {np.bincount(y).tolist()}, "
