@@ -1,0 +1,35 @@
+
+cub_e09_15_ft_l25: no run yet
+
+cub_e09_15x_ft_l25: no run yet
+
+colab_e09_15_ft_l25: gates OK
+                                       r0     mean
+  P New (M_d)                      57.468   57.468
+  P Old                            74.062   74.062
+  P S5_All                         66.655   66.655
+  NL New (M_d)                     60.301   60.301
+  NL Old                           75.330   75.330
+  NL S5_All                        68.336   68.336
+  FTR1 New (M_d)                   70.741   70.741
+  FTR1 Old                         79.489   79.489
+  FTR1 S5_All                      74.791   74.791
+  FTR1_cos New (M_d)               70.344   70.344
+  FTR1_cos Old                     79.054   79.054
+  FTR1_cos S5_All                  74.429   74.429
+    dM_d (FTR1_cos - FTR1)         -0.397   -0.397
+    dOld (FTR1_cos - FTR1)         -0.436   -0.436
+  FTR1_cos_z New (M_d)             70.349   70.349
+  FTR1_cos_z Old                   79.213   79.213
+  FTR1_cos_z S5_All                74.608   74.608
+    dM_d (FTR1_cos_z - FTR1)       -0.392   -0.392
+    dOld (FTR1_cos_z - FTR1)       -0.276   -0.276
+  FTR1_gmm New (M_d)               69.739   69.739
+  FTR1_gmm Old                     78.841   78.841
+  FTR1_gmm S5_All                  74.253   74.253
+    dM_d (FTR1_gmm - FTR1)         -1.002   -1.002
+    dOld (FTR1_gmm - FTR1)         -0.648   -0.648
+  c09 FTR1                         73.008   73.008
+  c09 FTR1_cos                     72.032   72.032
+  c09 FTR1_cos_z                   73.200   73.200
+  c09 FTR1_gmm                     71.560   71.560

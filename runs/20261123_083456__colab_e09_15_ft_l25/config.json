@@ -1,0 +1,38 @@
+{
+  "run_id": "20261123_083456__colab_e09_15_ft_l25",
+  "tag": "colab_e09_15_ft_l25",
+  "command": [
+    "python",
+    "lab/score.py",
+    "e0915",
+    "--prefix",
+    "colab_cub_ft_l25",
+    "--fts",
+    "0"
+  ],
+  "cwd": "/content/VB-CGCD-defect-testing-only",
+  "started": "2026-11-23T08:34:56+00:00",
+  "git": {
+    "commit": "5d7e201961a30215529b8092568cf44e4f886e22",
+    "dirty": false,
+    "dirty_files": []
+  },
+  "env": {
+    "id": "fbfd374238e8",
+    "pip_freeze": "runs/envs/fbfd374238e8.txt",
+    "conda_env": null,
+    "gpu": "NVIDIA L4, 580.82.07"
+  },
+  "python": "3.13.16",
+  "host": "8c1232261308",
+  "inputs_source": "inputs.txt",
+  "inputs": {
+    "features/20261005_013115__gc10_ft_cls5first_img80pct_r0/dino-vitb16-sl": null
+  },
+  "warnings": [
+    "input missing: features/20261005_013115__gc10_ft_cls5first_img80pct_r0/dino-vitb16-sl"
+  ],
+  "finished": "2026-11-23T09:08:11+00:00",
+  "duration_min": 33.2,
+  "exit_code": 0
+}
