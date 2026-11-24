@@ -53,16 +53,15 @@ def eval_tag(tag):
     zp, X = np.asarray(v["z_pool"], np.float64), np.asarray(v["pool_x"])
     ids, keep = np.asarray(v["ids"]).astype(int), np.asarray(v["keep"]).astype(bool)
 
+    lb = score._logd_1202("A3", base_slots, zt)
+
     # NL
-    nl_slots = []
+    nl_rows = []
     for c in range(inc):
         rr = np.flatnonzero(keep & (ids == c))
-        if len(rr):
-            k_nl = score._nl_keep_0910(zp[rr], base_rows, base_slots, prior, idx)
-            nl_slots.append(score._post_1406(zp[rr[k_nl]], prior))
-        else:
-            nl_slots.append(score._post_1406(zp[:0], prior))
-    out["NL"] = score._sc_1204(score._pred_1406(zt, base_slots + nl_slots), y, lut[y], off)
+        nl_rows.append(zp[rr[score._nl_keep_0910(zp[rr], base_rows, base_slots, prior, idx)]] if len(rr) else zp[:0])
+    L_nl = np.concatenate([lb, score._logd_1202("A3", [score._post_1406(R, prior) for R in nl_rows], zt)], 1)
+    out["NL"] = score._sc_1204(L_nl, y, lut[y], off)
 
     # FTR1
     G = np.zeros(len(zp), bool)
@@ -75,16 +74,13 @@ def eval_tag(tag):
     with contextlib.redirect_stdout(io.StringIO()):
         cl = s09_cluster(dict(args=a, offset=off, pool_x=X[ri]))
     lab = np.asarray(cl["ids"]).astype(int)
-    ftr_slots = []
+    ftr_rows = []
     for c in range(inc):
         rc = ri[lab == c]
-        if len(rc):
-            k2 = score._nl_keep_0910(zp[rc], base_rows, base_slots, prior, idx)
-            ftr_slots.append(score._post_1406(zp[rc[k2]], prior))
-        else:
-            ftr_slots.append(score._post_1406(zp[:0], prior))
+        ftr_rows.append(zp[rc[score._nl_keep_0910(zp[rc], base_rows, base_slots, prior, idx)]] if len(rc) else zp[:0])
     lut_ftr = score._lut_1205(a, off, cl["cluster"], v["test1_x"], y1)
-    out["FTR1"] = score._sc_1204(score._pred_1406(zt, base_slots + ftr_slots), y, lut_ftr[y], off)
+    L_ftr = np.concatenate([lb, score._logd_1202("A3", [score._post_1406(R, prior) for R in ftr_rows], zt)], 1)
+    out["FTR1"] = score._sc_1204(L_ftr, y, lut_ftr[y], off)
     return out
 
 
