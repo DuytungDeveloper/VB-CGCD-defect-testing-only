@@ -54,6 +54,81 @@ def _xml_crop_box(img_path, pad_frac=0.15, min_side=64.0):
     return [cx - 0.5 * w - pw, cy - 0.5 * h - ph, cx + 0.5 * w + pw, cy + 0.5 * h + ph]
 
 
+@torch.no_grad()
+def compute_auto_roi_boxes(paths, device="cuda", img_size=448, pad_frac=0.15, min_side=64.0):
+    """Unsupervised AnomalyNCD-style ROI: frozen DINO patch deviation + CLS attention + MEBin sweep."""
+    from PIL import Image
+    from scipy.ndimage import label, uniform_filter
+    from transformers import ViTModel
+
+    uniq = list(dict.fromkeys(paths))
+    model = ViTModel.from_pretrained("facebook/dino-vitb16", attn_implementation="eager").to(device).eval()
+    tfm = torchvision.transforms.Compose([
+        torchvision.transforms.Resize((img_size, img_size), 3),
+        torchvision.transforms.ToTensor(),
+        torchvision.transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+    ])
+    g = img_size // 16
+    norm01 = lambda t: (t - t.min(dim=1, keepdim=True).values) / (t.max(dim=1, keepdim=True).values - t.min(dim=1, keepdim=True).values + 1e-6)
+
+    boxes = {}
+    for i in range(0, len(uniq), 32):
+        batch_p = uniq[i:i + 32]
+        imgs, sizes = [], []
+        for p in batch_p:
+            with Image.open(p) as im:
+                im = im.convert("RGB")
+                sizes.append(im.size)
+                imgs.append(tfm(im))
+        x = torch.stack(imgs).to(device)
+        out = model(x, interpolate_pos_encoding=True, output_attentions=True)
+        attn = norm01(out.attentions[-1][:, :, 0, 1:].mean(dim=1))
+        pt = torch.nn.functional.normalize(out.last_hidden_state[:, 1:, :], dim=-1)
+        bg = torch.nn.functional.normalize(pt.median(dim=1, keepdim=True).values, dim=-1)
+        dev = norm01(1.0 - (pt * bg).sum(dim=-1))
+        smaps = (0.5 * attn + 0.5 * dev).reshape(-1, g, g).cpu().numpy()
+
+        for p, (W, H), smap in zip(batch_p, sizes, smaps):
+            sm = uniform_filter(smap, size=3)
+            best_score, best_box = -1.0, None
+            for tau in (0.45, 0.52, 0.58, 0.65, 0.72):
+                lbl, n_comp = label(sm >= tau)
+                for cid in range(1, n_comp + 1):
+                    ys, xs = np.where(lbl == cid)
+                    frac = len(xs) / float(g * g)
+                    if not (0.015 <= frac <= 0.65):
+                        continue
+                    sc = float(sm[ys, xs].mean()) * (1.0 - 0.3 * frac)
+                    if sc > best_score:
+                        best_score = sc
+                        x1, x2 = xs.min() * (W / g), (xs.max() + 1) * (W / g)
+                        y1, y2 = ys.min() * (H / g), (ys.max() + 1) * (H / g)
+                        bw, bh = max(x2 - x1, min_side), max(y2 - y1, min_side)
+                        cx, cy = 0.5 * (x1 + x2), 0.5 * (y1 + y2)
+                        pw, ph = max(16.0, pad_frac * bw), max(16.0, pad_frac * bh)
+                        best_box = [cx - 0.5 * bw - pw, cy - 0.5 * bh - ph, cx + 0.5 * bw + pw, cy + 0.5 * bh + ph]
+            boxes[p] = best_box
+
+    del model
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    ious = []
+    for p, b in boxes.items():
+        gt = _xml_crop_box(p)
+        if b is not None and gt is not None:
+            ix1, iy1 = max(b[0], gt[0]), max(b[1], gt[1])
+            ix2, iy2 = min(b[2], gt[2]), min(b[3], gt[3])
+            inter = max(0.0, ix2 - ix1) * max(0.0, iy2 - iy1)
+            ua = (b[2] - b[0]) * (b[3] - b[1]) + (gt[2] - gt[0]) * (gt[3] - gt[1]) - inter
+            if ua > 0:
+                ious.append(inter / ua)
+    n_hit = sum(b is not None for b in boxes.values())
+    iou_msg = f" | diag_IoU_vs_XML={np.mean(ious):.3f} (n={len(ious)})" if ious else ""
+    print(f"dino-neudet: --roi_auto localized {n_hit}/{len(boxes)} images{iou_msg}")
+    return boxes
+
+
 def build(split, part, rows=None):
     sub = "train" if part == "train" else "validation"
     paths, labels = [], []
@@ -65,11 +140,15 @@ def build(split, part, rows=None):
     return paths, labels
 
 
-def to_dataset(paths, labels, tfm, roi_xml=False):
-    boxes = [_xml_crop_box(p) for p in paths] if roi_xml else [None] * len(paths)
-    if roi_xml:
+def to_dataset(paths, labels, tfm, roi_xml=False, roi_map=None):
+    if roi_map is not None:
+        boxes = [roi_map.get(p) for p in paths]
+    elif roi_xml:
+        boxes = [_xml_crop_box(p) for p in paths]
         n_hit = sum(b is not None for b in boxes)
         print(f"dino-neudet: --roi_xml matched {n_hit}/{len(paths)} images")
+    else:
+        boxes = [None] * len(paths)
     ds = Dataset.from_dict({"image": paths, "labels": labels, "box": boxes}).cast_column("image", HFImage())
     def trans(ex):
         imgs = []
@@ -113,6 +192,8 @@ def main():
                     help="--resize full only: target H W; other than 224 224 uses interpolate_pos_encoding")
     ap.add_argument("--roi_xml", action="store_true",
                     help="oracle ROI: crop largest XML defect bbox (+15% pad) before resize")
+    ap.add_argument("--roi_auto", action="store_true",
+                    help="unsupervised ROI: frozen DINO patch deviation + CLS attention + MEBin crop")
     a = ap.parse_args()
     torch.manual_seed(a.seed)                      # every seed works, including 0 (cf. D4)
     if torch.cuda.is_available():
@@ -127,6 +208,11 @@ def main():
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 
+    roi_map = None
+    if a.roi_auto:
+        all_p = build(split, "train")[0] + build(split, "test")[0]
+        roi_map = compute_auto_roi_boxes(all_p, device=a.device)
+
     if a.no_finetune:                              # label-free: no label is used anywhere here
         from transformers import ViTModel
         model = ViTModel.from_pretrained("facebook/dino-vitb16")
@@ -135,14 +221,15 @@ def main():
     else:
         p, l = build(split, "train", rows=n_use)
         keep = [i for i, y in enumerate(l) if y < n_base]
-        ft = to_dataset([p[i] for i in keep], [l[i] for i in keep], tfm, roi_xml=a.roi_xml)
+        ft = to_dataset([p[i] for i in keep], [l[i] for i in keep], tfm, roi_xml=a.roi_xml, roi_map=roi_map)
         print(f"dino-neudet: fine-tune on {len(ft)} labeled images of {n_base} base classes")
         model = finetune_dino(ft, len(split["classes"]), model_name=a.model)
         name = a.model.replace("_", "-") + "-sl"
     out = f"{a.output_dir}/{name}"
     os.makedirs(out, exist_ok=True)
     for part, pre in (("train", ""), ("test", "test_")):
-        x, y = extract(model, to_dataset(*build(split, part), tfm, roi_xml=a.roi_xml), a.device, a.batch_size, cls=a.no_finetune,
+        x, y = extract(model, to_dataset(*build(split, part), tfm, roi_xml=a.roi_xml, roi_map=roi_map),
+                       a.device, a.batch_size, cls=a.no_finetune,
                        interp=(a.resize == "full" and a.img_size != [224, 224]))
         np.save(f"{out}/{pre}features-{name}.npy", x)
         np.save(f"{out}/{pre}labels-{name}.npy", y)
