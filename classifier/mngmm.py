@@ -97,7 +97,8 @@ class MNGMMClassifier():
             y_batch = y[ind] if y is not None else None
             
             if y_batch is not None:
-                base_dist = dist.MultivariateNormal(class_means[y_batch], class_covs[y_batch])
+                cov_batch = 0.5 * (class_covs[y_batch] + jnp.swapaxes(class_covs[y_batch], -1, -2))
+                base_dist = dist.MultivariateNormal(class_means[y_batch], cov_batch, validate_args=False)
                 numpyro.sample("obs", base_dist, obs=X_batch)
 
 
@@ -280,8 +281,16 @@ class MNGMMClassifier():
         class_covs = params["class_covs"]
         log_probs = []
 
+        d = class_covs.shape[-1]
+        eye = jnp.eye(d, dtype=class_covs.dtype)
         for i in range(class_means.shape[0]):
-            mvn = dist.MultivariateNormal(class_means[i], class_covs[i])
+            cov = 0.5 * (class_covs[i] + class_covs[i].T)
+            try:
+                mvn = dist.MultivariateNormal(class_means[i], cov)
+            except ValueError:
+                min_eig = jnp.min(jnp.linalg.eigvalsh(cov))
+                jitter = jnp.maximum(0.0, -min_eig) + 1e-5
+                mvn = dist.MultivariateNormal(class_means[i], cov + jitter * eye)
             log_probs.append(mvn.log_prob(X))
         
         log_probs = jnp.stack(log_probs, axis=-1)

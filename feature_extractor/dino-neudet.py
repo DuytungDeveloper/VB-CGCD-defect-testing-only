@@ -9,12 +9,49 @@ Run through the wrapper:
   python scripts/exp.py run neu_extract --inputs splits/neu_split.json -- bash scripts/run_phase1_neu.sh
 """
 import argparse, json, os
+from pathlib import Path
+import xml.etree.ElementTree as ET
 import numpy as np
 import torch, torchvision
 from datasets import Dataset, Image as HFImage
 from sl_finetuned_model import finetune_dino
 
 N_BASE = 3
+
+
+def _xml_crop_box(img_path, pad_frac=0.15, min_side=64.0):
+    """Return largest own-class (or any) XML bbox [x1, y1, x2, y2] with context padding, or None."""
+    p = Path(img_path)
+    xml = p.parent.parent / "label" / f"{p.stem}.xml"
+    if not xml.exists():
+        return None
+    try:
+        root = ET.parse(xml).getroot()
+    except ET.ParseError:
+        return None
+    folder = p.parent.name
+    own, other = [], []
+    for o in root.iter("object"):
+        b = o.find("bndbox")
+        if b is None:
+            continue
+        try:
+            vals = [float(b.findtext(k)) for k in ("xmin", "ymin", "xmax", "ymax")]
+        except (TypeError, ValueError):
+            continue
+        x1, y1, x2, y2 = vals
+        if x2 <= x1 or y2 <= y1:
+            continue
+        name = (o.findtext("name") or "").strip()
+        (own if name.split("_", 1)[0] == folder else other).append((x1, y1, x2, y2))
+    cands = own or other
+    if not cands:
+        return None
+    x1, y1, x2, y2 = max(cands, key=lambda b: (b[2] - b[0]) * (b[3] - b[1]))
+    w, h = max(x2 - x1, min_side), max(y2 - y1, min_side)
+    cx, cy = 0.5 * (x1 + x2), 0.5 * (y1 + y2)
+    pw, ph = max(16.0, pad_frac * w), max(16.0, pad_frac * h)
+    return [cx - 0.5 * w - pw, cy - 0.5 * h - ph, cx + 0.5 * w + pw, cy + 0.5 * h + ph]
 
 
 def build(split, part, rows=None):
@@ -28,10 +65,24 @@ def build(split, part, rows=None):
     return paths, labels
 
 
-def to_dataset(paths, labels, tfm):
-    ds = Dataset.from_dict({"image": paths, "labels": labels}).cast_column("image", HFImage())
+def to_dataset(paths, labels, tfm, roi_xml=False):
+    boxes = [_xml_crop_box(p) for p in paths] if roi_xml else [None] * len(paths)
+    if roi_xml:
+        n_hit = sum(b is not None for b in boxes)
+        print(f"dino-neudet: --roi_xml matched {n_hit}/{len(paths)} images")
+    ds = Dataset.from_dict({"image": paths, "labels": labels, "box": boxes}).cast_column("image", HFImage())
     def trans(ex):
-        return {"images": [tfm(im.convert("RGB")) for im in ex["image"]], "labels": torch.tensor(ex["labels"])}
+        imgs = []
+        for im, b in zip(ex["image"], ex["box"]):
+            im = im.convert("RGB")
+            if b is not None:
+                W, H = im.size
+                x1, y1 = max(0, int(round(b[0]))), max(0, int(round(b[1])))
+                x2, y2 = min(W, int(round(b[2]))), min(H, int(round(b[3])))
+                if x2 > x1 and y2 > y1:
+                    im = im.crop((x1, y1, x2, y2))
+            imgs.append(tfm(im))
+        return {"images": imgs, "labels": torch.tensor(ex["labels"])}
     return ds.with_transform(trans)
 
 
@@ -60,8 +111,12 @@ def main():
                     help="crop = Resize 256 + CenterCrop 224 (NEU, CIFAR); full = whole image to 224x224 (GC10)")
     ap.add_argument("--img_size", type=int, nargs=2, default=[224, 224], metavar=("H", "W"),
                     help="--resize full only: target H W; other than 224 224 uses interpolate_pos_encoding")
+    ap.add_argument("--roi_xml", action="store_true",
+                    help="oracle ROI: crop largest XML defect bbox (+15% pad) before resize")
     a = ap.parse_args()
     torch.manual_seed(a.seed)                      # every seed works, including 0 (cf. D4)
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
 
     split = json.load(open(a.split))
     n_base = split.get("n_base", N_BASE)
@@ -80,19 +135,21 @@ def main():
     else:
         p, l = build(split, "train", rows=n_use)
         keep = [i for i, y in enumerate(l) if y < n_base]
-        ft = to_dataset([p[i] for i in keep], [l[i] for i in keep], tfm)
+        ft = to_dataset([p[i] for i in keep], [l[i] for i in keep], tfm, roi_xml=a.roi_xml)
         print(f"dino-neudet: fine-tune on {len(ft)} labeled images of {n_base} base classes")
         model = finetune_dino(ft, len(split["classes"]), model_name=a.model)
         name = a.model.replace("_", "-") + "-sl"
     out = f"{a.output_dir}/{name}"
     os.makedirs(out, exist_ok=True)
     for part, pre in (("train", ""), ("test", "test_")):
-        x, y = extract(model, to_dataset(*build(split, part), tfm), a.device, a.batch_size, cls=a.no_finetune,
+        x, y = extract(model, to_dataset(*build(split, part), tfm, roi_xml=a.roi_xml), a.device, a.batch_size, cls=a.no_finetune,
                        interp=(a.resize == "full" and a.img_size != [224, 224]))
         np.save(f"{out}/{pre}features-{name}.npy", x)
         np.save(f"{out}/{pre}labels-{name}.npy", y)
         print(f"dino-neudet: {part} features {x.shape}, per class {np.bincount(y).tolist()}, "
               f"range [{x.min():.4f}, {x.max():.4f}], finite {bool(np.isfinite(x).all())}")
+    if torch.cuda.is_available():
+        print(f"dino-neudet: peak_vram_mb = {torch.cuda.max_memory_allocated() / 1024**2:.1f}")
 
 
 if __name__ == "__main__":
