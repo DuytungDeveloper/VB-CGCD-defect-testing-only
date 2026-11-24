@@ -157,7 +157,10 @@ run_r() {
   local ftag="colab_gc10_fusion_ep${FT_EPOCHS}_r${r}"
   local feat
   feat=$(ls -d features/*__"${ftag}"/dino-vitb16-sl 2>/dev/null | sort | tail -n 1 || true)
-  if [ -z "$feat" ]; then
+  if [ -n "$feat" ] && python -c "import numpy as np; x=np.load('${feat}/features-dino-vitb16-sl.npy'); exit(0 if np.linalg.norm(x,axis=1).mean() >= 2.0 else 1)"; then
+    echo ">>> Đã có Phase 1 ${ftag}: $feat (bỏ qua)"
+  else
+    [ -n "$feat" ] && { echo ">>> Feature cũ bị unit-norm, xóa để trích lại đúng scale..."; rm -rf features/*__"${ftag}" runs/*__"${ftag}"* "$DRIVE_REPO"/features/*__"${ftag}" "$DRIVE_REPO"/runs/*__"${ftag}"*; }
     link_gc10_dataset
     echo ">>> Phase 1 GC10 Full+Auto-ROI Fusion: FT_EPOCHS=${FT_EPOCHS}, FT_SEED=${r} ($(date))..."
     local t0 hw_tmp mon_pid
@@ -187,8 +190,6 @@ p.write_text(json.dumps(d, indent=2, ensure_ascii=False))
 PY
     python scripts/feat_probe.py "$feat" || true
     backup_to_drive
-  else
-    echo ">>> Đã có Phase 1 ${ftag}: $feat (bỏ qua)"
   fi
 
   IFS=',' read -ra SEEDS <<< "$SEEDS_CSV"

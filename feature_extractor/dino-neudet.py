@@ -243,7 +243,8 @@ def main():
             xr, _ = extract(model, to_dataset(*build(split, part), tfm, roi_map=roi_map), a.device, a.batch_size,
                             cls=a.no_finetune, interp=interp)
             l2 = lambda z: z / np.maximum(np.linalg.norm(z, axis=1, keepdims=True), 1e-8)
-            x = l2(0.5 * l2(xf) + 0.5 * l2(xr)).astype(np.float32)
+            norms = np.linalg.norm(xf, axis=1, keepdims=True)
+            x = (l2(0.5 * l2(xf) + 0.5 * l2(xr)) * norms).astype(np.float32)
         else:
             x, y = extract(model, to_dataset(*build(split, part), tfm, roi_xml=a.roi_xml, roi_map=roi_map),
                            a.device, a.batch_size, cls=a.no_finetune, interp=interp)
