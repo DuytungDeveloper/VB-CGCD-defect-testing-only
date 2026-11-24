@@ -92,7 +92,7 @@ class MNGMMClassifier():
             tr = jnp.trace(jnp.linalg.solve(S, jnp.broadcast_to(self.prior_T, S.shape)), axis1=-2, axis2=-1)
             numpyro.factor("cov_prior", -0.5 * kappa * jnp.sum(logdet + tr))
 
-        with numpyro.plate("batch", X.shape[0], subsample_size=self.batch_size) as ind:
+        with numpyro.plate("batch", X.shape[0], subsample_size=min(self.batch_size, X.shape[0])) as ind:
             X_batch = X[ind]
             y_batch = y[ind] if y is not None else None
             
