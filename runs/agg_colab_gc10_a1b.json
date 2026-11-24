@@ -1,0 +1,75 @@
+{
+  "prefix": "colab_gc10_autoroi_ep20",
+  "fts": [
+    0
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "arms": {
+    "P": {
+      "bal_mean": 0.35623955988997247,
+      "bal_std": 0.0303157059471392,
+      "Old_mean": 76.597510373444,
+      "All_mean": 60.263736263736256,
+      "n": 5
+    },
+    "N": {
+      "bal_mean": 0.41632458114528637,
+      "bal_std": 0.03802345874385915,
+      "Old_mean": 73.3609958506224,
+      "All_mean": 62.46153846153845,
+      "n": 5
+    },
+    "NL": {
+      "bal_mean": 0.4191402850712678,
+      "bal_std": 0.03704828063166953,
+      "Old_mean": 75.26970954356848,
+      "All_mean": 63.12087912087911,
+      "n": 5
+    },
+    "FTR1": {
+      "bal_mean": 0.4563684557503012,
+      "bal_std": 0.011192589262176172,
+      "Old_mean": 75.26970954356847,
+      "All_mean": 64.83516483516483,
+      "n": 5
+    },
+    "Npre": {
+      "bal_mean": 0.4536533678874264,
+      "bal_std": 0.027894974254684332,
+      "Old_mean": 73.77593360995851,
+      "All_mean": 65.05494505494505,
+      "n": 5
+    }
+  },
+  "telemetry": {
+    "cpu_model": "Intel(R) Xeon(R) CPU @ 2.00GHz",
+    "cpu_cores": 8,
+    "ram_total_gb": 50.99,
+    "gpu": "Tesla T4, 15360 MiB, 580.82.07",
+    "torch_version": "2.14.1+cu130",
+    "torch_cuda": true,
+    "jax_version": "0.11.1",
+    "jax_devices": [
+      "cuda:0"
+    ],
+    "stages_sec": {
+      "phase1_r0": 3168,
+      "r0_s0": 251,
+      "r0_s1": 241,
+      "r0_s2": 244,
+      "r0_s3": 244,
+      "r0_s4": 251,
+      "eval": 27,
+      "total_wall": 4709
+    },
+    "peak_vram_mb": 6279.7,
+    "auto_roi_diag": "--roi_auto localized 1056/2288 images | diag_IoU_vs_XML=0.246 (n=1054)"
+  },
+  "verdict": "CHƯA ĐẠT (< 0.50) -> Cần xem xét DINOv3 / mẫu hiếm"
+}

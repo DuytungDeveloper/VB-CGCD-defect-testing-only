@@ -1,0 +1,20 @@
+=== THÔNG SỐ PHẦN CỨNG & THỜI GIAN CHẠY (BƯỚC A1b) ===
+CPU       : Intel(R) Xeon(R) CPU @ 2.00GHz (8 cores)
+RAM       : 50.99 GB
+GPU       : Tesla T4, 15360 MiB, 580.82.07
+Peak VRAM : 6279.7 MB
+Auto-ROI  : --roi_auto localized 1056/2288 images | diag_IoU_vs_XML=0.246 (n=1054)
+PyTorch   : 2.14.1+cu130 (CUDA=True)
+JAX       : 0.11.1 (['cuda:0'])
+Thời gian từng giai đoạn (giây): {'phase1_r0': 3168, 'r0_s0': 251, 'r0_s1': 241, 'r0_s2': 244, 'r0_s3': 244, 'r0_s4': 251, 'eval': 22, 'total_wall': 85}
+
+=== KẾT QUẢ BƯỚC A1a (GC10-DET Oracle XML ROI, prefix=colab_gc10_autoroi_ep20) ===
+Arm        bal (mean±std)    Old (%)    All (%)    N
+------------------------------------------------------
+P       0.3562 ± 0.0303      76.60      60.26    5
+N       0.4163 ± 0.0380      73.36      62.46    5
+NL      0.4191 ± 0.0370      75.27      63.12    5
+FTR1    0.4564 ± 0.0112      75.27      64.84    5
+Npre    0.4537 ± 0.0279      73.78      65.05    5
+------------------------------------------------------
+Quyết định Bước A1a (FTR1 bal=0.4564 vs A0 ep=20 bal=0.4089, delta=+0.0475): CHƯA ĐẠT (< 0.50) -> Cần xem xét DINOv3 / mẫu hiếm
