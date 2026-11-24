@@ -96,13 +96,21 @@ PY
 
 link_gc10_dataset() {
   mkdir -p datasets
-  if [ -d "datasets/GC10-DET/1" ]; then
+  if [ -d "datasets/GC10-DET/1" ] && [ ! -L "datasets/GC10-DET" ]; then
+    return 0
+  fi
+  if [ -d "/content/GC10-DET/1" ]; then
+    rm -f datasets/GC10-DET
+    ln -sfn "/content/GC10-DET" datasets/GC10-DET
     return 0
   fi
   for cand in "/content/drive/MyDrive/Datasets/GC10-DET" "$WORK_DIR/GC10-DET" "$WORK_DIR/Datasets/GC10-DET"; do
     if [ -d "$cand/1" ]; then
-      ln -sfn "$cand" datasets/GC10-DET
-      echo ">>> Linked datasets/GC10-DET -> $cand"
+      echo ">>> Copy GC10-DET từ Drive sang /content/GC10-DET để đọc ảnh nhanh..."
+      cp -r "$cand" /content/GC10-DET
+      rm -f datasets/GC10-DET
+      ln -sfn "/content/GC10-DET" datasets/GC10-DET
+      echo ">>> Linked datasets/GC10-DET -> /content/GC10-DET"
       return 0
     fi
   done

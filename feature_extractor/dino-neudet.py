@@ -59,6 +59,7 @@ def compute_auto_roi_boxes(paths, device="cuda", img_size=336, batch_size=8, pad
     """Unsupervised AnomalyNCD-style ROI: frozen DINO patch deviation + CLS attention + MEBin sweep."""
     from PIL import Image
     from scipy.ndimage import label, uniform_filter
+    from tqdm import tqdm
     from transformers import ViTModel
 
     uniq = list(dict.fromkeys(paths))
@@ -73,7 +74,7 @@ def compute_auto_roi_boxes(paths, device="cuda", img_size=336, batch_size=8, pad
     use_amp = str(device).startswith("cuda") and torch.cuda.is_available()
 
     boxes = {}
-    for i in range(0, len(uniq), batch_size):
+    for i in tqdm(range(0, len(uniq), batch_size), desc="auto-roi"):
         batch_p = uniq[i:i + batch_size]
         imgs, sizes = [], []
         for p in batch_p:
