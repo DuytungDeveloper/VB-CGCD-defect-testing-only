@@ -1,0 +1,28 @@
+=== THÔNG SỐ PHẦN CỨNG, PEAK & THỜI GIAN CHẠY (BƯỚC A7a - GC10 DINOV3 AUTO-ROI FUSION) ===
+CPU          : Intel(R) Xeon(R) CPU @ 2.20GHz (12 cores) | Peak CPU: 28.5%
+RAM          : Peak 3.69 GB / 52.96 GB
+GPU          : NVIDIA L4, 23034 MiB, 580.82.07 | Peak GPU Util: 100.0% | Peak GPU VRAM: 1590.0 MB
+Torch Peak   : 1000.3 MB
+Auto-ROI     : --dinov3_auto_roi localized 1932/2288 images, diag_IoU_vs_XML=0.236 (n_xml=2280) in 144.0s
+PyTorch      : 2.14.1+cu130 (CUDA=True) | JAX 0.11.1 (['cuda:0'])
+Tổng thời gian các công đoạn: 1300 s (21.7 phút)
+Chi tiết từng công đoạn:
+  - autoroi_r0:  150s | CPU peak  24.0% (avg 11.0%) | RAM peak  3.69 GB | GPU peak 100.0% | VRAM peak 1590.0 MB
+  - r0_s0     :  227s | CPU peak  25.5% (avg 12.9%) | RAM peak  3.47 GB | GPU peak   7.0% | VRAM peak  268.0 MB
+  - r0_s1     :  219s | CPU peak  25.4% (avg 12.9%) | RAM peak  3.50 GB | GPU peak   7.0% | VRAM peak  268.0 MB
+  - r0_s2     :  233s | CPU peak  25.2% (avg 12.8%) | RAM peak  3.48 GB | GPU peak   7.0% | VRAM peak  268.0 MB
+  - r0_s3     :  225s | CPU peak  28.5% (avg 12.9%) | RAM peak  3.49 GB | GPU peak   8.0% | VRAM peak  268.0 MB
+  - r0_s4     :  223s | CPU peak  25.5% (avg 12.8%) | RAM peak  3.48 GB | GPU peak   9.0% | VRAM peak  268.0 MB
+  - eval      :   23s | CPU peak  17.2% (avg 11.2%) | RAM peak  3.22 GB | GPU peak   6.0% | VRAM peak  230.0 MB
+
+=== KẾT QUẢ BƯỚC A2 (GC10-DET Backbone dinov3_autoroi_fusion, prefix=colab_gc10_d3_autoroi_ep20) ===
+Arm        bal (mean±std)    Old (%)    All (%)    N
+------------------------------------------------------
+P       0.5084 ± 0.0091      84.48      74.55    5
+N       0.5372 ± 0.0047      86.97      76.88    5
+NL      0.5352 ± 0.0072      87.30      76.44    5
+FTR1    0.3991 ± 0.0702      87.63      72.75    5
+Npre    0.4382 ± 0.0429      87.80      74.73    5
+------------------------------------------------------
+So với A0 DINOv1 (FTR1 bal=0.4089, Old=80.75%, All=71.47%): Δbal=-0.0098 | ΔOld=+6.88% | ΔAll=+1.28%
+Quyết định Bước A2: CẦN PHÂN TÍCH CHI TIẾT
