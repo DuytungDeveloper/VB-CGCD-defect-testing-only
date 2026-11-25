@@ -15,8 +15,8 @@ import torchvision.transforms as T
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "lab"))
-sys.path.insert(0, str(ROOT / "feature_extractor"))
+sys.path.insert(1, str(ROOT / "lab"))
+sys.path.append(str(ROOT / "feature_extractor"))
 
 import niw
 import sessions
