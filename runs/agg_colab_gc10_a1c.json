@@ -1,0 +1,115 @@
+{
+  "prefix": "colab_gc10_fusion_ep20",
+  "fts": [
+    0
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "arms": {
+    "P": {
+      "bal_mean": 0.35474395871695197,
+      "bal_std": 0.006693866007067237,
+      "Old_mean": 79.33609958506224,
+      "All_mean": 67.38461538461539,
+      "n": 5
+    },
+    "N": {
+      "bal_mean": 0.4003255813953488,
+      "bal_std": 0.028998381791345246,
+      "Old_mean": 77.09543568464731,
+      "All_mean": 70.41758241758241,
+      "n": 5
+    },
+    "NL": {
+      "bal_mean": 0.4041585396349087,
+      "bal_std": 0.028851871702256254,
+      "Old_mean": 78.75518672199169,
+      "All_mean": 71.51648351648352,
+      "n": 5
+    },
+    "FTR1": {
+      "bal_mean": 0.3713603400850213,
+      "bal_std": 0.029231973945383915,
+      "Old_mean": 78.83817427385893,
+      "All_mean": 68.74725274725276,
+      "n": 5
+    },
+    "Npre": {
+      "bal_mean": 0.4154938734683671,
+      "bal_std": 0.025884355710743264,
+      "Old_mean": 77.42738589211619,
+      "All_mean": 71.03296703296702,
+      "n": 5
+    }
+  },
+  "telemetry": {
+    "cpu_model": "Intel(R) Xeon(R) CPU @ 2.00GHz",
+    "cpu_cores": 2,
+    "ram_total_gb": 12.67,
+    "gpu": "Tesla T4, 15360 MiB, 580.82.07",
+    "torch_version": "2.14.1+cu130",
+    "torch_cuda": true,
+    "jax_version": "0.11.1",
+    "jax_devices": [
+      "cuda:0"
+    ],
+    "stages": {
+      "phase1_r0": {
+        "cpu_peak_pct": 100.0,
+        "cpu_avg_pct": 84.4,
+        "ram_peak_gb": 3.89,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 7729.0,
+        "sec": 1777
+      },
+      "r0_s0": {
+        "cpu_peak_pct": 99.5,
+        "cpu_avg_pct": 72.9,
+        "ram_peak_gb": 2.69,
+        "gpu_util_peak_pct": 14.0,
+        "gpu_vram_peak_mb": 179.0,
+        "sec": 270
+      },
+      "r0_s1": {
+        "cpu_peak_pct": 99.8,
+        "cpu_avg_pct": 73.1,
+        "ram_peak_gb": 2.69,
+        "gpu_util_peak_pct": 15.0,
+        "gpu_vram_peak_mb": 179.0,
+        "sec": 264
+      },
+      "r0_s2": {
+        "cpu_peak_pct": 99.8,
+        "cpu_avg_pct": 73.3,
+        "ram_peak_gb": 2.71,
+        "gpu_util_peak_pct": 14.0,
+        "gpu_vram_peak_mb": 179.0,
+        "sec": 260
+      },
+      "r0_s3": {
+        "cpu_peak_pct": 99.8,
+        "cpu_avg_pct": 73.5,
+        "ram_peak_gb": 2.7,
+        "gpu_util_peak_pct": 13.0,
+        "gpu_vram_peak_mb": 179.0,
+        "sec": 272
+      },
+      "r0_s4": {
+        "cpu_peak_pct": 99.8,
+        "cpu_avg_pct": 73.7,
+        "ram_peak_gb": 2.71,
+        "gpu_util_peak_pct": 16.0,
+        "gpu_vram_peak_mb": 179.0,
+        "sec": 266
+      }
+    },
+    "torch_peak_vram_mb": 6279.7,
+    "auto_roi_diag": "--roi_auto localized 1056/2288 images | diag_IoU_vs_XML=0.246 (n=1054)"
+  },
+  "verdict": "CHƯA ĐẠT (< 0.50) -> Cần xem xét DINOv3 / mẫu hiếm"
+}
