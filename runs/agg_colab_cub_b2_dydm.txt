@@ -1,0 +1,19 @@
+=== THÔNG SỐ PHẦN CỨNG, PEAK & THỜI GIAN CHẠY (BƯỚC B2 - DYDM) ===
+CPU          : Intel(R) Xeon(R) CPU @ 2.00GHz (2 cores) | Peak CPU: 100.0%
+RAM          : Peak 5.86 GB / 12.67 GB
+GPU          : Tesla T4, 15360 MiB, 580.82.07 | Peak GPU Util: 100.0% | Peak GPU VRAM: 4145.0 MB
+PyTorch      : 2.14.1+cu130 (CUDA=True) | JAX 0.11.1 (['cuda:0'])
+Tổng thời gian các công đoạn: 4707 s (78.5 phút)
+Chi tiết từng công đoạn:
+  - r0_s0     :  935s | CPU peak 100.0% (avg 72.3%) | RAM peak  5.82 GB | GPU peak 100.0% | VRAM peak 4109.0 MB
+  - r0_s1     :  941s | CPU peak 100.0% (avg 72.1%) | RAM peak  5.86 GB | GPU peak 100.0% | VRAM peak 4109.0 MB
+  - r0_s2     :  947s | CPU peak 100.0% (avg 71.8%) | RAM peak  5.80 GB | GPU peak 100.0% | VRAM peak 4145.0 MB
+  - r0_s3     :  933s | CPU peak 100.0% (avg 71.7%) | RAM peak  5.70 GB | GPU peak 100.0% | VRAM peak 4109.0 MB
+  - r0_s4     :  951s | CPU peak 100.0% (avg 71.7%) | RAM peak  5.77 GB | GPU peak 100.0% | VRAM peak 4145.0 MB
+
+=== KẾT QUẢ BƯỚC B2 (CUB-200 DYDM Discovery Branch + NIW Memory, r0) ===
+Arm           New (M_d)    Old (%)  S5_All (%)    c09 (%)   dM_d vs FTR1   dOld vs FTR1
+--------------------------------------------------------------------------------------
+FTR1             70.552     79.441      74.677     73.008         +0.000         +0.000
+DYDM_head        71.068     79.613      74.943     73.688         +0.516         +0.172
+DYDM_km          71.451     79.500      75.016     74.240         +0.900         +0.059
