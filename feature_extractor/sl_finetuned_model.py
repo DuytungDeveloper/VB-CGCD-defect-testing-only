@@ -52,7 +52,8 @@ class MultiCropWrapper(nn.Module):
 
     def forward(self, x):
         # Run the head forward on the concatenated features.
-        pooler_output = self.backbone(x).pooler_output
+        out = self.backbone(x)
+        pooler_output = out.pooler_output if getattr(out, "pooler_output", None) is not None else out.last_hidden_state[:, 0]
 
         cls_output = self.head(pooler_output)
 
@@ -163,24 +164,34 @@ def finetune_dino(train_set, num_classes, model_name="facebook/dino-vitb16"):
                 if p.requires_grad or "pooler.dense" in n}
         torch.save({"epoch": epoch, "state": ckpt}, ckpt_path)
 
+    if torch.cuda.is_available():
+        print(f"finetune_dino: peak_vram_mb = {torch.cuda.max_memory_allocated() / 1024**2:.1f}")
+
     return lora_model.backbone
+
+
+MODEL_MAP = {
+    "dino_vitb16": "facebook/dino-vitb16",
+    "dinov2_vitb14": "facebook/dinov2-base",
+    "dinov2_reg_vitb14": "facebook/dinov2-with-registers-base",
+    "dinov3_vitb16": "facebook/dinov3-vitb16-pretrain-lvd1689m",
+}
 
 
 def load_model(num_classes, model_name):
 
-    if model_name == "dinov2_vitb14":
-        model_name = "facebook/dinov2-base"
+    hf_name = MODEL_MAP.get(model_name, model_name)
+    model = AutoModel.from_pretrained(hf_name)
 
-    if model_name == "dino_vitb16":
-        model_name = "facebook/dino-vitb16"
-
-    model = AutoModel.from_pretrained(model_name)
-
+    candidates = ["output.dense", "mlp.fc1", "mlp.fc2", "o_proj", "up_proj", "down_proj"]
+    lin_names = [n for n, m in model.named_modules() if isinstance(m, nn.Linear)]
+    targets = [t for t in candidates if any(n.endswith(t) for n in lin_names)]
+    print(f"load_model({hf_name}): BOFT target_modules = {targets}")
 
     peft_config = BOFTConfig(
         boft_block_size=4,
         boft_n_butterfly_factor=2,
-        target_modules=["output.dense", "mlp.fc1", "mlp.fc2"],
+        target_modules=targets,
         boft_dropout=0.1,
         bias="boft_only",
     )
