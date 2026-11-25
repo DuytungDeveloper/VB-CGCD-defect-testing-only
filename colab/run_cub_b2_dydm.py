@@ -104,16 +104,11 @@ def train_discovery_branch(base_backbone, pil_imgs, frozen_x, init_centroids, in
     torch.manual_seed(seed)
     np.random.seed(seed)
     model = copy.deepcopy(base_backbone).to(device)
-    for p in model.parameters():
-        p.requires_grad = False
-    # Unfreeze ONLY last Transformer block + layernorm + pooler
-    for p in model.encoder.layer[-1].parameters():
-        p.requires_grad = True
-    for p in model.layernorm.parameters():
-        p.requires_grad = True
-    if hasattr(model, "pooler") and model.pooler is not None:
-        for p in model.pooler.parameters():
-            p.requires_grad = True
+    # Unfreeze ONLY last Transformer block (layer 11) + layernorm + pooler (transformers version-safe)
+    for n, p in model.named_parameters():
+        p.requires_grad = (".layer.11." in n or ".layers.11." in n or "layernorm" in n or "pooler" in n)
+    assert any(p.requires_grad for p in model.parameters()), \
+        f"No params unfrozen! Sample names: {[n for n, _ in list(model.named_parameters())[-10:]]}"
 
     c0 = torch.tensor(init_centroids, dtype=torch.float32, device=device)
     c0 = F.normalize(c0, dim=-1)
