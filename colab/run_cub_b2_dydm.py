@@ -16,22 +16,33 @@ import torchvision.transforms as T
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(1, str(ROOT / "lab"))
-sys.path.append(str(ROOT / "feature_extractor"))
 
 import niw
 import sessions
 import score
 from replay import s09_cluster
-from sl_finetuned_model import load_model
 
 
 def load_merged_s0_backbone(ft_ckpt_path, device):
     """Load S0 BOFT fine-tuned DINOv1 from ft_ckpt.pt and merge adapters into a clean ViTModel."""
-    lora_model = load_model(200, "dino_vitb16")
+    from peft import BOFTConfig, get_peft_model
+    from transformers import AutoModel
+
+    base = AutoModel.from_pretrained("facebook/dino-vitb16")
+    peft_config = BOFTConfig(
+        boft_block_size=4,
+        boft_n_butterfly_factor=2,
+        target_modules=["output.dense", "mlp.fc1", "mlp.fc2"],
+        boft_dropout=0.1,
+        bias="boft_only",
+    )
+    backbone = get_peft_model(base, peft_config)
     raw = torch.load(ft_ckpt_path, map_location="cpu")
     state = raw["state"] if isinstance(raw, dict) and "state" in raw else raw
-    lora_model.load_state_dict(state, strict=False)
-    backbone = lora_model.backbone
+    b_state = {k[len("backbone."):]: v for k, v in state.items() if k.startswith("backbone.")}
+    if not b_state:
+        b_state = state
+    backbone.load_state_dict(b_state, strict=False)
     if hasattr(backbone, "merge_and_unload"):
         backbone = backbone.merge_and_unload()
     return backbone.to(device).eval()
