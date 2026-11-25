@@ -190,14 +190,31 @@ for k, v in stages.items():
 print()
 s = json.loads(Path("$SUMMARY_JSON").read_text())
 agg = s.get("arms", {})
-n_bal = agg.get("N", {}).get("bal_mean", 0.0)
-print("=== KẾT QUẢ BƯỚC A8 (GC10-DET DINOv3 Auto-ROI Fusion + Imbalanced-DYDM, ep=20, r0) ===")
-print(f"{'Arm':<18} {'bal (mean±std)':>18} {'Old (%)':>10} {'All (%)':>10} {'c09 (%)':>10} {'dbal vs N':>12}")
-print("-" * 84)
+novel_names = s.get("novel_classes", [])
+print("=== BẢNG TỔNG HỢP DỄ HIỂU — BƯỚC A8 (GC10-DET DINOv3 Auto-ROI + Imbalanced-DYDM) ===")
+print("Ghi chú:")
+print("  - Lớp cũ (Old %)     : Độ chính xác nhận diện 5 lớp lỗi đã học ở S0 (càng cao càng ít quên).")
+print("  - Lớp mới (New %)    : % tổng số ảnh thuộc 5 lớp lỗi mới được khám phá & phân loại đúng.")
+print("  - Cân bằng mới (bal) : Trung bình độ chính xác từng lớp mới (0..1, công bằng cho lớp lỗi hiếm).")
+print("  - Gom cụm (c09 %)    : Độ thuần khi tự gom cụm 5 lớp mới chưa có nhãn.")
+print("  - Tổng thể (All %)   : Độ chính xác chung trên toàn bộ 10 lớp lỗi thép.")
+print()
+print(f"{'Phương pháp':<18} {'Lớp cũ(Old%)':>13} {'Lớp mới(New%)':>14} {'Cân bằng(bal)':>18} {'Gom cụm(c09%)':>14} {'Tổng(All%)':>11}")
+print("-" * 92)
 for arm in ("N", "NL", "A8_Imb_head", "A8_Imb_km", "A8_Imb_blend50", "A8_Imb_blend70", "A8_Imb_blend50_NL"):
     if arm not in agg:
         continue
     r = agg[arm]
-    print(f"{arm:<18} {r['bal_mean']:7.4f} ± {r['bal_std']:6.4f} {r['Old_mean']:10.2f} {r['All_mean']:10.2f} {r['c09_mean']:10.2f} {r['bal_mean'] - n_bal:+12.4f}")
+    print(f"{arm:<18} {r['Old_mean']:12.2f}% {r.get('New_mean',0.0):13.2f}% {r['bal_mean']:7.4f} ± {r['bal_std']:6.4f} {r['c09_mean']:13.2f}% {r['All_mean']:10.2f}%")
+if novel_names:
+    print("\n--- CHI TIẾT ĐỘ CHÍNH XÁC TỪNG LỚP LỖI MỚI (%) ---")
+    hdr = f"{'Phương pháp':<18} " + " ".join(f"{c[:12]:>12}" for c in novel_names)
+    print(hdr)
+    print("-" * len(hdr))
+    for arm in ("N", "NL", "A8_Imb_head", "A8_Imb_km", "A8_Imb_blend50", "A8_Imb_blend70", "A8_Imb_blend50_NL"):
+        if arm not in agg:
+            continue
+        pc = agg[arm].get("per_class_novel", {})
+        print(f"{arm:<18} " + " ".join(f"{pc.get(c, 0.0):11.1f}%" for c in novel_names))
 PY
 } | tee "$SUMMARY_OUT"

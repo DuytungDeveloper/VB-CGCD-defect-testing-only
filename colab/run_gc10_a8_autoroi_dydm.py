@@ -184,6 +184,17 @@ def train_imbal_discovery_branch(base_backbone, img_paths, frozen_x, init_centro
     return lab_head, z_disc
 
 
+def _per_class_novel(L, y, lut_y, off, inc):
+    pred = L.argmax(1)
+    pc = {}
+    new_mask = y >= off
+    new_acc = 100.0 * float((pred[new_mask] == lut_y[new_mask]).mean()) if new_mask.any() else 0.0
+    for k in range(inc):
+        m = (y == off + k)
+        pc[k] = 100.0 * float((pred[m] == lut_y[m]).mean()) if m.any() else 0.0
+    return new_acc, pc
+
+
 def eval_seed(tag, base_backbone, feat2path, device, epochs=12):
     from scipy.optimize import linear_sum_assignment
     from sklearn.cluster import KMeans
@@ -219,7 +230,8 @@ def eval_seed(tag, base_backbone, feat2path, device, epochs=12):
     # N (A7a champion baseline)
     n_rows = [zp[keep & (ids == c)] for c in range(inc)]
     L_n = np.concatenate([lb, score._logd_1202("A3", [score._post_1406(R, prior) for R in n_rows], zt)], 1)
-    out = {"N": {**score._sc_1204(L_n, y, lut_pipe[y], off), "c09": c09_pipe}}
+    na_n, pc_n = _per_class_novel(L_n, y, lut_pipe[y], off, inc)
+    out = {"N": {**score._sc_1204(L_n, y, lut_pipe[y], off), "New": na_n, "per_class_novel": pc_n, "c09": c09_pipe}}
 
     # NL (A7a baseline)
     nl_rows = []
@@ -227,7 +239,8 @@ def eval_seed(tag, base_backbone, feat2path, device, epochs=12):
         rr = np.flatnonzero(keep & (ids == c))
         nl_rows.append(zp[rr[score._nl_keep_0910(zp[rr], base_rows, base_slots, prior, idx)]] if len(rr) else zp[:0])
     L_nl = np.concatenate([lb, score._logd_1202("A3", [score._post_1406(R, prior) for R in nl_rows], zt)], 1)
-    out["NL"] = {**score._sc_1204(L_nl, y, lut_pipe[y], off), "c09": c09_pipe}
+    na_nl, pc_nl = _per_class_novel(L_nl, y, lut_pipe[y], off, inc)
+    out["NL"] = {**score._sc_1204(L_nl, y, lut_pipe[y], off), "New": na_nl, "per_class_novel": pc_nl, "c09": c09_pipe}
 
     # Initialize Imbalanced-DYDM directly from N's clean `keep` pool & clusters!
     ri = np.flatnonzero(keep)
@@ -287,7 +300,8 @@ def eval_seed(tag, base_backbone, feat2path, device, epochs=12):
         full_ids = np.full(len(zp), -1, dtype=int)
         full_ids[ri] = lab
         c09 = 100.0 * score._hung_correct_1402(full_ids[pn], yp[pn] - off, inc) / max(nn_cnt, 1)
-        out[arm] = {**score._sc_1204(L, y, lut[y], off), "c09": c09}
+        na_arm, pc_arm = _per_class_novel(L, y, lut[y], off, inc)
+        out[arm] = {**score._sc_1204(L, y, lut[y], off), "New": na_arm, "per_class_novel": pc_arm, "c09": c09}
 
     print(
         f"  [{tag}] N bal={out['N']['bal']:.4f} All={out['N']['All']:.2f} | "
@@ -326,38 +340,64 @@ def main():
         all_res[f"s{s}"] = eval_seed(tag, base_backbone, feat2path, device, epochs=o.epochs)
         print(f"Done {tag} in {time.time() - t0:.1f}s", flush=True)
 
+    split_meta = json.load(open(o.split))
+    n_base = split_meta.get("n_base", 5)
+    novel_names = split_meta["classes"][n_base:]
+
     arms = ("N", "NL", "A8_Imb_head", "A8_Imb_km", "A8_Imb_blend50", "A8_Imb_blend70", "A8_Imb_blend50_NL")
     agg = {}
     for arm in arms:
         vals = [all_res[k][arm] for k in sorted(all_res) if arm in all_res[k]]
         if not vals:
             continue
+        pc_mean = {}
+        for idx_c, cname in enumerate(novel_names):
+            c_vals = [v.get("per_class_novel", {}).get(str(idx_c), v.get("per_class_novel", {}).get(idx_c, 0.0)) for v in vals]
+            pc_mean[cname] = float(np.mean(c_vals))
         agg[arm] = {
             "bal_mean": float(np.mean([v["bal"] for v in vals])),
             "bal_std": float(np.std([v["bal"] for v in vals])),
             "Old_mean": float(np.mean([v["Old"] for v in vals])),
+            "New_mean": float(np.mean([v.get("New", 0.0) for v in vals])),
             "All_mean": float(np.mean([v["All"] for v in vals])),
             "c09_mean": float(np.mean([v["c09"] for v in vals])),
+            "per_class_novel": pc_mean,
             "n": len(vals),
         }
 
-    payload = {"prefix": o.prefix, "epochs": o.epochs, "arms": agg, "per_seed": all_res}
+    payload = {"prefix": o.prefix, "epochs": o.epochs, "novel_classes": novel_names, "arms": agg, "per_seed": all_res}
     if o.meta_json and Path(o.meta_json).exists():
         payload["telemetry"] = json.loads(Path(o.meta_json).read_text())
     out_p.write_text(json.dumps(payload, indent=2, ensure_ascii=False))
 
-    print("\n=== KẾT QUẢ BƯỚC A8 (GC10-DET DINOv3 Auto-ROI Fusion + Imbalanced-DYDM, ep=20, r0) ===")
-    print(f"{'Arm':<18} {'bal (mean±std)':>18} {'Old (%)':>10} {'All (%)':>10} {'c09 (%)':>10} {'dbal vs N':>12}")
-    print("-" * 84)
-    n_bal = agg.get("N", {}).get("bal_mean", 0.0)
+    print("\n=== BẢNG TỔNG HỢP DỄ HIỂU — BƯỚC A8 (GC10-DET DINOv3 Auto-ROI + Imbalanced-DYDM) ===")
+    print("Ghi chú các cột:")
+    print("  - Lớp cũ (Old %)        : Độ chính xác nhận diện 5 lớp lỗi đã học ở S0 (càng cao càng ít quên).")
+    print("  - Lớp mới (New %)       : % tổng số ảnh thuộc 5 lớp lỗi mới được khám phá & phân loại đúng.")
+    print("  - Cân bằng mới (bal)    : Trung bình độ chính xác từng lớp mới (0..1, công bằng cho lớp lỗi hiếm).")
+    print("  - Gom cụm (c09 %)       : Độ thuần khi tự gom cụm 5 lớp mới chưa có nhãn.")
+    print("  - Tổng thể (All %)      : Độ chính xác chung trên toàn bộ 10 lớp lỗi thép.")
+    print()
+    print(f"{'Phương pháp':<18} {'Lớp cũ(Old%)':>13} {'Lớp mới(New%)':>14} {'Cân bằng(bal)':>18} {'Gom cụm(c09%)':>14} {'Tổng(All%)':>11}")
+    print("-" * 92)
     for arm in arms:
         if arm not in agg:
             continue
         r = agg[arm]
         print(
-            f"{arm:<18} {r['bal_mean']:7.4f} ± {r['bal_std']:6.4f} {r['Old_mean']:10.2f} "
-            f"{r['All_mean']:10.2f} {r['c09_mean']:10.2f} {r['bal_mean'] - n_bal:+12.4f}"
+            f"{arm:<18} {r['Old_mean']:12.2f}% {r['New_mean']:13.2f}% "
+            f"{r['bal_mean']:7.4f} ± {r['bal_std']:6.4f} {r['c09_mean']:13.2f}% {r['All_mean']:10.2f}%"
         )
+
+    print("\n--- CHI TIẾT ĐỘ CHÍNH XÁC TỪNG LỚP LỖI MỚI (%) ---")
+    hdr = f"{'Phương pháp':<18} " + " ".join(f"{c[:12]:>12}" for c in novel_names)
+    print(hdr)
+    print("-" * len(hdr))
+    for arm in arms:
+        if arm not in agg:
+            continue
+        pc = agg[arm].get("per_class_novel", {})
+        print(f"{arm:<18} " + " ".join(f"{pc.get(c, 0.0):11.1f}%" for c in novel_names))
 
 
 if __name__ == "__main__":
