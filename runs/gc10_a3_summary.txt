@@ -1,0 +1,20 @@
+=== THÔNG SỐ PHẦN CỨNG, PEAK & THỜI GIAN CHẠY (BƯỚC A3 - GC10 DYDM) ===
+CPU          : Intel(R) Xeon(R) CPU @ 2.20GHz (12 cores) | Peak CPU: 20.4%
+RAM          : Peak 4.48 GB / 52.96 GB
+GPU          : NVIDIA L4, 23034 MiB, 580.82.07 | Peak GPU Util: 100.0% | Peak GPU VRAM: 4194.0 MB
+PyTorch      : 2.14.1+cu130 (CUDA=True) | JAX 0.11.1 (['cuda:0'])
+Tổng thời gian các công đoạn: 2173 s (36.2 phút)
+Chi tiết từng công đoạn:
+  - r0_s0     :  448s | CPU peak  20.4% (avg 10.6%) | RAM peak  4.48 GB | GPU peak 100.0% | VRAM peak 4194.0 MB
+  - r0_s1     :  433s | CPU peak  18.1% (avg 10.7%) | RAM peak  4.10 GB | GPU peak 100.0% | VRAM peak 4194.0 MB
+  - r0_s2     :  430s | CPU peak  18.0% (avg 10.7%) | RAM peak  4.04 GB | GPU peak 100.0% | VRAM peak 4194.0 MB
+  - r0_s3     :  435s | CPU peak  18.1% (avg 10.6%) | RAM peak  4.04 GB | GPU peak 100.0% | VRAM peak 4194.0 MB
+  - r0_s4     :  427s | CPU peak  18.2% (avg 10.6%) | RAM peak  4.05 GB | GPU peak 100.0% | VRAM peak 4194.0 MB
+
+=== KẾT QUẢ BƯỚC A3 (GC10-DET DYDM Discovery Branch + NIW Memory, ep=20, r0) ===
+Arm              bal (mean±std)    Old (%)    All (%)    c09 (%)   dbal vs FTR1
+--------------------------------------------------------------------------------
+NL            0.4076 ± 0.0172      80.50      70.73      48.14        -0.0013
+FTR1          0.4089 ± 0.0200      80.75      71.47      42.41        +0.0000
+DYDM_head     0.3553 ± 0.0220      81.08      65.67      41.89        -0.0536
+DYDM_km       0.3758 ± 0.0156      81.00      67.12      42.69        -0.0330
