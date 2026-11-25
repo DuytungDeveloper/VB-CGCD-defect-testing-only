@@ -1,0 +1,28 @@
+=== THÔNG SỐ PHẦN CỨNG, PEAK & THỜI GIAN CHẠY (BƯỚC A7b - GC10 YOLOV8N(S0) + DINOV3 FUSION) ===
+CPU          : Intel(R) Xeon(R) CPU @ 2.20GHz (12 cores) | Peak CPU: 68.6%
+RAM          : Peak 6.44 GB / 52.96 GB
+GPU          : NVIDIA L4, 23034 MiB, 580.82.07 | Peak GPU Util: 93.0% | Peak GPU VRAM: 4420.0 MB
+Torch Peak   : 3647.9 MB
+YOLO-ROI     : --yolo_s0_roi detected 1859/2288 images, diag_IoU_all=0.363 (base=0.476, novel=0.238) in 383.2s
+PyTorch      : 2.14.1+cu130 (CUDA=True) | JAX 0.11.1 (['cuda:0'])
+Tổng thời gian các công đoạn: 1579 s (26.3 phút)
+Chi tiết từng công đoạn:
+  - yoloroi_r0:  390s | CPU peak  68.6% (avg 28.6%) | RAM peak  6.44 GB | GPU peak  93.0% | VRAM peak 4420.0 MB
+  - r0_s0     :  237s | CPU peak  26.3% (avg 12.8%) | RAM peak  3.48 GB | GPU peak   5.0% | VRAM peak  268.0 MB
+  - r0_s1     :  235s | CPU peak  28.3% (avg 12.8%) | RAM peak  3.47 GB | GPU peak   7.0% | VRAM peak  268.0 MB
+  - r0_s2     :  231s | CPU peak  27.8% (avg 12.8%) | RAM peak  3.47 GB | GPU peak   8.0% | VRAM peak  268.0 MB
+  - r0_s3     :  231s | CPU peak  28.8% (avg 12.9%) | RAM peak  3.47 GB | GPU peak   7.0% | VRAM peak  268.0 MB
+  - r0_s4     :  233s | CPU peak  28.1% (avg 12.8%) | RAM peak  3.48 GB | GPU peak   7.0% | VRAM peak  268.0 MB
+  - eval      :   22s | CPU peak  17.6% (avg 11.6%) | RAM peak  3.22 GB | GPU peak   6.0% | VRAM peak  230.0 MB
+
+=== KẾT QUẢ BƯỚC A2 (GC10-DET Backbone yolov8n_s0_dinov3_fusion, prefix=colab_gc10_d3_yoloroi_ep20) ===
+Arm        bal (mean±std)    Old (%)    All (%)    N
+------------------------------------------------------
+P       0.4403 ± 0.0247      85.06      63.47    5
+N       0.4514 ± 0.0206      88.22      67.34    5
+NL      0.4314 ± 0.0210      88.96      66.24    5
+FTR1    0.1596 ± 0.0541      90.04      61.67    5
+Npre    0.1768 ± 0.0569      89.46      61.80    5
+------------------------------------------------------
+So với A0 DINOv1 (FTR1 bal=0.4089, Old=80.75%, All=71.47%): Δbal=-0.2493 | ΔOld=+9.29% | ΔAll=-9.80%
+Quyết định Bước A2: CẦN PHÂN TÍCH CHI TIẾT
