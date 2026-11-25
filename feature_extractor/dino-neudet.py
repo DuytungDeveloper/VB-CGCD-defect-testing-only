@@ -12,7 +12,7 @@ import argparse, json, os
 import numpy as np
 import torch, torchvision
 from datasets import Dataset, Image as HFImage
-from sl_finetuned_model import finetune_dino
+from sl_finetuned_model import MODEL_MAP, finetune_dino
 
 N_BASE = 3
 
@@ -41,7 +41,9 @@ def extract(model, ds, device, bs, cls=False, interp=False):
     feats, labs = [], []
     for b in torch.utils.data.DataLoader(ds, batch_size=bs, shuffle=False, num_workers=2):
         out = model(b["images"].to(device), interpolate_pos_encoding=True) if interp else model(b["images"].to(device))
-        feats.append((out.last_hidden_state[:, 0] if cls else out.pooler_output).cpu().numpy())
+        po = getattr(out, "pooler_output", None)
+        feat = out.last_hidden_state[:, 0] if (cls or po is None) else po
+        feats.append(feat.cpu().numpy())
         labs.append(b["labels"].numpy())
     return np.concatenate(feats), np.concatenate(labs)
 
@@ -73,10 +75,10 @@ def main():
         torchvision.transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 
     if a.no_finetune:                              # label-free: no label is used anywhere here
-        from transformers import ViTModel
-        model = ViTModel.from_pretrained("facebook/dino-vitb16")
-        name = a.model.replace("_", "-")           # dino-vitb16 (no "-sl")
-        print("dino-neudet: NO fine-tuning (label-free); features = CLS token of last_hidden_state")
+        from transformers import AutoModel
+        model = AutoModel.from_pretrained(MODEL_MAP.get(a.model, a.model))
+        name = a.model.replace("_", "-")           # e.g. dinov2-reg-vitb14 (no "-sl")
+        print(f"dino-neudet: NO fine-tuning (label-free, {a.model}); features = CLS token of last_hidden_state")
     else:
         p, l = build(split, "train", rows=n_use)
         keep = [i for i, y in enumerate(l) if y < n_base]
