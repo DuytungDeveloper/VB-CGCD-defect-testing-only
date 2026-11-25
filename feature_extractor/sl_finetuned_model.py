@@ -52,7 +52,7 @@ class MultiCropWrapper(nn.Module):
 
     def forward(self, x):
         # Run the head forward on the concatenated features.
-        out = self.backbone(x)
+        out = self.backbone(x, interpolate_pos_encoding=True) if x.shape[-2:] != (224, 224) else self.backbone(x)
         pooler_output = out.pooler_output if getattr(out, "pooler_output", None) is not None else out.last_hidden_state[:, 0]
 
         cls_output = self.head(pooler_output)
