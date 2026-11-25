@@ -1,0 +1,41 @@
+=== THÔNG SỐ PHẦN CỨNG, PEAK & THỜI GIAN CHẠY (BƯỚC A8 - GC10 A7a + IMBALANCED-DYDM) ===
+CPU          : Intel(R) Xeon(R) CPU @ 2.20GHz (12 cores) | Peak CPU: 18.9%
+RAM          : Peak 4.24 GB / 52.96 GB
+GPU          : NVIDIA L4, 23034 MiB, 580.82.07 | Peak GPU Util: 100.0% | Peak GPU VRAM: 1872.0 MB
+PyTorch      : 2.14.1+cu130 (CUDA=True) | JAX 0.11.1 (['cuda:0'])
+Tổng thời gian các công đoạn: 2530 s (42.2 phút)
+Chi tiết từng công đoạn:
+  - r0_s0     :  505s | CPU peak  18.9% (avg 11.0%) | RAM peak  4.24 GB | GPU peak 100.0% | VRAM peak 1868.0 MB
+  - r0_s1     :  504s | CPU peak  18.4% (avg 10.9%) | RAM peak  4.23 GB | GPU peak 100.0% | VRAM peak 1872.0 MB
+  - r0_s2     :  506s | CPU peak  18.4% (avg 10.9%) | RAM peak  4.24 GB | GPU peak 100.0% | VRAM peak 1868.0 MB
+  - r0_s3     :  513s | CPU peak  18.7% (avg 11.0%) | RAM peak  4.18 GB | GPU peak 100.0% | VRAM peak 1862.0 MB
+  - r0_s4     :  502s | CPU peak  18.3% (avg 10.9%) | RAM peak  4.20 GB | GPU peak 100.0% | VRAM peak 1862.0 MB
+
+=== BẢNG TỔNG HỢP DỄ HIỂU — BƯỚC A8 (GC10-DET DINOv3 Auto-ROI + Imbalanced-DYDM) ===
+Ghi chú:
+  - Lớp cũ (Old %)     : Độ chính xác nhận diện 5 lớp lỗi đã học ở S0 (càng cao càng ít quên).
+  - Lớp mới (New %)    : % tổng số ảnh thuộc 5 lớp lỗi mới được khám phá & phân loại đúng.
+  - Cân bằng mới (bal) : Trung bình độ chính xác từng lớp mới (0..1, công bằng cho lớp lỗi hiếm).
+  - Gom cụm (c09 %)    : Độ thuần khi tự gom cụm 5 lớp mới chưa có nhãn.
+  - Tổng thể (All %)   : Độ chính xác chung trên toàn bộ 10 lớp lỗi thép.
+
+Phương pháp         Lớp cũ(Old%)  Lớp mới(New%)      Cân bằng(bal)  Gom cụm(c09%)  Tổng(All%)
+--------------------------------------------------------------------------------------------
+N                         86.97%         65.51%  0.5372 ± 0.0047         65.70%      76.88%
+NL                        87.30%         64.21%  0.5352 ± 0.0072         65.70%      76.44%
+A8_Imb_head               87.39%         77.38%  0.5931 ± 0.0175         80.32%      82.68%
+A8_Imb_km                 87.63%         67.20%  0.5496 ± 0.0137         61.86%      78.02%
+A8_Imb_blend50            87.63%         66.17%  0.5235 ± 0.0474         60.69%      77.54%
+A8_Imb_blend70            87.39%         66.17%  0.5614 ± 0.0095         65.87%      77.41%
+A8_Imb_blend50_NL         87.72%         64.49%  0.4849 ± 0.0591         60.69%      76.79%
+
+--- CHI TIẾT ĐỘ CHÍNH XÁC TỪNG LỚP LỖI MỚI (%) ---
+Phương pháp           silk_spot    inclusion   rolled_pit       crease waist_foldin
+-----------------------------------------------------------------------------------
+N                         70.8%        42.3%         0.0%        65.5%        90.0%
+NL                        71.5%        31.6%         0.0%        74.5%        90.0%
+A8_Imb_head               92.3%        55.8%        23.3%        61.8%        63.3%
+A8_Imb_km                 73.5%        46.0%        30.0%        34.5%        90.7%
+A8_Imb_blend50            73.1%        45.1%        23.3%        30.9%        89.3%
+A8_Imb_blend70            70.8%        47.9%        16.7%        60.0%        85.3%
+A8_Imb_blend50_NL         74.2%        35.3%        13.3%        30.9%        88.7%
