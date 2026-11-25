@@ -1,0 +1,27 @@
+=== THÔNG SỐ PHẦN CỨNG, PEAK & THỜI GIAN CHẠY (BƯỚC A2 - GC10 dinov2_reg_vitb14) ===
+CPU          : Intel(R) Xeon(R) CPU @ 2.20GHz (12 cores) | Peak CPU: 32.9%
+RAM          : Peak 4.12 GB / 52.96 GB
+GPU          : NVIDIA L4, 23034 MiB, 580.82.07 | Peak GPU Util: 100.0% | Peak GPU VRAM: 9468.0 MB
+Torch Peak   : 7752.5 MB
+PyTorch      : 2.14.1+cu130 (CUDA=True) | JAX 0.11.1 (['cuda:0'])
+Tổng thời gian các công đoạn: 1720 s (28.7 phút)
+Chi tiết từng công đoạn:
+  - phase1_r0 :  773s | CPU peak  32.1% (avg 16.3%) | RAM peak  4.12 GB | GPU peak 100.0% | VRAM peak 9468.0 MB
+  - r0_s0     :  185s | CPU peak  32.9% (avg 12.6%) | RAM peak  3.33 GB | GPU peak   7.0% | VRAM peak  268.0 MB
+  - r0_s1     :  184s | CPU peak  25.5% (avg 12.6%) | RAM peak  3.34 GB | GPU peak   8.0% | VRAM peak  268.0 MB
+  - r0_s2     :  185s | CPU peak  25.2% (avg 12.5%) | RAM peak  3.37 GB | GPU peak   7.0% | VRAM peak  268.0 MB
+  - r0_s3     :  185s | CPU peak  28.3% (avg 12.6%) | RAM peak  3.35 GB | GPU peak   9.0% | VRAM peak  268.0 MB
+  - r0_s4     :  185s | CPU peak  30.4% (avg 12.6%) | RAM peak  3.34 GB | GPU peak   5.0% | VRAM peak  268.0 MB
+  - eval      :   23s | CPU peak  18.0% (avg 10.9%) | RAM peak  3.10 GB | GPU peak   9.0% | VRAM peak  230.0 MB
+
+=== KẾT QUẢ BƯỚC A2 (GC10-DET Backbone dinov2_reg_vitb14, prefix=colab_gc10_dinov2reg_ep20) ===
+Arm        bal (mean±std)    Old (%)    All (%)    N
+------------------------------------------------------
+P       0.3016 ± 0.0033      78.34      63.12    5
+N       0.3816 ± 0.0109      76.02      68.13    5
+NL      0.3791 ± 0.0089      77.59      69.32    5
+FTR1    0.3701 ± 0.0701      78.59      68.70    5
+Npre    0.3855 ± 0.0800      76.27      68.18    5
+------------------------------------------------------
+So với A0 DINOv1 (FTR1 bal=0.4089, Old=80.75%, All=71.47%): Δbal=-0.0388 | ΔOld=-2.16% | ΔAll=-2.77%
+Quyết định Bước A2: CẦN PHÂN TÍCH CHI TIẾT
