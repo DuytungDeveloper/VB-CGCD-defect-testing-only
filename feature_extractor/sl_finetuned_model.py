@@ -183,9 +183,10 @@ def load_model(num_classes, model_name):
     hf_name = MODEL_MAP.get(model_name, model_name)
     model = AutoModel.from_pretrained(hf_name)
 
-    targets = ["output.dense", "mlp.fc1", "mlp.fc2"]
-    if not any(n.endswith(tuple(targets)) for n, _ in model.named_modules()):
-        targets = ["o_proj", "up_proj", "down_proj"]
+    candidates = ["output.dense", "mlp.fc1", "mlp.fc2", "o_proj", "up_proj", "down_proj"]
+    lin_names = [n for n, m in model.named_modules() if isinstance(m, nn.Linear)]
+    targets = [t for t in candidates if any(n.endswith(t) for n in lin_names)]
+    print(f"load_model({hf_name}): BOFT target_modules = {targets}")
 
     peft_config = BOFTConfig(
         boft_block_size=4,
