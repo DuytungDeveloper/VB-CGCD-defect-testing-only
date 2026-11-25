@@ -1,0 +1,116 @@
+{
+  "prefix": "colab_gc10_dinov3_ep20",
+  "model": "dinov3_vitb16",
+  "fts": [
+    0
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "arms": {
+    "P": {
+      "bal_mean": 0.4194187183159427,
+      "bal_std": 0.05626696994047553,
+      "Old_mean": 82.40663900414938,
+      "All_mean": 69.1868131868132,
+      "n": 5
+    },
+    "N": {
+      "bal_mean": 0.489406988110664,
+      "bal_std": 0.11093888590768727,
+      "Old_mean": 83.15352697095436,
+      "All_mean": 71.82417582417582,
+      "n": 5
+    },
+    "NL": {
+      "bal_mean": 0.4581016617790811,
+      "bal_std": 0.1058972364339981,
+      "Old_mean": 83.48547717842324,
+      "All_mean": 70.54945054945054,
+      "n": 5
+    },
+    "FTR1": {
+      "bal_mean": 0.40518461433540204,
+      "bal_std": 0.1275289186156126,
+      "Old_mean": 87.1369294605809,
+      "All_mean": 73.01098901098901,
+      "n": 5
+    },
+    "Npre": {
+      "bal_mean": 0.47475768942235563,
+      "bal_std": 0.053258322316842265,
+      "Old_mean": 85.72614107883817,
+      "All_mean": 74.06593406593407,
+      "n": 5
+    }
+  },
+  "telemetry": {
+    "model": "dinov3_vitb16",
+    "cpu_model": "Intel(R) Xeon(R) CPU @ 2.20GHz",
+    "cpu_cores": 12,
+    "ram_total_gb": 52.96,
+    "gpu": "NVIDIA L4, 23034 MiB, 580.82.07",
+    "torch_version": "2.14.1+cu130",
+    "torch_cuda": true,
+    "jax_version": "0.11.1",
+    "jax_devices": [
+      "cuda:0"
+    ],
+    "stages": {
+      "phase1_r0": {
+        "cpu_peak_pct": 33.4,
+        "cpu_avg_pct": 16.9,
+        "ram_peak_gb": 4.16,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 8214.0,
+        "sec": 705
+      },
+      "r0_s0": {
+        "cpu_peak_pct": 25.3,
+        "cpu_avg_pct": 12.7,
+        "ram_peak_gb": 3.36,
+        "gpu_util_peak_pct": 9.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 227
+      },
+      "r0_s1": {
+        "cpu_peak_pct": 26.1,
+        "cpu_avg_pct": 12.7,
+        "ram_peak_gb": 3.36,
+        "gpu_util_peak_pct": 8.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 229
+      },
+      "r0_s2": {
+        "cpu_peak_pct": 25.3,
+        "cpu_avg_pct": 12.7,
+        "ram_peak_gb": 3.37,
+        "gpu_util_peak_pct": 8.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 229
+      },
+      "r0_s3": {
+        "cpu_peak_pct": 26.1,
+        "cpu_avg_pct": 12.7,
+        "ram_peak_gb": 3.34,
+        "gpu_util_peak_pct": 8.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 225
+      },
+      "r0_s4": {
+        "cpu_peak_pct": 26.0,
+        "cpu_avg_pct": 12.7,
+        "ram_peak_gb": 3.37,
+        "gpu_util_peak_pct": 9.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 227
+      }
+    },
+    "torch_peak_vram_mb": 6753.7
+  },
+  "verdict": "CẦN PHÂN TÍCH CHI TIẾT"
+}
