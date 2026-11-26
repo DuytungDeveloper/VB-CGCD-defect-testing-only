@@ -29,7 +29,9 @@ def infer_features_labels(dino, data_loader, features_dir, labels_dir, device, a
         images = batch["images"].to(device)
 
         if args.finetuned:
-            features = dino(images).pooler_output
+            out = dino(images)
+            po = getattr(out, "pooler_output", None)
+            features = po if po is not None else out.last_hidden_state[:, 0]
         else:
             features = dino(images)
 
