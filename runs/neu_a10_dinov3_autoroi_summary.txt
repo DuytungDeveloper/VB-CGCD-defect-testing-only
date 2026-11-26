@@ -1,0 +1,39 @@
+=== THÔNG SỐ PHẦN CỨNG, PEAK & THỜI GIAN CHẠY (BƯỚC A10 - NEU-DET) ===
+CPU          : Intel(R) Xeon(R) CPU @ 2.20GHz (12 cores) | Peak CPU: 40.2%
+RAM          : Peak 4.10 GB / 52.96 GB
+GPU          : NVIDIA L4, 23034 MiB, 580.82.07 | Peak GPU Util: 100.0% | Peak GPU VRAM: 8212.0 MB
+PyTorch      : 2.14.1+cu130 (CUDA=True) | JAX 0.11.1 (['cuda:0'])
+Tổng thời gian: 3157 s (52.6 phút)
+
+=== BẢNG TỔNG HỢP DỄ HIỂU — BƯỚC A10 (NEU-DET DINOv3 Full vs Auto-ROI + Imbalanced-DYDM) ===
+Ghi chú:
+  - Lớp cũ (Old %)     : Độ chính xác nhận diện 3 lớp lỗi đã học ở S0 (crazing, inclusion, patches).
+  - Lớp mới (New %)    : % tổng số ảnh thuộc 3 lớp lỗi mới chưa có nhãn (pitted_surface, rolled-in_scale, scratches).
+  - Cân bằng mới (bal) : Trung bình độ chính xác từng lớp mới (0..1).
+  - Gom cụm (c09 %)    : Độ thuần khi tự gom cụm 3 lớp mới chưa có nhãn.
+  - Tổng thể (All %)   : Độ chính xác chung trên toàn bộ 6 lớp lỗi thép NEU-DET.
+
+Phương pháp         Lớp cũ(Old%)  Lớp mới(New%)      Cân bằng(bal)  Gom cụm(c09%)  Tổng(All%±std)
+------------------------------------------------------------------------------------------------
+Full_N                    96.89%        100.00%   1.0000 ± 0.0000        100.00%   98.44 ±  0.33%
+Full_NL                   97.67%        100.00%   1.0000 ± 0.0000        100.00%   98.83 ±  0.27%
+ROI_N                     96.00%        100.00%   1.0000 ± 0.0000        100.00%   98.00 ±  0.21%
+ROI_NL                    96.44%        100.00%   1.0000 ± 0.0000        100.00%   98.22 ±  0.14%
+A10_Imb_head              96.00%        100.00%   1.0000 ± 0.0000         99.17%   98.00 ±  0.21%
+A10_Imb_km                96.00%        100.00%   1.0000 ± 0.0000         99.17%   98.00 ±  0.21%
+A10_Imb_blend50           96.00%        100.00%   1.0000 ± 0.0000         99.17%   98.00 ±  0.21%
+A10_Imb_blend70           96.00%        100.00%   1.0000 ± 0.0000         99.17%   98.00 ±  0.21%
+A10_Imb_blend50_NL        96.44%        100.00%   1.0000 ± 0.0000         99.17%   98.22 ±  0.14%
+
+--- CHI TIẾT ĐỘ CHÍNH XÁC TỪNG LỚP LỖI MỚI NEU-DET (%) ---
+Phương pháp           pitted_surface   rolled-in_scale         scratches
+------------------------------------------------------------------------
+Full_N                        100.0%            100.0%            100.0%
+Full_NL                       100.0%            100.0%            100.0%
+ROI_N                         100.0%            100.0%            100.0%
+ROI_NL                        100.0%            100.0%            100.0%
+A10_Imb_head                  100.0%            100.0%            100.0%
+A10_Imb_km                    100.0%            100.0%            100.0%
+A10_Imb_blend50               100.0%            100.0%            100.0%
+A10_Imb_blend70               100.0%            100.0%            100.0%
+A10_Imb_blend50_NL            100.0%            100.0%            100.0%
