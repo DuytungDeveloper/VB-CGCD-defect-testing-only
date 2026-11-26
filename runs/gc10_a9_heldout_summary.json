@@ -1,0 +1,681 @@
+{
+  "fts_loaded": [
+    "r0",
+    "r1",
+    "r2"
+  ],
+  "novel_classes": [
+    "silk_spot",
+    "inclusion",
+    "rolled_pit",
+    "crease",
+    "waist_folding"
+  ],
+  "grand_15chains": {
+    "N": {
+      "Old_mean": 83.07053941908713,
+      "Old_std": 2.907329251071923,
+      "New_mean": 45.825545171339556,
+      "New_std": 15.99966760458681,
+      "bal_mean": 0.42255183492842907,
+      "bal_std": 0.09583321565023534,
+      "c09_mean": 55.91212989493792,
+      "All_mean": 65.55311355311355,
+      "All_std": 8.806384947192019,
+      "per_class_novel": {
+        "silk_spot": 43.924731182795696,
+        "inclusion": 37.67441860465116,
+        "rolled_pit": 6.666666666666666,
+        "crease": 52.12121212121213,
+        "waist_folding": 70.8888888888889
+      },
+      "n_chains": 15
+    },
+    "NL": {
+      "Old_mean": 84.48132780082987,
+      "Old_std": 2.1255184190648495,
+      "New_mean": 43.55140186915889,
+      "New_std": 16.820872202024013,
+      "bal_mean": 0.4068413012343995,
+      "bal_std": 0.09999635516049413,
+      "c09_mean": 55.91212989493792,
+      "All_mean": 65.23076923076924,
+      "All_std": 9.01052442293808,
+      "per_class_novel": {
+        "silk_spot": 42.20430107526882,
+        "inclusion": 30.85271317829457,
+        "rolled_pit": 3.333333333333333,
+        "crease": 56.363636363636374,
+        "waist_folding": 70.66666666666667
+      },
+      "n_chains": 15
+    },
+    "A8_Imb_head": {
+      "Old_mean": 83.5131396957123,
+      "Old_std": 2.844535455731182,
+      "New_mean": 59.190031152647975,
+      "New_std": 16.60176024233549,
+      "bal_mean": 0.42246511627906974,
+      "bal_std": 0.1347793494674465,
+      "c09_mean": 62.5978987583572,
+      "All_mean": 72.07326007326009,
+      "All_std": 8.934533747009002,
+      "per_class_novel": {
+        "silk_spot": 75.0,
+        "inclusion": 36.89922480620155,
+        "rolled_pit": 7.777777777777776,
+        "crease": 53.333333333333336,
+        "waist_folding": 38.222222222222236
+      },
+      "n_chains": 15
+    },
+    "A8_Imb_km": {
+      "Old_mean": 84.17704011065007,
+      "Old_std": 2.6454971432376744,
+      "New_mean": 58.59813084112149,
+      "New_std": 8.748515548146093,
+      "bal_mean": 0.4202578826524813,
+      "bal_std": 0.10854274878641966,
+      "c09_mean": 48.767908309455585,
+      "All_mean": 72.14652014652013,
+      "All_std": 5.39214046455251,
+      "per_class_novel": {
+        "silk_spot": 67.95698924731182,
+        "inclusion": 36.899224806201545,
+        "rolled_pit": 10.0,
+        "crease": 20.6060606060606,
+        "waist_folding": 74.66666666666666
+      },
+      "n_chains": 15
+    },
+    "A8_Imb_blend50": {
+      "Old_mean": 83.73443983402488,
+      "Old_std": 2.8028014166507007,
+      "New_mean": 55.57632398753894,
+      "New_std": 10.956878328870733,
+      "bal_mean": 0.41320909015132573,
+      "bal_std": 0.10739130035299684,
+      "c09_mean": 50.99331423113657,
+      "All_mean": 70.49084249084248,
+      "All_std": 6.236218284731072,
+      "per_class_novel": {
+        "silk_spot": 62.68817204301076,
+        "inclusion": 37.20930232558139,
+        "rolled_pit": 11.111111111111109,
+        "crease": 21.81818181818181,
+        "waist_folding": 73.77777777777779
+      },
+      "n_chains": 15
+    },
+    "A8_Imb_blend70": {
+      "Old_mean": 83.90041493775932,
+      "Old_std": 2.558745467186101,
+      "New_mean": 58.19314641744548,
+      "New_std": 10.154807592214,
+      "bal_mean": 0.4360944478543878,
+      "bal_std": 0.123730366441788,
+      "c09_mean": 52.46418338108882,
+      "All_mean": 71.8095238095238,
+      "All_std": 5.716802301108589,
+      "per_class_novel": {
+        "silk_spot": 66.23655913978494,
+        "inclusion": 39.224806201550386,
+        "rolled_pit": 5.555555555555556,
+        "crease": 36.36363636363637,
+        "waist_folding": 70.66666666666667
+      },
+      "n_chains": 15
+    }
+  },
+  "per_ft": {
+    "r0": {
+      "N": {
+        "bal_mean": 0.5371731569255951,
+        "bal_std": 0.004689582274203568,
+        "Old_mean": 86.97095435684648,
+        "New_mean": 65.51401869158879,
+        "All_mean": 76.87912087912089,
+        "c09_mean": 65.70200573065901,
+        "per_class_novel": {
+          "silk_spot": 70.80645161290322,
+          "inclusion": 42.32558139534884,
+          "rolled_pit": 0.0,
+          "crease": 65.45454545454545,
+          "waist_folding": 90.0
+        },
+        "n": 5
+      },
+      "NL": {
+        "bal_mean": 0.5352499488508491,
+        "bal_std": 0.007177396931410548,
+        "Old_mean": 87.30290456431536,
+        "New_mean": 64.2056074766355,
+        "All_mean": 76.43956043956044,
+        "c09_mean": 65.70200573065901,
+        "per_class_novel": {
+          "silk_spot": 71.45161290322581,
+          "inclusion": 31.627906976744185,
+          "rolled_pit": 0.0,
+          "crease": 74.54545454545455,
+          "waist_folding": 90.0
+        },
+        "n": 5
+      },
+      "A8_Imb_head": {
+        "bal_mean": 0.5931137329786992,
+        "bal_std": 0.017474457037164635,
+        "Old_mean": 87.38589211618259,
+        "New_mean": 77.38317757009347,
+        "All_mean": 82.68131868131869,
+        "c09_mean": 80.31518624641834,
+        "per_class_novel": {
+          "silk_spot": 92.25806451612904,
+          "inclusion": 55.81395348837209,
+          "rolled_pit": 23.33333333333333,
+          "crease": 61.81818181818181,
+          "waist_folding": 63.33333333333333
+        },
+        "n": 5
+      },
+      "A8_Imb_km": {
+        "bal_mean": 0.5496140398736047,
+        "bal_std": 0.013737364233003225,
+        "Old_mean": 87.63485477178423,
+        "New_mean": 67.19626168224298,
+        "All_mean": 78.02197802197803,
+        "c09_mean": 61.862464183381086,
+        "per_class_novel": {
+          "silk_spot": 73.54838709677419,
+          "inclusion": 46.04651162790698,
+          "rolled_pit": 30.0,
+          "crease": 34.54545454545455,
+          "waist_folding": 90.66666666666666
+        },
+        "n": 5
+      },
+      "A8_Imb_blend50": {
+        "bal_mean": 0.5235131055491145,
+        "bal_std": 0.04735298797915499,
+        "Old_mean": 87.63485477178423,
+        "New_mean": 66.16822429906541,
+        "All_mean": 77.53846153846155,
+        "c09_mean": 60.68767908309455,
+        "per_class_novel": {
+          "silk_spot": 73.06451612903226,
+          "inclusion": 45.116279069767444,
+          "rolled_pit": 23.333333333333332,
+          "crease": 30.909090909090914,
+          "waist_folding": 89.33333333333334
+        },
+        "n": 5
+      },
+      "A8_Imb_blend70": {
+        "bal_mean": 0.5614268567141786,
+        "bal_std": 0.00949949151077808,
+        "Old_mean": 87.38589211618259,
+        "New_mean": 66.16822429906543,
+        "All_mean": 77.4065934065934,
+        "c09_mean": 65.87392550143267,
+        "per_class_novel": {
+          "silk_spot": 70.80645161290323,
+          "inclusion": 47.90697674418605,
+          "rolled_pit": 16.666666666666668,
+          "crease": 60.0,
+          "waist_folding": 85.33333333333334
+        },
+        "n": 5
+      },
+      "A8_Imb_blend50_NL": {
+        "bal_mean": 0.48490295301098,
+        "bal_std": 0.05909631698671016,
+        "Old_mean": 87.71784232365145,
+        "New_mean": 64.48598130841121,
+        "All_mean": 76.79120879120879,
+        "c09_mean": 60.68767908309455,
+        "per_class_novel": {
+          "silk_spot": 74.19354838709678,
+          "inclusion": 35.348837209302324,
+          "rolled_pit": 13.333333333333332,
+          "crease": 30.909090909090914,
+          "waist_folding": 88.66666666666667
+        },
+        "n": 5
+      }
+    },
+    "r1": {
+      "N": {
+        "bal_mean": 0.4122888904044193,
+        "bal_std": 0.054993572217626546,
+        "Old_mean": 80.58091286307054,
+        "New_mean": 43.364485981308405,
+        "All_mean": 63.07692307692308,
+        "c09_mean": 59.48424068767908,
+        "per_class_novel": {
+          "silk_spot": 41.29032258064516,
+          "inclusion": 45.58139534883721,
+          "rolled_pit": 19.999999999999996,
+          "crease": 47.272727272727266,
+          "waist_folding": 52.000000000000014
+        },
+        "n": 5
+      },
+      "NL": {
+        "bal_mean": 0.3815311555161517,
+        "bal_std": 0.0444677099323829,
+        "Old_mean": 83.81742738589212,
+        "New_mean": 41.58878504672897,
+        "All_mean": 63.956043956043956,
+        "c09_mean": 59.48424068767908,
+        "per_class_novel": {
+          "silk_spot": 40.806451612903224,
+          "inclusion": 39.53488372093023,
+          "rolled_pit": 9.999999999999998,
+          "crease": 49.09090909090908,
+          "waist_folding": 51.33333333333333
+        },
+        "n": 5
+      },
+      "A8_Imb_head": {
+        "bal_mean": 0.40286148809929745,
+        "bal_std": 0.039330821225360274,
+        "Old_mean": 81.41078838174273,
+        "New_mean": 58.97196261682243,
+        "All_mean": 70.85714285714286,
+        "c09_mean": 65.41547277936964,
+        "per_class_novel": {
+          "silk_spot": 75.96774193548387,
+          "inclusion": 28.372093023255808,
+          "rolled_pit": 0.0,
+          "crease": 49.090909090909086,
+          "waist_folding": 48.0
+        },
+        "n": 5
+      },
+      "A8_Imb_km": {
+        "bal_mean": 0.4127347291368296,
+        "bal_std": 0.05800903614676936,
+        "Old_mean": 83.56846473029046,
+        "New_mean": 59.81308411214953,
+        "All_mean": 72.3956043956044,
+        "c09_mean": 46.50429799426934,
+        "per_class_novel": {
+          "silk_spot": 68.38709677419355,
+          "inclusion": 40.46511627906976,
+          "rolled_pit": 0.0,
+          "crease": 18.18181818181818,
+          "waist_folding": 79.33333333333334
+        },
+        "n": 5
+      },
+      "A8_Imb_blend50": {
+        "bal_mean": 0.4185710063879606,
+        "bal_std": 0.08142227387743899,
+        "Old_mean": 81.99170124481327,
+        "New_mean": 52.61682242990655,
+        "All_mean": 68.17582417582418,
+        "c09_mean": 55.12893982808023,
+        "per_class_novel": {
+          "silk_spot": 54.83870967741935,
+          "inclusion": 42.325581395348834,
+          "rolled_pit": 9.999999999999998,
+          "crease": 25.454545454545453,
+          "waist_folding": 76.66666666666667
+        },
+        "n": 5
+      },
+      "A8_Imb_blend70": {
+        "bal_mean": 0.4550932733183295,
+        "bal_std": 0.09370019074205968,
+        "Old_mean": 82.57261410788382,
+        "New_mean": 61.02803738317757,
+        "All_mean": 72.43956043956044,
+        "c09_mean": 53.696275071633224,
+        "per_class_novel": {
+          "silk_spot": 67.90322580645162,
+          "inclusion": 46.9767441860465,
+          "rolled_pit": 0.0,
+          "crease": 39.99999999999999,
+          "waist_folding": 72.66666666666667
+        },
+        "n": 5
+      },
+      "A8_Imb_blend50_NL": {
+        "bal_mean": 0.4011941621769079,
+        "bal_std": 0.08319762294952698,
+        "Old_mean": 83.7344398340249,
+        "New_mean": 51.962616822429915,
+        "All_mean": 68.79120879120879,
+        "c09_mean": 55.12893982808023,
+        "per_class_novel": {
+          "silk_spot": 54.677419354838705,
+          "inclusion": 40.46511627906976,
+          "rolled_pit": 3.333333333333333,
+          "crease": 25.454545454545453,
+          "waist_folding": 76.66666666666666
+        },
+        "n": 5
+      }
+    },
+    "r2": {
+      "N": {
+        "bal_mean": 0.3181934574552729,
+        "bal_std": 0.01927910949502184,
+        "Old_mean": 81.65975103734439,
+        "New_mean": 28.598130841121495,
+        "All_mean": 56.7032967032967,
+        "c09_mean": 42.550143266475644,
+        "per_class_novel": {
+          "silk_spot": 19.67741935483871,
+          "inclusion": 25.116279069767444,
+          "rolled_pit": 0.0,
+          "crease": 43.63636363636363,
+          "waist_folding": 70.66666666666666
+        },
+        "n": 5
+      },
+      "NL": {
+        "bal_mean": 0.3037427993361977,
+        "bal_std": 0.014499501032500767,
+        "Old_mean": 82.32365145228215,
+        "New_mean": 24.859813084112147,
+        "All_mean": 55.2967032967033,
+        "c09_mean": 42.550143266475644,
+        "per_class_novel": {
+          "silk_spot": 14.354838709677418,
+          "inclusion": 21.395348837209305,
+          "rolled_pit": 0.0,
+          "crease": 45.45454545454545,
+          "waist_folding": 70.66666666666666
+        },
+        "n": 5
+      },
+      "A8_Imb_head": {
+        "bal_mean": 0.27142012775921254,
+        "bal_std": 0.018008548118258767,
+        "Old_mean": 81.74273858921161,
+        "New_mean": 41.21495327102803,
+        "All_mean": 62.68131868131868,
+        "c09_mean": 42.06303724928367,
+        "per_class_novel": {
+          "silk_spot": 56.774193548387096,
+          "inclusion": 26.51162790697675,
+          "rolled_pit": 0.0,
+          "crease": 49.090909090909086,
+          "waist_folding": 3.3333333333333335
+        },
+        "n": 5
+      },
+      "A8_Imb_km": {
+        "bal_mean": 0.2984248789470095,
+        "bal_std": 0.012566918868778507,
+        "Old_mean": 81.32780082987551,
+        "New_mean": 48.78504672897196,
+        "All_mean": 66.02197802197801,
+        "c09_mean": 37.93696275071633,
+        "per_class_novel": {
+          "silk_spot": 61.935483870967744,
+          "inclusion": 24.186046511627904,
+          "rolled_pit": 0.0,
+          "crease": 9.090909090909092,
+          "waist_folding": 54.0
+        },
+        "n": 5
+      },
+      "A8_Imb_blend50": {
+        "bal_mean": 0.297543158516902,
+        "bal_std": 0.012346996441748326,
+        "Old_mean": 81.57676348547719,
+        "New_mean": 47.94392523364486,
+        "All_mean": 65.75824175824175,
+        "c09_mean": 37.163323782234954,
+        "per_class_novel": {
+          "silk_spot": 60.16129032258065,
+          "inclusion": 24.186046511627907,
+          "rolled_pit": 0.0,
+          "crease": 9.090909090909092,
+          "waist_folding": 55.333333333333336
+        },
+        "n": 5
+      },
+      "A8_Imb_blend70": {
+        "bal_mean": 0.2917632135306554,
+        "bal_std": 0.012528821747334322,
+        "Old_mean": 81.74273858921163,
+        "New_mean": 47.38317757009346,
+        "All_mean": 65.58241758241758,
+        "c09_mean": 37.82234957020057,
+        "per_class_novel": {
+          "silk_spot": 60.0,
+          "inclusion": 22.790697674418603,
+          "rolled_pit": 0.0,
+          "crease": 9.090909090909092,
+          "waist_folding": 54.0
+        },
+        "n": 5
+      },
+      "A8_Imb_blend50_NL": {
+        "bal_mean": 0.31738039055218353,
+        "bal_std": 0.007590689341632919,
+        "Old_mean": 81.82572614107883,
+        "New_mean": 48.13084112149533,
+        "All_mean": 65.97802197802197,
+        "c09_mean": 37.163323782234954,
+        "per_class_novel": {
+          "silk_spot": 59.51612903225807,
+          "inclusion": 22.325581395348838,
+          "rolled_pit": 0.0,
+          "crease": 18.181818181818183,
+          "waist_folding": 58.66666666666667
+        },
+        "n": 5
+      }
+    }
+  },
+  "telemetry": {
+    "model": "GC10-DET A8 Champion Held-out (DINOv3 + Auto-ROI Fusion + Imbalanced-DYDM)",
+    "cpu_model": "Intel(R) Xeon(R) CPU @ 2.20GHz",
+    "cpu_cores": 12,
+    "ram_total_gb": 52.96,
+    "gpu": "NVIDIA L4, 23034 MiB, 580.82.07",
+    "torch_version": "2.14.1+cu130",
+    "torch_cuda": true,
+    "jax_version": "0.11.1",
+    "jax_devices": [
+      "cuda:0"
+    ],
+    "stages": {
+      "p1_r1": {
+        "cpu_peak_pct": 32.3,
+        "cpu_avg_pct": 16.7,
+        "ram_peak_gb": 4.29,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 8214.0,
+        "sec": 728
+      },
+      "roi_r1": {
+        "cpu_peak_pct": 18.0,
+        "cpu_avg_pct": 10.8,
+        "ram_peak_gb": 3.65,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 1590.0,
+        "sec": 154
+      },
+      "p2_r1_s0": {
+        "cpu_peak_pct": 28.4,
+        "cpu_avg_pct": 12.6,
+        "ram_peak_gb": 3.47,
+        "gpu_util_peak_pct": 8.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 229
+      },
+      "p2_r1_s1": {
+        "cpu_peak_pct": 25.4,
+        "cpu_avg_pct": 12.6,
+        "ram_peak_gb": 3.45,
+        "gpu_util_peak_pct": 5.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 223
+      },
+      "p2_r1_s2": {
+        "cpu_peak_pct": 31.2,
+        "cpu_avg_pct": 12.8,
+        "ram_peak_gb": 3.47,
+        "gpu_util_peak_pct": 8.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 220
+      },
+      "p2_r1_s3": {
+        "cpu_peak_pct": 25.4,
+        "cpu_avg_pct": 12.7,
+        "ram_peak_gb": 3.46,
+        "gpu_util_peak_pct": 7.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 221
+      },
+      "p2_r1_s4": {
+        "cpu_peak_pct": 28.2,
+        "cpu_avg_pct": 12.7,
+        "ram_peak_gb": 3.47,
+        "gpu_util_peak_pct": 6.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 225
+      },
+      "dydm_r1_s0": {
+        "cpu_peak_pct": 18.3,
+        "cpu_avg_pct": 10.8,
+        "ram_peak_gb": 4.18,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 1862.0,
+        "sec": 502
+      },
+      "dydm_r1_s1": {
+        "cpu_peak_pct": 18.0,
+        "cpu_avg_pct": 10.6,
+        "ram_peak_gb": 4.08,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 1868.0,
+        "sec": 506
+      },
+      "dydm_r1_s2": {
+        "cpu_peak_pct": 18.1,
+        "cpu_avg_pct": 10.6,
+        "ram_peak_gb": 4.03,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 1862.0,
+        "sec": 503
+      },
+      "dydm_r1_s3": {
+        "cpu_peak_pct": 18.2,
+        "cpu_avg_pct": 10.5,
+        "ram_peak_gb": 4.48,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 1868.0,
+        "sec": 531
+      },
+      "dydm_r1_s4": {
+        "cpu_peak_pct": 18.2,
+        "cpu_avg_pct": 10.7,
+        "ram_peak_gb": 4.2,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 1862.0,
+        "sec": 494
+      },
+      "p1_r2": {
+        "cpu_peak_pct": 34.1,
+        "cpu_avg_pct": 16.9,
+        "ram_peak_gb": 4.2,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 8214.0,
+        "sec": 709
+      },
+      "roi_r2": {
+        "cpu_peak_pct": 18.2,
+        "cpu_avg_pct": 10.7,
+        "ram_peak_gb": 3.67,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 1590.0,
+        "sec": 156
+      },
+      "p2_r2_s0": {
+        "cpu_peak_pct": 22.2,
+        "cpu_avg_pct": 12.7,
+        "ram_peak_gb": 3.47,
+        "gpu_util_peak_pct": 9.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 212
+      },
+      "p2_r2_s1": {
+        "cpu_peak_pct": 34.5,
+        "cpu_avg_pct": 12.8,
+        "ram_peak_gb": 3.44,
+        "gpu_util_peak_pct": 9.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 212
+      },
+      "p2_r2_s2": {
+        "cpu_peak_pct": 25.2,
+        "cpu_avg_pct": 12.8,
+        "ram_peak_gb": 3.45,
+        "gpu_util_peak_pct": 7.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 210
+      },
+      "p2_r2_s3": {
+        "cpu_peak_pct": 26.9,
+        "cpu_avg_pct": 12.6,
+        "ram_peak_gb": 3.43,
+        "gpu_util_peak_pct": 8.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 214
+      },
+      "p2_r2_s4": {
+        "cpu_peak_pct": 25.4,
+        "cpu_avg_pct": 12.7,
+        "ram_peak_gb": 3.45,
+        "gpu_util_peak_pct": 9.0,
+        "gpu_vram_peak_mb": 268.0,
+        "sec": 211
+      },
+      "dydm_r2_s0": {
+        "cpu_peak_pct": 18.6,
+        "cpu_avg_pct": 10.8,
+        "ram_peak_gb": 4.16,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 1862.0,
+        "sec": 498
+      },
+      "dydm_r2_s1": {
+        "cpu_peak_pct": 18.2,
+        "cpu_avg_pct": 10.8,
+        "ram_peak_gb": 4.18,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 1862.0,
+        "sec": 499
+      },
+      "dydm_r2_s2": {
+        "cpu_peak_pct": 18.3,
+        "cpu_avg_pct": 10.8,
+        "ram_peak_gb": 4.18,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 1862.0,
+        "sec": 498
+      },
+      "dydm_r2_s3": {
+        "cpu_peak_pct": 18.3,
+        "cpu_avg_pct": 10.8,
+        "ram_peak_gb": 4.17,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 1862.0,
+        "sec": 500
+      },
+      "dydm_r2_s4": {
+        "cpu_peak_pct": 18.5,
+        "cpu_avg_pct": 10.8,
+        "ram_peak_gb": 4.19,
+        "gpu_util_peak_pct": 100.0,
+        "gpu_vram_peak_mb": 1862.0,
+        "sec": 498
+      }
+    }
+  }
+}

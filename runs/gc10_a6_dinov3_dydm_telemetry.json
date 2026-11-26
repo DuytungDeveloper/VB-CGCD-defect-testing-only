@@ -1,0 +1,55 @@
+{
+  "model": "dinov3_vitb16 + Imbalanced-DYDM",
+  "cpu_model": "Intel(R) Xeon(R) CPU @ 2.20GHz",
+  "cpu_cores": 12,
+  "ram_total_gb": 52.96,
+  "gpu": "NVIDIA L4, 23034 MiB, 580.82.07",
+  "torch_version": "2.14.1+cu130",
+  "torch_cuda": true,
+  "jax_version": "0.11.1",
+  "jax_devices": [
+    "cuda:0"
+  ],
+  "stages": {
+    "r0_s0": {
+      "cpu_peak_pct": 29.4,
+      "cpu_avg_pct": 11.0,
+      "ram_peak_gb": 4.23,
+      "gpu_util_peak_pct": 100.0,
+      "gpu_vram_peak_mb": 1862.0,
+      "sec": 480
+    },
+    "r0_s1": {
+      "cpu_peak_pct": 18.3,
+      "cpu_avg_pct": 10.9,
+      "ram_peak_gb": 4.23,
+      "gpu_util_peak_pct": 100.0,
+      "gpu_vram_peak_mb": 1862.0,
+      "sec": 478
+    },
+    "r0_s2": {
+      "cpu_peak_pct": 18.4,
+      "cpu_avg_pct": 10.9,
+      "ram_peak_gb": 4.23,
+      "gpu_util_peak_pct": 100.0,
+      "gpu_vram_peak_mb": 1862.0,
+      "sec": 480
+    },
+    "r0_s3": {
+      "cpu_peak_pct": 18.5,
+      "cpu_avg_pct": 10.9,
+      "ram_peak_gb": 4.22,
+      "gpu_util_peak_pct": 100.0,
+      "gpu_vram_peak_mb": 1862.0,
+      "sec": 472
+    },
+    "r0_s4": {
+      "cpu_peak_pct": 18.2,
+      "cpu_avg_pct": 10.9,
+      "ram_peak_gb": 4.23,
+      "gpu_util_peak_pct": 100.0,
+      "gpu_vram_peak_mb": 1862.0,
+      "sec": 477
+    }
+  }
+}
